@@ -1,0 +1,225 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projects\\Back End\\mct_API\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\common\\validation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:common\\validation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\dto\\resdto\\token\\tokenresdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:dto\\resdto\\token\\tokenresdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\mct_api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:mct_api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\dto\\reqdto\\signinreqdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:dto\\reqdto\\signinreqdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\iservice\\iuser_manager\\iuserservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:iservice\\iuser_manager\\iuserservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\service\\user_manager\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:service\\user_manager\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\iservice\\icommon_manager\\ihelperservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:iservice\\icommon_manager\\ihelperservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\service\\common_manager\\helperservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:service\\common_manager\\helperservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\common\\commonfunctions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:common\\commonfunctions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|d:\\projects\\back end\\mct_api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{6383C064-219A-D163-0334-DB1D82A28484}|mct_API.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 235,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAAADAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-05-26T11:15:25.862Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-25T04:26:12.153Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Validation.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\Common\\Validation.cs",
+              "RelativeDocumentMoniker": "Common\\Validation.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\Common\\Validation.cs",
+              "RelativeToolTip": "Common\\Validation.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T04:48:29.568Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "TokenResDTO.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\DTO\\ResDTO\\Token\\TokenResDTO.cs",
+              "RelativeDocumentMoniker": "DTO\\ResDTO\\Token\\TokenResDTO.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\DTO\\ResDTO\\Token\\TokenResDTO.cs",
+              "RelativeToolTip": "DTO\\ResDTO\\Token\\TokenResDTO.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T04:15:19.024Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "mct_API",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\mct_API.csproj",
+              "RelativeDocumentMoniker": "mct_API.csproj",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\mct_API.csproj",
+              "RelativeToolTip": "mct_API.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAABhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-05-27T04:14:56.51Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{74946827-37a0-11d2-a273-00c04f8ef4ff}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{5a4e9529-b6a0-46b5-be4f-0f0b239bc0eb}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "CommonFunctions.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\Common\\CommonFunctions.cs",
+              "RelativeDocumentMoniker": "Common\\CommonFunctions.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\Common\\CommonFunctions.cs",
+              "RelativeToolTip": "Common\\CommonFunctions.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAoAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T13:04:31.791Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "HelperService.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\Service\\Common_manager\\HelperService.cs",
+              "RelativeDocumentMoniker": "Service\\Common_manager\\HelperService.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\Service\\Common_manager\\HelperService.cs",
+              "RelativeToolTip": "Service\\Common_manager\\HelperService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T11:19:00.088Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "IHelperService.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\IService\\ICommon_manager\\IHelperService.cs",
+              "RelativeDocumentMoniker": "IService\\ICommon_manager\\IHelperService.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\IService\\ICommon_manager\\IHelperService.cs",
+              "RelativeToolTip": "IService\\ICommon_manager\\IHelperService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAYAAABKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T11:06:42.687Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "UserService.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\Service\\User_manager\\UserService.cs",
+              "RelativeDocumentMoniker": "Service\\User_manager\\UserService.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\Service\\User_manager\\UserService.cs",
+              "RelativeToolTip": "Service\\User_manager\\UserService.cs",
+              "ViewState": "AgIAAC0AAAAAAAAAAAAowEkAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T08:56:29.821Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "IUserService.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\IService\\IUser_manager\\IUserService.cs",
+              "RelativeDocumentMoniker": "IService\\IUser_manager\\IUserService.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\IService\\IUser_manager\\IUserService.cs",
+              "RelativeToolTip": "IService\\IUser_manager\\IUserService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAABUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T08:50:24.201Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "SignInReqDTO.cs",
+              "DocumentMoniker": "D:\\Projects\\Back End\\mct_API\\DTO\\ReqDTO\\SignInReqDTO.cs",
+              "RelativeDocumentMoniker": "DTO\\ReqDTO\\SignInReqDTO.cs",
+              "ToolTip": "D:\\Projects\\Back End\\mct_API\\DTO\\ReqDTO\\SignInReqDTO.cs",
+              "RelativeToolTip": "DTO\\ReqDTO\\SignInReqDTO.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAQwCkAAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-26T08:37:19.571Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
