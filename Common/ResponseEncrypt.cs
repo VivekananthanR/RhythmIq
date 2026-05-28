@@ -7,8 +7,8 @@ namespace mct_API.Common
 {
     public class ResponseEncrypt
     {
-        private static readonly string enkey = "";
-        private static readonly string eniv = "";
+        private static readonly string enkey = "15935722001241278523985216325874";// 32-byte key for AES-256
+        private static readonly string eniv = "1201240112242001";// 16-byte IV for AES
 
 
         public static object EncryptData(object plainData)

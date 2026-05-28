@@ -10,16 +10,14 @@
             Token = token;
             Token_ExpiryTime = token_ExpiryTime;
         }
+    }
 
-
-        public class TokenClaims
-        {
-            public long id { get; set; }
-            public Guid gu_id { get; set; }
-            public string phone_no { get; set; }
-            public string token_type { get; set; }
-
-        }
+    public class TokenClaims
+    {
+        public long id { get; set; }
+        public Guid gu_id { get; set; }
+        public string phone_no { get; set; }
+        public string token_type { get; set; }
 
     }
 }

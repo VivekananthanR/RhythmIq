@@ -31,8 +31,11 @@ namespace mct_API.Service.User_manager
             try
             {
                 if (!Validation.IsValidPhoneNumber(obj.phone_no) && !Validation.IsValidEmail(obj.phone_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
                 MasterEmployeeLoginResDTO data = await GetEmployeeDetails(obj);
+
                 if (data == null) return new ResponseDTO(false, ResponseMessage.Invalid_email_id);
+
                 if (obj.login_with_otp)
                 {
                     if (obj.otp == 0)
@@ -44,6 +47,7 @@ namespace mct_API.Service.User_manager
                 else
                 {
                     #region Sync Employee Details from Meterbox
+
                     var meterboxData = await _helperService.GetEmployeeDetails(data.emp_code);
 
                     if (meterboxData == null) return new ResponseDTO(false, "Employee Not Found In Meterbox");
@@ -56,6 +60,7 @@ namespace mct_API.Service.User_manager
                                     Set password = @password, email_id = @email_id
                                     Where emp_code = @emp_code";
                         await _dp.Execute(query, new { password = meterboxData.m_Password, email_id = meterboxData.m_Email, emp_code = data.emp_code }, Mct_db);
+
                         data.password = meterboxData.m_Password;
                     }
 
