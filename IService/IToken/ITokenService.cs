@@ -1,6 +1,6 @@
-﻿using mct_API.DTO.ResDTO.Token;
+﻿using elr_API.DTO.ResDTO.Token;
 
-namespace mct_API.IService.IToken
+namespace elr_API.IService.IToken
 {
     public interface ITokenService
     {

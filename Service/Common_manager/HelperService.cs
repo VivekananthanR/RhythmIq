@@ -1,8 +1,8 @@
-﻿using mct_API.IService.ICommon_manager;
-using mct_API.Service.User_manager;
+﻿using elr_API.IService.ICommon_manager;
+using elr_API.Service.User_manager;
 using System.Text.Json;
 
-namespace mct_API.Service.Common_manager
+namespace elr_API.Service.Common_manager
 {
     public class HelperService : IHelperService
     {
@@ -21,7 +21,7 @@ namespace mct_API.Service.Common_manager
             var apiUrl = $"{MeterboxApiBaseUrl}{emp_code}";
             var response = await client.GetAsync(apiUrl);
             var responseBody = await response.Content.ReadAsStringAsync();
-            var employeeResponse = JsonSerializer.Deserialize<ApiResponse>(responseBody, new JsonSerializerOptions
+            var employeeResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse>(responseBody, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });

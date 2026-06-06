@@ -1,8 +1,8 @@
-﻿using mct_API.DTO.ResDTO.Token;
+﻿using elr_API.DTO.ResDTO.Token;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.RegularExpressions;
 
-namespace mct_API.Common
+namespace elr_API.Common
 {
     public class Validation
     {

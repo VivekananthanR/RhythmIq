@@ -1,12 +1,14 @@
-using mct_API.IService.ICommon_manager;
-using mct_API.IService.IDapper;
-using mct_API.IService.IToken;
-using mct_API.IService.IUser_manager;
-using mct_API.Service.Common_manager;
-using mct_API.Service.Dapper;
-using mct_API.Service.Exception_handler;
-using mct_API.Service.Token;
-using mct_API.Service.User_manager;
+using elr_API.IService.ICommon_manager;
+using elr_API.IService.IDapper;
+using elr_API.IService.IEntrolement;
+using elr_API.IService.IToken;
+using elr_API.IService.IUser_manager;
+using elr_API.Service.Common_manager;
+using elr_API.Service.Dapper;
+using elr_API.Service.Enrolment;
+using elr_API.Service.Exception_handler;
+using elr_API.Service.Token;
+using elr_API.Service.User_manager;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -34,6 +36,8 @@ builder.Services.AddScoped<IDapperSqlService, DapperSqlService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IHelperService, HelperService>();
+builder.Services.AddScoped<IEnrollment, Enrollment>();
+builder.Services.AddScoped<IQikberrychatService, QikberrychatService>();
 #endregion
 
 #region Logging configuration

@@ -1,9 +1,10 @@
-﻿namespace mct_API.Common
+﻿namespace elr_API.Common
 {
     public class ResponseMessage
     {
         public static string Please_SignUp = "Please Sign Up";
-        public static string Invalid_Details = "Invalid Detials";
+        public static string Invalid_Details = "Invalid Details";
+
         public static string Failed = "Failed";
         public static string Success = "Success";
         public static string Booked = "Booked";

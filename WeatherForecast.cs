@@ -1,4 +1,4 @@
-namespace mct_API
+namespace elr_API
 {
     public class WeatherForecast
     {

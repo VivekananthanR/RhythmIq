@@ -1,6 +1,6 @@
-﻿using mct_API.Common;
+﻿using elr_API.Common;
 
-namespace mct_API.DTO.ReqDTO
+namespace elr_API.DTO.ReqDTO.UserReq
 {
     public class SignInReqDTO
     {
@@ -8,15 +8,15 @@ namespace mct_API.DTO.ReqDTO
 
     public class MasterEmployeeLoginReqDTO
     {
-        public string phone_no { get; set; }
+
+        public string user_name { get; set; }
         public string password { get; set; }
-        public bool login_with_otp { get; set; }
-        public int otp { get; set; }
+
 
         #region Query
         internal static string employee_master_select()
         {
-            return $@"Select * from {Tbl.user_master} where (phone_no = @phone_no OR email_id = @phone_no) and is_active = 1";
+            return $@"Select * from {Tbl.user_master}  where (phone_no = @user_name OR email_id = @user_name OR emp_code = @user_name) and is_active = 1";
         }
         #endregion
 

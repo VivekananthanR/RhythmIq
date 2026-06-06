@@ -1,19 +1,16 @@
-﻿using mct_API.DTO.ReqDTO;
-using mct_API.DTO.ResDTO;
-using mct_API.IService.IUser_manager;
+﻿using elr_API.DTO.ReqDTO.UserReq;
+using elr_API.DTO.ResDTO;
+using elr_API.IService.IUser_manager;
 using Microsoft.AspNetCore.Mvc;
 
-namespace mct_API.Controllers.User_manager
+
+namespace elr_API.Controllers.User_manager
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UserController : ControllerBase
+    public class UserController(IUserService userService) : ControllerBase
     {
-        private readonly IUserService _userService;
-        public UserController(IUserService userService)
-        {
-            _userService = userService;
-        }
+        private readonly IUserService _userService = userService;
 
         #region HttpPost = api/User/MasterEmployeeLogin
         [HttpPost("MasterEmployeeLogin")]

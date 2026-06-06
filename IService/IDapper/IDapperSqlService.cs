@@ -1,4 +1,4 @@
-﻿namespace mct_API.IService.IDapper
+﻿namespace elr_API.IService.IDapper
 {
     public interface IDapperSqlService
     {

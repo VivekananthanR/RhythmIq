@@ -1,6 +1,6 @@
-﻿using mct_API.Service.User_manager;
+﻿using elr_API.Service.User_manager;
 
-namespace mct_API.IService.ICommon_manager
+namespace elr_API.IService.ICommon_manager
 {
     public interface IHelperService
     {

@@ -1,6 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿
+using Newtonsoft.Json;
 
-namespace mct_API.Service.Exception_handler
+namespace elr_API.Service.Exception_handler
 {
     public class CustomErrorHandlingMiddleware
     {

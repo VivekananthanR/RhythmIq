@@ -1,11 +1,11 @@
-﻿using mct_API.DTO.ResDTO.Token;
-using mct_API.IService.IToken;
+﻿using elr_API.DTO.ResDTO.Token;
+using elr_API.IService.IToken;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace mct_API.Service.Token
+namespace elr_API.Service.Token
 {
     public class TokenService : ITokenService
     {

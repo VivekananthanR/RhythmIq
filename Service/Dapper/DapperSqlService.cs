@@ -1,18 +1,18 @@
 ﻿using Dapper;
-using mct_API.IService.IDapper;
+using elr_API.IService.IDapper;
 using System.Data;
 using System.Data.SqlClient;
 
-namespace mct_API.Service.Dapper
+namespace elr_API.Service.Dapper
 {
     public class DapperSqlService : IDapperSqlService
     {
 
-        public Task<int> Execute(string sql, object parameters = null, string connectionString = null)
+        public async Task<int> Execute(string sql, object parameters = null, string connectionString = null)
         {
             using (IDbConnection dbConnection = new SqlConnection(connectionString))
             {
-                return dbConnection.ExecuteAsync(sql, parameters);
+                return await dbConnection.ExecuteAsync(sql, parameters);
             }
         }
 
@@ -32,11 +32,11 @@ namespace mct_API.Service.Dapper
             }
         }
 
-        public Task<T> QuerySingle<T>(string sql, object parameters = null, string connectionString = null)
+        public async Task<T> QuerySingle<T>(string sql, object parameters = null, string connectionString = null)
         {
             using (var connection = new SqlConnection(connectionString))
             {
-                return connection.QuerySingleAsync<T>(sql, parameters);
+                return await connection.QuerySingleAsync<T>(sql, parameters);
             }
         }
 
@@ -64,16 +64,19 @@ namespace mct_API.Service.Dapper
 
         public async Task<(T1 TotalCount, IEnumerable<T2> Data)> SelectQueryWithCount<T1, T2>(string sql, object parameters = null, string connectionString = null)
         {
-            using var connection = new SqlConnection(connectionString);
-            using var result = await connection.QueryMultipleAsync(sql, parameters);
+            using (var connection = new SqlConnection(connectionString))
+            {
+                using (var result = await connection.QueryMultipleAsync(sql, parameters))
+                {
+                    // Read the total count (ensure this matches the order in the query)
+                    var totalCount = await result.ReadSingleOrDefaultAsync<T1>();
 
-            // Read the total count (ensure this matches the order in the query)
-            var totalCount = await result.ReadSingleOrDefaultAsync<T1>();
+                    //Read the  paginated data
+                    var data = await result.ReadAsync<T2>();
 
-            //Read the  paginated data
-            var data = await result.ReadAsync<T2>();
-
-            return (totalCount, data);
+                    return (totalCount, data);
+                }
+            }
         }
     }
 }

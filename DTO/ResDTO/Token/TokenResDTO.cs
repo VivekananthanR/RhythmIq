@@ -1,4 +1,4 @@
-﻿namespace mct_API.DTO.ResDTO.Token
+﻿namespace elr_API.DTO.ResDTO.Token
 {
     public class TokenResDTO
     {

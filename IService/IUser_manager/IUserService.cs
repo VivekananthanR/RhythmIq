@@ -1,7 +1,7 @@
-﻿using mct_API.DTO.ReqDTO;
-using mct_API.DTO.ResDTO;
+﻿using elr_API.DTO.ReqDTO.UserReq;
+using elr_API.DTO.ResDTO;
 
-namespace mct_API.IService.IUser_manager
+namespace elr_API.IService.IUser_manager
 {
     public interface IUserService
     {

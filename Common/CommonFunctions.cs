@@ -1,12 +1,12 @@
 ﻿using Serilog;
 using System.Security.Cryptography;
 
-namespace mct_API.Common
+namespace elr_API.Common
 {
     public class CommonFunctions
     {
 
-        public const string MCT = "mct";
+        public const string ELR = "elr";
 
         #region live or local
         public static bool DataOnLive()
@@ -22,35 +22,61 @@ namespace mct_API.Common
         {
             if (DataOnLive())
             {
-                if (db == "mct_db")
+                if (db == "elr_db")
                 {
-                    return "Data Source=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=mct_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                    return "Data Source=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
                 }
                 else return "";
             }
             else
             {
-                if (db == "mct_db")
+                if (db == "elr_db")
                 {
-                    return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=mct_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                    return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
                 }
                 else return "";
             }
         }
         #endregion
+        #region Get Folder Path
+        public static string FolderPath(string FileFolder)
+        {
+            if (DataOnLive())
+            {
+                return Path.Combine(Directory.GetCurrentDirectory(), "Resources", FileFolder);
+            }
+            else
+            {
+                return Path.Combine(Directory.GetCurrentDirectory(), "Resources", FileFolder);
+            }
+        }
+        #endregion
 
+        public static async Task<string> UploadFile(IFormFile File, string FileName, string FolderPath)
+        {
+            if (File != null)
+            {
+                await checkDirectory(FolderPath);
+                string filePath = Path.Combine(FolderPath, FileName);
+
+                using FileStream stream = new FileStream(filePath, FileMode.Create);
+
+                await File.CopyToAsync(stream);
+                return filePath;
+            }
+            return null;
+        }
+
+        public static async Task<int> checkDirectory(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+            return 1;
+        }
 
         #region Generate OTP
-        //public static int GenerateOTP(int length)
-        //{
-        //    if (length < 1) return 0;
-
-        //    int minValue = (int)Math.Pow(10, length - 1);
-        //    int maxValue = (int)Math.Pow(10, length) - 1;
-
-        //    Random  generator = new Random();
-        //    return generator.Next(minValue, maxValue);  
-        //}
 
         public static int GenerateOTP(int length)
         {
@@ -66,12 +92,13 @@ namespace mct_API.Common
         #endregion
 
         #region Save Error Log
-
         public static void ILogging(object? obj, string message)
         {
             Log.Error("(New Error) => Object = {@obj} and Message ={@message}", obj, message);
         }
         #endregion
+
+
     }
 
 }
