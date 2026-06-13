@@ -10,6 +10,7 @@ namespace elr_API.IService.IEntrolement
         Task<ResponseDTO> ElrValidPatchId(string patch_no);
         Task<ResponseDTO> ElrUploadPatientSignature(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrStartHookUpPatient(long patient_enrollment_id);
+        Task<ResponseDTO> ElrCompleteHookUpPatient(long patient_enrollment_id);
         Task<ResponseDTO> GetPatientEnrollment(PatientEnrollmentDTO obj);
         Task<List<PatientEnrollmentDTO>> PatientEnrollmentList(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj);

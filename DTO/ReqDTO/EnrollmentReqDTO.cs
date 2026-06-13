@@ -225,12 +225,27 @@ namespace elr_API.DTO.ReqDTO
                     WHERE patient_enrollment_id = @patient_enrollment_id";
         }
 
-        internal static string start_hookup_patient(long patient_enrollment_id)
+        internal static string start_hookup_status(long patient_enrollment_id)
         {
             return $@"UPDATE {Tbl.patient_enrollment}
               SET actual_hookup = GETDATE(),
                   enrollment_status = 'hookuped'
               WHERE patient_enrollment_id = {patient_enrollment_id}";
+        }
+
+        internal static string complete_hookup_status(long complete_hookup_patient)
+        {
+            return $@"UPDATE {Tbl.patient_enrollment}
+              SET actual_hookup_completed = GETDATE(),
+                  enrollment_status = 'completed'
+              WHERE patient_enrollment_id = @patient_enrollment_id";
+        }
+
+        internal static string monitoring_hookup_status()
+        {
+            return $@"UPDATE {Tbl.patient_enrollment}
+              SET enrollment_status = 'monitoring'
+              WHERE patient_enrollment_id = @patient_enrollment_id";
         }
         #endregion
     }

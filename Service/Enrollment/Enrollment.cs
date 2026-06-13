@@ -124,7 +124,7 @@ namespace elr_API.Service.Enrolment
             try
             {
                 if (patient_enrollment_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
-                query = PatientEnrollmentDTO.start_hookup_patient(patient_enrollment_id);
+                query = PatientEnrollmentDTO.start_hookup_status(patient_enrollment_id);
                 int row = await _db.Execute(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db);
 
                 return new ResponseDTO((row > 0), row > 0 ? ResponseMessage.Saved_Successfully : "Patient Enrollment ID not found");
@@ -136,7 +136,25 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<ResponseDTO> ElrCompleteHookUpPatient(long patient_enrollment_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (patient_enrollment_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                query = PatientEnrollmentDTO.complete_hookup_status(patient_enrollment_id);
+                int row = await _db.Execute(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db);
 
+                return new ResponseDTO((row > 0), row > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
         public async Task<List<PatientEnrollmentDTO>> PatientEnrollmentList(PatientEnrollmentDTO obj)
         {
             string query = PatientEnrollmentDTO.select_enrollment();
@@ -191,8 +209,16 @@ namespace elr_API.Service.Enrolment
                 if (obj.enrollment_raw_data_id == 0)
                 {
                     obj.waiting_datetime = DateTime.Now;
+
                     query = EnrollmentRawDataDTO.insert_raw_data();
                     int a = await _db.Execute(query, obj, ELR_db);
+
+                    if (a > 0)
+                    {
+                        query = PatientEnrollmentDTO.monitoring_hookup_status();
+                        await _db.Execute(query, obj, ELR_db);
+                    }
+
                     return new ResponseDTO(a > 0, a > 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Failed);
                 }
             }

@@ -56,6 +56,14 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
+        #region HttpPost = api/Home/ElrCompleteHookUpPatient?patient_enrollment_id=
+        [HttpPost("ElrCompleteHookUpPatient")]
+        public async Task<ResponseDTO> ElrCompleteHookUpPatient(long patient_enrollment_id)
+        {
+            return await _enrollment.ElrCompleteHookUpPatient(patient_enrollment_id);
+        }
+        #endregion
+
 
         #region HttpPost = api/Home/GetPatientEnrollment
         [HttpPost("GetPatientEnrollment")]
