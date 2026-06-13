@@ -241,7 +241,7 @@ namespace elr_API.DTO.ReqDTO
               WHERE patient_enrollment_id = @patient_enrollment_id";
         }
 
-        internal static string monitoring_hookup_status()
+        internal static string monitoring_hookup_status(long patient_enrollment_id)
         {
             return $@"UPDATE {Tbl.patient_enrollment}
               SET enrollment_status = 'monitoring'

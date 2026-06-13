@@ -215,8 +215,8 @@ namespace elr_API.Service.Enrolment
 
                     if (a > 0)
                     {
-                        query = PatientEnrollmentDTO.monitoring_hookup_status();
-                        await _db.Execute(query, obj, ELR_db);
+                        query = PatientEnrollmentDTO.monitoring_hookup_status(obj.patient_enrollment_id);
+                        await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
                     }
 
                     return new ResponseDTO(a > 0, a > 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Failed);
