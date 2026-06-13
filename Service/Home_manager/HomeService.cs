@@ -1,0 +1,413 @@
+﻿using elr_API.Common;
+using elr_API.DTO.ReqDTO;
+using elr_API.DTO.ResDTO;
+using elr_API.IService.IDapper;
+using elr_API.IService.IHome_manager;
+
+namespace elr_API.Service.Home_manager
+{
+    public class HomeService : IHomeService
+    {
+        private readonly IDapperSqlService _db;
+        public string ErrorMessage = string.Empty;
+        public string ELR_db = CommonFunctions.GetConnectionString("elr_db");
+        public HomeService(IDapperSqlService db)
+        {
+            _db = db;
+        }
+
+        public async Task<ResponseDTO> GetMenu()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = MenuDTO.select_menu();
+                var data = (await _db.SelectQuery<MenuDTO>(query, null, ELR_db)).ToList();
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<ResponseDTO> AddUpdateMenu(MenuDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.menu_id == 0) query = MenuDTO.insert_menu();
+                else query = MenuDTO.update_menu();
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? ((obj.menu_id == 0) ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> GetCountry(CountryDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try { return new ResponseDTO(await CountryList(obj)); }
+            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<List<CountryDTO>> CountryList(CountryDTO obj)
+        {
+            return (await _db.SelectQuery<CountryDTO>(CountryDTO.select_country(), obj, ELR_db)).ToList();
+        }
+        public async Task<ResponseDTO> AddUpdateCountry(CountryDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                string query = obj.country_id == 0 ? CountryDTO.insert_country() : CountryDTO.update_country();
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.country_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> GetState(StateDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try { return new ResponseDTO(await StateList(obj)); }
+            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<List<StateDTO>> StateList(StateDTO obj)
+        {
+            return (await _db.SelectQuery<StateDTO>(StateDTO.select_state(), obj, ELR_db)).ToList();
+        }
+        public async Task<ResponseDTO> AddUpdateState(StateDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                string query = obj.state_id == 0 ? StateDTO.insert_state() : StateDTO.update_state();
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.state_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> GetDistrict(DistrictDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try { return new ResponseDTO(await DistrictList(obj)); }
+            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<List<DistrictDTO>> DistrictList(DistrictDTO obj)
+        {
+            return (await _db.SelectQuery<DistrictDTO>(DistrictDTO.select_district(), obj, ELR_db)).ToList();
+        }
+        public async Task<ResponseDTO> AddUpdateDistrict(DistrictDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                string query = obj.district_id == 0 ? DistrictDTO.insert_district() : DistrictDTO.update_district();
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.district_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> GetUserType(UserTypeDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try
+            {
+                return new ResponseDTO(await UserTypeList(obj));
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<List<UserTypeDTO>> UserTypeList(UserTypeDTO obj)
+        {
+            string query = UserTypeDTO.select_user_type();
+            var data = (await _db.SelectQuery<UserTypeDTO>(query, obj, ELR_db)).ToList();
+            return data;
+        }
+
+        public async Task<ResponseDTO> AddUpdateUserType(UserTypeDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.user_type_id == 0) query = UserTypeDTO.insert_user_type();
+                else query = UserTypeDTO.update_user_type();
+
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.user_type_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<ResponseDTO> ElrHospitalList(string? hospital_name)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                string? search = string.IsNullOrWhiteSpace(hospital_name) ? null : hospital_name.Trim();
+                query = AddUpdateHospitalReqDTO.select_hospital();
+                var data = (await _db.SelectQuery<AddUpdateHospitalReqDTO>(query, new { hospital_name = search }, ELR_db)).ToList();
+
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        //public async Task<ResponseDTO> GetHospital(HospitalDTO obj)
+        //{
+        //    ErrorMessage = string.Empty;
+        //    try { return new ResponseDTO(await HospitalList(obj)); }
+        //    catch (Exception ex)
+        //    {
+        //        CommonFunctions.ILogging(obj, ex.ToString());
+        //        ErrorMessage = ex.Message.ToString();
+        //    }
+        //    return new ResponseDTO(false, ErrorMessage);
+        //}
+
+        //public async Task<List<HospitalDTO>> HospitalList(HospitalDTO obj)
+        //{
+        //    string query = HospitalDTO.select_hospital();
+        //    return (await _db.SelectQuery<HospitalDTO>(query, obj, ELR_db)).ToList();
+        //}
+        public async Task<ResponseDTO> AddUpdateHospital(AddUpdateHospitalReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.hospital_id == 0) query = AddUpdateHospitalReqDTO.insert_hospital();
+                else query = AddUpdateHospitalReqDTO.update_hospital();
+
+                var a = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(a > 0, a > 0 ? (obj.hospital_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrGetTest()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = AddUpdateTestDTO.select_test();
+                var data = (await _db.SelectQuery<AddUpdateTestDTO>(query, null, ELR_db)).ToList();
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        //public async Task<List<AddUpdateTestDTO>> TestList(AddUpdateTestDTO obj)
+        //{
+        //    string query = AddUpdateTestDTO.select_test();
+        //    var data = (await _db.SelectQuery<AddUpdateTestDTO>(query, obj, ELR_db)).ToList();
+        //    return data;
+        //}
+
+        public async Task<ResponseDTO> AddUpdateTest(AddUpdateTestDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.test_id == 0) query = AddUpdateTestDTO.insert_test();
+                else query = AddUpdateTestDTO.update_test();
+
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.test_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrGetTestPrices(AddUpdateTestPricesDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                return new ResponseDTO(await TestPricesList(obj));
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<List<AddUpdateTestPricesDTO>> TestPricesList(AddUpdateTestPricesDTO obj)
+        {
+            string query = AddUpdateTestPricesDTO.select_test_prices();
+            var data = (await _db.SelectQuery<AddUpdateTestPricesDTO>(query, obj, ELR_db)).ToList();
+            return data;
+        }
+
+        public async Task<ResponseDTO> ElrGetTestPriceByDays(AddUpdateTestPricesDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.duration_in_day < 1) return new ResponseDTO(false, "Days must be at least 1");
+
+                query = AddUpdateTestPricesDTO.select_test_prices();
+                var data = (await _db.SelectQuery<AddUpdateTestPricesDTO>(query, obj, ELR_db)).FirstOrDefault();
+                if (data == null) return new ResponseDTO(false, "Test price not found");
+
+                if (obj.duration_in_day > data.duration_in_day)
+                    obj.duration_in_day = data.duration_in_day;
+
+                data.test_price = data.test_price * obj.duration_in_day;
+                data.duration_in_day = obj.duration_in_day;
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> AddUpdateTestPrices(AddUpdateTestPricesDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.test_prices_id == 0) query = AddUpdateTestPricesDTO.insert_test_prices();
+                else query = AddUpdateTestPricesDTO.update_test_prices();
+
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.test_prices_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> GetLocation(LocationDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            try { return new ResponseDTO(await LocationList(obj)); }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<List<LocationDTO>> LocationList(LocationDTO obj)
+        {
+            string query = LocationDTO.select_location();
+            return (await _db.SelectQuery<LocationDTO>(query, obj, ELR_db)).ToList();
+        }
+
+        public async Task<ResponseDTO> AddUpdateLocation(LocationDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.location_id == 0) query = LocationDTO.insert_location();
+                else query = LocationDTO.update_location();
+
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.location_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
+
+
+        public async Task<ResponseDTO> AddQueueEvent(AddQueuedEvenReqtDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+    }
+}

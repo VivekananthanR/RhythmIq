@@ -1,4 +1,4 @@
-﻿namespace elr_API.DTO.ReqDTO.QikberrychatReq
+﻿namespace elr_API.DTO.ReqDTO
 {
     public class QikberrychatReqDTO
     {

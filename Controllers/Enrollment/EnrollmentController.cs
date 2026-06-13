@@ -1,9 +1,6 @@
-﻿using elr_API.Common;
-using elr_API.DTO.ReqDTO.EnrolmentReq;
+﻿using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
-using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.IEntrolement;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace elr_API.Controllers.Entrolement
@@ -18,21 +15,71 @@ namespace elr_API.Controllers.Entrolement
         {
             _enrollment = enrollment;
         }
-        #region HttpPost = api/Enrollment/PatientVerifyLogin
-        [HttpPost("PatientVerifyLogin")]
-        public async Task<ActionResult<ResponseDTO>> PatientVerifyLogin(PatientVerifyLoginReqDTO obj)
+
+        #region HttpGet = api/Enrollment/ElrGetValidEnrollmentId?patient_enrollment_id=
+        [HttpGet("ElrGetValidEnrollmentId")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetValidEnrollmentId(long patient_enrollment_id)
         {
-            return await _enrollment.PatientVerifyLogin(obj);
+            return await _enrollment.ElrGetValidEnrollmentId(patient_enrollment_id);
         }
         #endregion
 
-        #region HttpPost = api/Enrollment/UploadEnrollementRawData​
-        [HttpPost("UploadEnrollementRawData"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> UploadEnrollementRawData([FromHeader] string Authorization, [FromForm] EnrollmentRawDataDTO obj)
+        #region HttpGet = api/Enrollment/ElrValidDeviceId?device_no =
+        [HttpGet("ElrValidDeviceId")]
+        public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId(string device_no)
         {
-            TokenClaims tokenClaims = Validation.ClaimValues(Authorization);
-            obj.created_by = tokenClaims.id;
-            return await _enrollment.UploadEnrollementRawData(obj);
+            return await _enrollment.ElrValidDeviceId(device_no);
+        }
+        #endregion
+
+        #region HttpGet = api/Enrollment/ElrValidPatchId?patch_no =
+        [HttpGet("ElrValidPatchId")]
+        public async Task<ActionResult<ResponseDTO>> ElrValidPatchId(string patch_no)
+        {
+            return await _enrollment.ElrValidPatchId(patch_no);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrUploadPatientSignature
+        [HttpPost("ElrUploadPatientSignature")]
+        public async Task<ActionResult<ResponseDTO>> ElrUploadPatientSignature([FromForm] PatientEnrollmentDTO obj)
+        {
+            return await _enrollment.ElrUploadPatientSignature(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrStartHookUpPatient?patient_enrollment_id=
+        [HttpPost("ElrStartHookUpPatient")]
+        public async Task<ActionResult<ResponseDTO>> ElrStartHookUpPatient(long patient_enrollment_id)
+        {
+            return await _enrollment.ElrStartHookUpPatient(patient_enrollment_id);
+        }
+        #endregion
+
+
+        #region HttpPost = api/Home/GetPatientEnrollment
+        [HttpPost("GetPatientEnrollment")]
+        public async Task<ActionResult<ResponseDTO>> GetPatientEnrollment(PatientEnrollmentDTO obj)
+        {
+            return await _enrollment.GetPatientEnrollment(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrAddUpdatePatientEnrollment
+        [HttpPost("ElrAddUpdatePatientEnrollment")]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj)
+        {
+            return await _enrollment.ElrAddUpdatePatientEnrollment(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Enrollment/ElrUploadEnrollmentRawData​
+        [HttpPost("ElrUploadEnrollmentRawData")]
+        public async Task<ActionResult<ResponseDTO>> ElrUploadEnrollmentRawData([FromForm] EnrollmentRawDataDTO obj)
+        {
+            //TokenClaims tokenClaims = Validation.ClaimValues(Authorization);
+            //obj.created_by = tokenClaims.id;
+            return await _enrollment.ElrUploadEnrollmentRawData(obj);
         }
         #endregion
 
@@ -44,28 +91,6 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Enrollment/UpdateRawDataCheckStatus
-        [HttpPost("UpdateRawDataCheckStatus")]
-        public async Task<ActionResult<ResponseDTO>> UpdateRawDataCheckStatus(EnrollmentRawDataDTO obj)
-        {
-            return await _enrollment.UpdateRawDataCheckStatus(obj);
-        }
-        #endregion
-        #region HttpPost = api/Enrollment/AddUpdateQueuedEvent
-        [HttpPost("AddUpdateQueuedEvent")]
-        public async Task<ActionResult<ResponseDTO>> AddUpdateQueuedEvent([FromForm] AddUpdateQueuedEventDTO obj)
-        {
-            return await _enrollment.AddUpdateQueuedEvent(obj);
-        }
-        #endregion
-
-        #region HttpGet = api/Enrollment/GetQueuedEvent
-        [HttpGet("GetQueuedEvent")]
-        public async Task<ActionResult<ResponseDTO>> GetQueuedEvent()
-        {
-            return await _enrollment.GetQueuedEvent();
-        }
-        #endregion
     }
 }
 

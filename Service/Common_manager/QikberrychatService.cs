@@ -1,5 +1,5 @@
 ﻿using elr_API.Common;
-using elr_API.DTO.ReqDTO.QikberrychatReq;
+using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
 using elr_API.IService.ICommon_manager;
 using System.Net.Http.Headers;

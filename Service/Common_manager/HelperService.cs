@@ -9,23 +9,37 @@ namespace elr_API.Service.Common_manager
         private readonly IHttpClientFactory _httpClientFactory;
 
         private readonly string MeterboxApiBaseUrl = "http://api.chchealthcare.in/MobileAPI/api/MIS/GetEmployeeDetails?EmployeeId=";
+        private readonly string ConnectApiBaseUrl = "http://192.168.97.68:2010/api/Dashboard/GetConnectPatientDetails?mobile_no=";
 
         public HelperService(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
         }
 
-        public async Task<EmployeeMeterboxDetails> GetEmployeeDetails(string emp_code)
+        public async Task<EmployeeMeterboxDetails> GetMeterBoxEmployeeDetails(string emp_code)
         {
             var client = _httpClientFactory.CreateClient();
             var apiUrl = $"{MeterboxApiBaseUrl}{emp_code}";
             var response = await client.GetAsync(apiUrl);
             var responseBody = await response.Content.ReadAsStringAsync();
-            var employeeResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse>(responseBody, new JsonSerializerOptions
+            var employeeResponse = JsonSerializer.Deserialize<MeterBoxApiResponse>(responseBody, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
             return employeeResponse.data.FirstOrDefault();
+        }
+
+        public async Task<ConnectPatientDetails> GetConnectPatientDetails(string mobile_no)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var apiUrl = $"{ConnectApiBaseUrl}{mobile_no}";
+            var response = await client.GetAsync(apiUrl);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var patientResponse = JsonSerializer.Deserialize<ConnectApiResponse>(responseBody, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            return patientResponse.data.FirstOrDefault();
         }
     }
 }
