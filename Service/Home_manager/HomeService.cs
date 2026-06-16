@@ -390,10 +390,75 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
+        public async Task<ResponseDTO> ElrUploadProcessedData(ProcessedRawDataDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.event_processed_file != null || obj.event_processed_file.Length > 0)
+                {
+                    var extention = Path.GetExtension(obj.event_processed_file.FileName).ToLowerInvariant();
+                    if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
+
+                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
+
+                    var folderName = CommonFunctions.FolderPath($"ECG-ProcessedData\\Patient_{obj.patient_enrollment_id}");
+
+                    var path = await CommonFunctions.UploadFile(obj.event_processed_file, fileName, folderName);
+
+                    obj.event_processed_path = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                }
+                if (obj.patient_base_line_id == 0)
+                {
+                    query = ProcessedRawDataDTO.insert_processed_data();
+                    var result = await _db.Execute(query, obj, ELR_db);
+
+                    //if (result > 0)
+                    //{
+                    //    query = EnrollmentRawDataDTO.update_raw_data_status();
+                    //    await _db.Execute(query, new { enrollment_raw_data_id = obj.enrollment_raw_data_id }, ELR_db);
+                    //}
+
+                    return new ResponseDTO(result > 0, result > 0 ? (obj.patient_base_line_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+                }
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
 
+        public async Task<ResponseDTO> ElrQueueEventList(QueuedEventReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = QueuedEventReqDTO.queue_event_list(obj);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, QueuedEventDTO>(query, obj, ELR_db);
+                if (data == null) return new ResponseDTO(false, "No Data");
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
-        public async Task<ResponseDTO> AddQueueEvent(AddQueuedEvenReqtDTO obj)
+
+        public async Task<ResponseDTO> ElrAddQueueEvent(QueuedEventDTO obj)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
@@ -409,5 +474,7 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+
     }
 }

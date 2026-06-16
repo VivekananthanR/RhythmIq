@@ -619,9 +619,29 @@ namespace elr_API.DTO.ReqDTO
         #endregion
     }
 
+    public class QueuedEventReqDTO
+    {
+        public int pageNumber { get; set; }
+        public int pageSize { get; set; }
+        public int offset => (pageNumber - 1) * pageSize;
+        public string shortColumn { get; set; }
+        public string orderBy { get; set; }
 
+        #region Query
+        internal static string queue_event_list(QueuedEventReqDTO obj)
+        {
+            return $@"select count(1) from {Tbl.queued_events_records}
 
-    public class AddQueuedEvenReqtDTO
+                        select * from {Tbl.queued_events_records}
+                        where is_active = 1
+                        order by {obj.shortColumn} {obj.orderBy}
+                        offset @offset rows fetch next @pageSize rows only";
+        }
+
+        #endregion
+    }
+
+    public class QueuedEventDTO
     {
         public long queued_events_records_id { get; set; }
         public long patient_enrollment_id { get; set; }
@@ -635,7 +655,7 @@ namespace elr_API.DTO.ReqDTO
         public string event_status { get; set; }
         public DateTime? event_start_datetime { get; set; }
         public DateTime? event_end_datetime { get; set; }
-        public IFormFile file_name { get; set; }
+        public IFormFile? file_name { get; set; }
         public string event_file_path { get; set; }
 
         public long created_by { get; set; }
@@ -649,10 +669,38 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"INSERT INTO {Tbl.queued_events_records}
                         (patient_enrollment_id,enrollment_raw_data_id, priority_level,trigger_type,hr_min, hr_max,hr_avg, event_duration_seconds,event_status,event_start_datetime,event_end_datetime,event_file_path,created_by)
-                     values (@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @hr_min, @hr_max,@hr_avg, @event_duration_seconds, @event_status, @event_start_datetime,@event_end_datetime, @event_file_path,@file_type, @created_by)";
+                     values (@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @hr_min, @hr_max, @hr_avg, @event_duration_seconds, @event_status, @event_start_datetime,@event_end_datetime, @event_file_path, @created_by)";
         }
 
         #endregion
 
+    }
+
+
+    public class ProcessedRawDataDTO
+    {
+        public long patient_base_line_id { get; set; }
+        public long enrollment_raw_data_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public DateTime? record_st { get; set; }
+        public DateTime? record_end { get; set; }
+        public int duration_seconds { get; set; }
+        public IFormFile? event_parent_file { get; set; }
+        public string? event_parent_path { get; set; }
+        public IFormFile? event_processed_file { get; set; }
+        public string? event_processed_path { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        #region Query
+        internal static string insert_processed_data()
+        {
+            return $@"insert into {Tbl.patient_base_line} (enrollment_raw_data_id,patient_enrollment_id,record_st,record_end,duration_seconds,event_parent_path,event_processed_path)
+                       values(@enrollment_raw_data_id, @patient_enrollment_id, @record_st, @record_end, @duration_seconds, @event_parent_path, @event_processed_path)";
+        }
+        #endregion
     }
 }

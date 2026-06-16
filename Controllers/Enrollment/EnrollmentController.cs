@@ -40,11 +40,19 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrUploadPatientSignature
-        [HttpPost("ElrUploadPatientSignature")]
-        public async Task<ActionResult<ResponseDTO>> ElrUploadPatientSignature([FromForm] PatientEnrollmentDTO obj)
+        #region HttpPost = api/Home/ElrUploadPatientDevice
+        [HttpPost("ElrUploadPatientDevice")]
+        public async Task<ActionResult<ResponseDTO>> ElrUploadPatientDevice([FromForm] PatientEnrollmentDTO obj)
         {
-            return await _enrollment.ElrUploadPatientSignature(obj);
+            return await _enrollment.ElrUploadPatientDevice(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrUploadSignature
+        [HttpPost("ElrUploadSignature")]
+        public async Task<ActionResult<ResponseDTO>> ElrUploadSignature([FromForm] PatientEnrollmentDTO obj)
+        {
+            return await _enrollment.ElrUploadSignature(obj);
         }
         #endregion
 
@@ -58,7 +66,7 @@ namespace elr_API.Controllers.Entrolement
 
         #region HttpPost = api/Home/ElrCompleteHookUpPatient?patient_enrollment_id=
         [HttpPost("ElrCompleteHookUpPatient")]
-        public async Task<ResponseDTO> ElrCompleteHookUpPatient(long patient_enrollment_id)
+        public async Task<ActionResult<ResponseDTO>> ElrCompleteHookUpPatient(long patient_enrollment_id)
         {
             return await _enrollment.ElrCompleteHookUpPatient(patient_enrollment_id);
         }
@@ -91,11 +99,11 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpGet = api/Enrollment/GetRawDataList
-        [HttpGet("GetRawDataList")]
-        public async Task<ActionResult<ResponseDTO>> GetRawDataList()
+        #region HttpGet = api/Enrollment/ElrGetRawDataList
+        [HttpGet("ElrGetRawDataList")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetRawDataList()
         {
-            return await _enrollment.GetRawDataList();
+            return await _enrollment.ElrGetRawDataList();
         }
         #endregion
 

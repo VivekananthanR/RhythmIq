@@ -91,24 +91,104 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<ResponseDTO> ElrUploadPatientSignature(PatientEnrollmentDTO obj)
+        public async Task<ResponseDTO> ElrUploadPatientDevice(PatientEnrollmentDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if ((obj.hookup_start_device_file == null || obj.hookup_start_device_file.Length == 0) && (obj.hookup_end_device_file == null || obj.hookup_end_device_file.Length == 0))
+                {
+                    return new ResponseDTO(false, ResponseMessage.File_Not_Uploaded);
+                }
+
+                if (obj.hookup_start_device_file != null && obj.hookup_start_device_file.Length > 0)
+                {
+                    var extension = Path.GetExtension(obj.hookup_start_device_file.FileName).ToLowerInvariant();
+                    if (string.IsNullOrEmpty(extension)) extension = ".jpg";
+                    var fileName = $"{obj.patient_enrollment_id}_start{extension}";
+                    var fileFolder = CommonFunctions.FolderPath("HookupDevice\\HookupStart");
+                    var path = await CommonFunctions.UploadFile(obj.hookup_start_device_file, fileName, fileFolder);
+                    obj.hookup_start_device_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                }
+                if (obj.hookup_end_device_file != null && obj.hookup_end_device_file.Length > 0)
+                {
+                    var extension = Path.GetExtension(obj.hookup_end_device_file.FileName).ToLowerInvariant();
+                    if (string.IsNullOrEmpty(extension)) extension = ".jpg";
+                    var fileName = $"{obj.patient_enrollment_id}_end{extension}";
+                    var fileFolder = CommonFunctions.FolderPath("HookupDevice\\HookupEnd");
+                    var path = await CommonFunctions.UploadFile(obj.hookup_end_device_file, fileName, fileFolder);
+                    obj.hookup_end_device_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                }
+                query = PatientEnrollmentDTO.device_img_upload();
+                var result = await _db.Execute(query, new
+                {
+                    obj.hookup_start_device_img,
+                    obj.hookup_end_device_img,
+                    obj.patient_enrollment_id
+                }, ELR_db);
+
+                if (result > 0)
+                {
+                    if (!string.IsNullOrEmpty(obj.hookup_start_device_img))
+                        return new ResponseDTO(true, "Hookup start device uploaded successfully");
+
+                    if (!string.IsNullOrEmpty(obj.hookup_end_device_img))
+                        return new ResponseDTO(true, "Hookup end device uploaded successfully");
+                }
+
+                return new ResponseDTO(false, ResponseMessage.File_Not_Uploaded);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<ResponseDTO> ElrUploadSignature(PatientEnrollmentDTO obj)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
                 if (obj.patient_enrollment_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
-                if (obj.signature_file == null || obj.signature_file.Length == 0) return new ResponseDTO(false, ResponseMessage.File_Not_Uploaded);
-                var extention = Path.GetExtension(obj.signature_file.FileName).ToLowerInvariant();
-                if (string.IsNullOrWhiteSpace(extention)) extention = ".jpg";
-                var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
-                var fileFolder = CommonFunctions.FolderPath("Signature");
-                var path = await CommonFunctions.UploadFile(obj.signature_file, fileName, fileFolder);
-                obj.signature_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                if ((obj.sign_patient_file == null || obj.sign_patient_file.Length == 0) && (obj.sign_field_emp_file == null || obj.sign_field_emp_file.Length == 0)) return new ResponseDTO(false, ResponseMessage.File_Not_Uploaded);
+
+                if (obj.sign_patient_file != null || obj.sign_patient_file.Length > 0)
+                {
+                    var extension = Path.GetExtension(obj.sign_patient_file.FileName).ToLowerInvariant();
+                    if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
+                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extension}";
+                    var fileFolder = CommonFunctions.FolderPath("Signature\\Patient");
+                    var path = await CommonFunctions.UploadFile(obj.sign_patient_file, fileName, fileFolder);
+                    obj.sign_patient_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                }
+                if (obj.sign_field_emp_file != null && obj.sign_field_emp_file.Length > 0)
+                {
+                    var extension = Path.GetExtension(obj.sign_field_emp_file.FileName).ToLowerInvariant();
+                    if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
+                    var fileName = $"{obj.sign_field_emp_file}-{DateTime.Now:yyyyMMddHHmmssfff}{extension}";
+                    var fileFolder = CommonFunctions.FolderPath("Signature\\FieldEmp");
+                    var path = await CommonFunctions.UploadFile(obj.sign_patient_file, fileName, fileFolder);
+                    obj.sign_field_emp_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                }
 
                 query = PatientEnrollmentDTO.update_signature();
-                await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id, signature_img = obj.signature_img }, ELR_db);
-                return new ResponseDTO(true, ResponseMessage.File_Uploaded);
+
+                var result = await _db.Execute(query, new
+                {
+                    obj.patient_enrollment_id,
+                    obj.sign_patient_img,
+                    obj.sign_field_emp_img
+                }, ELR_db);
+
+                string message = !string.IsNullOrEmpty(obj.sign_patient_img) ? "Patient signature uploaded successfully" : "Field employee signature uploaded successfully";
+
+                return new ResponseDTO(result > 0, result > 0 ? message : "Failed to upload signature");
             }
             catch (Exception ex)
             {
@@ -230,7 +310,7 @@ namespace elr_API.Service.Enrolment
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> GetRawDataList()
+        public async Task<ResponseDTO> ElrGetRawDataList()
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;

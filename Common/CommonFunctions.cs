@@ -59,12 +59,24 @@ namespace elr_API.Common
                 await checkDirectory(FolderPath);
                 string filePath = Path.Combine(FolderPath, FileName);
 
+                DeleteImage(filePath);
+
                 using FileStream stream = new FileStream(filePath, FileMode.Create);
 
                 await File.CopyToAsync(stream);
                 return filePath;
             }
             return null;
+        }
+        public static bool DeleteImage(string filePath)
+        {
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+                return true;
+            }
+
+            return false;
         }
 
         public static async Task<int> checkDirectory(string path)

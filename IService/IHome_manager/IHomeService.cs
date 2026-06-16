@@ -44,12 +44,11 @@ namespace elr_API.IService.IHome_manager
         Task<List<LocationDTO>> LocationList(LocationDTO obj);
         Task<ResponseDTO> AddUpdateLocation(LocationDTO obj);
 
+        Task<ResponseDTO> ElrUploadProcessedData(ProcessedRawDataDTO obj);
 
+        Task<ResponseDTO> ElrQueueEventList(QueuedEventReqDTO obj);
+        Task<ResponseDTO> ElrAddQueueEvent(QueuedEventDTO obj);
 
-
-
-
-        Task<ResponseDTO> AddQueueEvent(AddQueuedEvenReqtDTO obj);
 
     }
 }

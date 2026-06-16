@@ -25,5 +25,6 @@
         public static readonly string enrollment_raw_data = "tbl_enrollment_raw_data";
 
         public static readonly string queued_events_records = "tbl_queued_events_records";
+        public static readonly string patient_base_line = "tbl_patient_base_line";
     }
 }

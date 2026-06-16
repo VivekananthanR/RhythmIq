@@ -65,8 +65,14 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? schedule_removal { get; set; }
         public DateTime? actual_hookup { get; set; }
         public DateTime? actual_removal { get; set; }
-        public string? signature_img { get; set; }
-        public IFormFile signature_file { get; set; }
+        public string? sign_patient_img { get; set; }
+        public IFormFile? sign_patient_file { get; set; }
+        public string? sign_field_emp_img { get; set; }
+        public IFormFile? sign_field_emp_file { get; set; }
+        public string? hookup_start_device_img { get; set; }
+        public IFormFile? hookup_start_device_file { get; set; }
+        public string? hookup_end_device_img { get; set; }
+        public IFormFile? hookup_end_device_file { get; set; }
         public int hr_min { get; set; }
         public int hr_max { get; set; }
         public int hr_avg { get; set; }
@@ -175,9 +181,13 @@ namespace elr_API.DTO.ReqDTO
                     pe.payment_datetime,
                     pe.payment_status,
                     pe.remarks,
+                    pe.sign_patient_img,
                     pe.clinical_user_id,
                     pe.created_by,
                     pe.created_datetime,
+                    pe.is_active,
+                    pe.hookup_start_device_img,
+                    pe.hookup_end_device_img,
                     pe.is_active,
 
                     -- Patient Info
@@ -221,7 +231,16 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"
                     UPDATE {Tbl.patient_enrollment}
-                    SET signature_img = @signature_img
+                    SET sign_patient_img = ISNULL(@sign_patient_img, sign_patient_img),
+                        sign_field_emp_img = ISNULL(@sign_field_emp_img, sign_field_emp_img)
+                    WHERE patient_enrollment_id = @patient_enrollment_id";
+        }
+        internal static string device_img_upload()
+        {
+            return $@"
+                    UPDATE {Tbl.patient_enrollment}
+                    SET hookup_start_device_img = ISNULL(@hookup_start_device_img, hookup_start_device_img),
+                        hookup_end_device_img = ISNULL(@hookup_end_device_img, hookup_end_device_img)
                     WHERE patient_enrollment_id = @patient_enrollment_id";
         }
 
@@ -283,7 +302,7 @@ namespace elr_API.DTO.ReqDTO
                     from {Tbl.enrollment_raw_data} as erd 
                     left join {Tbl.patient_enrollment} as pe
                     on erd.patient_enrollment_id = pe.patient_enrollment_id
-                    where erd.auto_check_status = 'waiting'  and erd.is_active = 1 
+                    where erd.is_active = 1 
                     order by enrollment_raw_data_id asc;";
         }
         internal static string update_status()

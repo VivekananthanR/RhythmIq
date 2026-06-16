@@ -98,7 +98,7 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpGet= api/User/ElrHospitalList?hospital_name= 
         [HttpGet("ElrHospitalList")]
-        public async Task<ResponseDTO> ElrHospitalList(string? hospital_name)
+        public async Task<ActionResult<ResponseDTO>> ElrHospitalList(string? hospital_name)
         {
             return await _homeService.ElrHospitalList(hospital_name);
         }
@@ -114,7 +114,7 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpPost = api/Home/AddUpdateHospital
         [HttpPost("AddUpdateHospital")]
-        public async Task<ResponseDTO> AddUpdateHospital(AddUpdateHospitalReqDTO obj)
+        public async Task<ActionResult<ResponseDTO>> AddUpdateHospital(AddUpdateHospitalReqDTO obj)
         {
             return await _homeService.AddUpdateHospital(obj);
         }
@@ -146,7 +146,7 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpPost = api/Home/ElrGetTestPriceByDays
         [HttpPost("ElrGetTestPriceByDays")]
-        public async Task<ResponseDTO> ElrGetTestPriceByDays(AddUpdateTestPricesDTO obj)
+        public async Task<ActionResult<ResponseDTO>> ElrGetTestPriceByDays(AddUpdateTestPricesDTO obj)
         {
             return await _homeService.ElrGetTestPriceByDays(obj);
         }
@@ -178,15 +178,29 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
-
-
-
-        #region HttpPost = api/Home/AddQueueEvent
-        [HttpPost("AddQueueEvent")]
-        public async Task<ActionResult<ResponseDTO>> AddQueueEvent(AddQueuedEvenReqtDTO obj)
+        #region HttpPost = api/Home/ElrUploadProcessedData
+        [HttpPost("ElrUploadProcessedData")]
+        public async Task<ActionResult<ResponseDTO>> ElrUploadProcessedData([FromForm] ProcessedRawDataDTO obj)
         {
-            return await _homeService.AddQueueEvent(obj);
+            return await _homeService.ElrUploadProcessedData(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrQueueEventList
+        [HttpPost("ElrQueueEventList")]
+        public async Task<ActionResult<ResponseDTO>> ElrQueueEventList(QueuedEventReqDTO obj)
+        {
+            return await _homeService.ElrQueueEventList(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrAddQueueEvent
+        [HttpPost("ElrAddQueueEvent")]
+        public async Task<ActionResult<ResponseDTO>> ElrAddQueueEvent(QueuedEventDTO obj)
+        {
+            return await _homeService.ElrAddQueueEvent(obj);
         }
         #endregion
     }
+
 }
