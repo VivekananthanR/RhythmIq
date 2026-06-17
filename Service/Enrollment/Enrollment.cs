@@ -162,7 +162,7 @@ namespace elr_API.Service.Enrolment
                 {
                     var extension = Path.GetExtension(obj.sign_patient_file.FileName).ToLowerInvariant();
                     if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
-                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extension}";
+                    var fileName = $"{obj.patient_enrollment_id}-sign{extension}";
                     var fileFolder = CommonFunctions.FolderPath("Signature\\Patient");
                     var path = await CommonFunctions.UploadFile(obj.sign_patient_file, fileName, fileFolder);
                     obj.sign_patient_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
@@ -171,7 +171,7 @@ namespace elr_API.Service.Enrolment
                 {
                     var extension = Path.GetExtension(obj.sign_field_emp_file.FileName).ToLowerInvariant();
                     if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
-                    var fileName = $"{obj.sign_field_emp_file}-{DateTime.Now:yyyyMMddHHmmssfff}{extension}";
+                    var fileName = $"{obj.patient_enrollment_id}-sign{extension}";
                     var fileFolder = CommonFunctions.FolderPath("Signature\\FieldEmp");
                     var path = await CommonFunctions.UploadFile(obj.sign_patient_file, fileName, fileFolder);
                     obj.sign_field_emp_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
@@ -207,7 +207,7 @@ namespace elr_API.Service.Enrolment
                 query = PatientEnrollmentDTO.start_hookup_status(patient_enrollment_id);
                 int row = await _db.Execute(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db);
 
-                return new ResponseDTO((row > 0), row > 0 ? ResponseMessage.Saved_Successfully : "Patient Enrollment ID not found");
+                return new ResponseDTO(row > 0, row > 0 ? ResponseMessage.Saved_Successfully : "Patient Enrollment ID not found");
             }
             catch (Exception ex)
             {
@@ -216,6 +216,48 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<ResponseDTO> ElrSymtomsList()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = SymtomsDTO.select_symtoms_list();
+                var data = await _db.SelectQuery<SymtomsDTO>(query, null, ELR_db);
+                return new ResponseDTO(data);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrAddSymtoms(SymtomsDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null || obj.patient_enrollment_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.symptoms_id == 0)
+                {
+                    query = SymtomsDTO.insert_symtoms();
+                    var result = await _db.Execute(query, obj, ELR_db);
+                    return new ResponseDTO(result > 0, result > 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Failed);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
         public async Task<ResponseDTO> ElrCompleteHookUpPatient(long patient_enrollment_id)
         {
             ErrorMessage = string.Empty;

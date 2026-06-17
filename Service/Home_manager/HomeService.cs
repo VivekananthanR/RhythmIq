@@ -349,6 +349,24 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<ResponseDTO> ElrSymtomsTypeList()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = SymtomsTypeDTO.select_symptoms_List();
+                var data = await _db.SelectQuery<SymtomsTypeDTO>(query, null, ELR_db);
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
 
         public async Task<ResponseDTO> GetLocation(LocationDTO obj)
         {
@@ -433,14 +451,14 @@ namespace elr_API.Service.Home_manager
         }
 
 
-        public async Task<ResponseDTO> ElrQueueEventList(QueuedEventReqDTO obj)
+        public async Task<ResponseDTO> ElrQueueAnomalyList(QueuedAnomalyReqDTO obj)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                query = QueuedEventReqDTO.queue_event_list(obj);
-                var (totalCount, data) = await _db.SelectQueryWithCount<long, QueuedEventDTO>(query, obj, ELR_db);
+                query = QueuedAnomalyReqDTO.queue_anomaly_list(obj);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, QueuedAnomalyDTO>(query, obj, ELR_db);
                 if (data == null) return new ResponseDTO(false, "No Data");
                 var response = new
                 {
@@ -458,13 +476,34 @@ namespace elr_API.Service.Home_manager
         }
 
 
-        public async Task<ResponseDTO> ElrAddQueueEvent(QueuedEventDTO obj)
+        public async Task<ResponseDTO> ElrUploadQueueAnomaly(QueuedAnomalyDTO obj)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.file_name != null || obj.file_name.Length > 0)
+                {
+                    var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
+                    if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
+
+                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
+
+                    var folderName = CommonFunctions.FolderPath($"ECG-AnomalyData\\Patient_{obj.patient_enrollment_id}");
+
+                    var path = await CommonFunctions.UploadFile(obj.file_name, fileName, folderName);
+
+                    obj.event_file_path = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                }
+                if (obj.queued_events_records_id == 0)
+                {
+                    obj.event_status = "pending";
+                    query = QueuedAnomalyDTO.insert_queued_event();
+                    int a = await _db.Execute(query, obj, ELR_db);
+                    return new ResponseDTO(true, ResponseMessage.Success);
+
+                }
 
             }
             catch (Exception ex)

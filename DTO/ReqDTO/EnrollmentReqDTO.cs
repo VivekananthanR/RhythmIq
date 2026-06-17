@@ -269,6 +269,32 @@ namespace elr_API.DTO.ReqDTO
         #endregion
     }
 
+    public class SymtomsDTO
+    {
+        public long symptoms_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public long? symptoms_type_id { get; set; }
+        public string? custom_symptom_text { get; set; }
+        public DateTime? symptom_start_datetime { get; set; }
+        public DateTime? symptom_end_datetime { get; set; }
+        public string? symptom_notes { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        #region Query
+        internal static string insert_symtoms()
+        {
+            return $@"insert into {Tbl.symptoms}(patient_enrollment_id,symptoms_type_id,custom_symptom_text,symptom_start_datetime,symptom_end_datetime,symptom_notes)
+                        values(@patient_enrollment_id, @symptoms_type_id, @custom_symptom_text, @symptom_start_datetime, @symptom_end_datetime, @symptom_notes)";
+        }
+
+        internal static string select_symtoms_list()
+        {
+            return $@"select * from {Tbl.symptoms}";
+        }
+        #endregion
+    }
     public class EnrollmentRawDataDTO
     {
         public long enrollment_raw_data_id { get; set; }

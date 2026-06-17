@@ -487,6 +487,23 @@ namespace elr_API.DTO.ReqDTO
     //}
     #endregion
 
+    public class SymtomsTypeDTO
+    {
+        public long symptoms_type_id { get; set; }
+        public string symptoms_type { get; set; }
+
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+        #region Query
+        internal static string select_symptoms_List()
+        {
+            return $@"select * from {Tbl.symptoms_type}";
+        }
+        #endregion
+    }
     public class LocationDTO
     {
         public long location_id { get; set; }
@@ -619,7 +636,7 @@ namespace elr_API.DTO.ReqDTO
         #endregion
     }
 
-    public class QueuedEventReqDTO
+    public class QueuedAnomalyReqDTO
     {
         public int pageNumber { get; set; }
         public int pageSize { get; set; }
@@ -627,36 +644,87 @@ namespace elr_API.DTO.ReqDTO
         public string shortColumn { get; set; }
         public string orderBy { get; set; }
 
-        #region Query
-        internal static string queue_event_list(QueuedEventReqDTO obj)
+        #region Query   
+        internal static string queue_anomaly_list(QueuedAnomalyReqDTO obj)
         {
             return $@"select count(1) from {Tbl.queued_events_records}
 
-                        select * from {Tbl.queued_events_records}
-                        where is_active = 1
-                        order by {obj.shortColumn} {obj.orderBy}
-                        offset @offset rows fetch next @pageSize rows only";
+                        SELECT
+                            a.queued_events_records_id,
+                            a.patient_enrollment_id,
+                            a.enrollment_raw_data_id,
+                            a.priority_level,
+                            a.trigger_type,
+                            a.bpm,
+                            a.event_status,
+                            a.event_start_datetime,
+                            a.event_end_datetime,
+                            a.event_file_path,
+                            a.created_datetime,
+
+                            -- Patient Details
+                            p.patient_id,
+                            p.patient_name,
+                            p.age,
+                            p.gender,
+                            p.phone_no,
+                            p.email_id,
+
+                            -- Technician Details
+                            pe.actual_technician_id,
+                            u.user_name AS technician_name,
+                            u.emp_code AS technician_emp_code,
+                            u.phone_no AS technician_phone_no,
+                            u.email_id AS technician_email_id
+
+                            FROM {Tbl.queued_events_records} a
+
+                            LEFT JOIN {Tbl.patient_enrollment} pe
+                                ON a.patient_enrollment_id = pe.patient_enrollment_id
+
+                            LEFT JOIN {Tbl.patient} p
+                                ON pe.patient_id = p.patient_id
+
+                            LEFT JOIN {Tbl.user_master} u
+                                ON pe.actual_technician_id = u.user_id
+
+                                where a.is_active = 1
+
+                                order by {obj.shortColumn} {obj.orderBy}
+                                offset @offset rows fetch next @pageSize rows only";
         }
 
         #endregion
     }
 
-    public class QueuedEventDTO
+    public class QueuedAnomalyDTO
     {
         public long queued_events_records_id { get; set; }
         public long patient_enrollment_id { get; set; }
         public long enrollment_raw_data_id { get; set; }
         public string priority_level { get; set; }
         public string trigger_type { get; set; }
-        public int? hr_min { get; set; }
-        public int? hr_max { get; set; }
-        public int? hr_avg { get; set; }
-        public int? event_duration_seconds { get; set; }
+        public int bpm { get; set; }
         public string event_status { get; set; }
         public DateTime? event_start_datetime { get; set; }
         public DateTime? event_end_datetime { get; set; }
         public IFormFile? file_name { get; set; }
         public string event_file_path { get; set; }
+
+
+        // Patient
+        public long patient_id { get; set; }
+        public string patient_name { get; set; }
+        public int? age { get; set; }
+        public string gender { get; set; }
+        public string patient_phone_no { get; set; }
+
+
+        // Technician
+        public long? actual_technician_id { get; set; }
+        public string technician_name { get; set; }
+        public string technician_emp_code { get; set; }
+        public string technician_phone_no { get; set; }
 
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
@@ -668,8 +736,8 @@ namespace elr_API.DTO.ReqDTO
         internal static string insert_queued_event()
         {
             return $@"INSERT INTO {Tbl.queued_events_records}
-                        (patient_enrollment_id,enrollment_raw_data_id, priority_level,trigger_type,hr_min, hr_max,hr_avg, event_duration_seconds,event_status,event_start_datetime,event_end_datetime,event_file_path,created_by)
-                     values (@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @hr_min, @hr_max, @hr_avg, @event_duration_seconds, @event_status, @event_start_datetime,@event_end_datetime, @event_file_path, @created_by)";
+                        (patient_enrollment_id,enrollment_raw_data_id, priority_level,trigger_type,bpm,event_status,event_start_datetime,event_end_datetime,event_file_path,created_by)
+                     values (@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @bpm, @event_status, @event_start_datetime,@event_end_datetime, @event_file_path, @created_by)";
         }
 
         #endregion
@@ -698,8 +766,8 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string insert_processed_data()
         {
-            return $@"insert into {Tbl.patient_base_line} (enrollment_raw_data_id,patient_enrollment_id,record_st,record_end,duration_seconds,event_parent_path,event_processed_path)
-                       values(@enrollment_raw_data_id, @patient_enrollment_id, @record_st, @record_end, @duration_seconds, @event_parent_path, @event_processed_path)";
+            return $@"insert into {Tbl.patient_base_line} (enrollment_raw_data_id,patient_enrollment_id,record_st,record_end,event_parent_path,event_processed_path)
+                       values(@enrollment_raw_data_id, @patient_enrollment_id, @record_st, @record_end, @event_parent_path, @event_processed_path)";
         }
         #endregion
     }

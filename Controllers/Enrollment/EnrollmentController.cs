@@ -40,7 +40,7 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrUploadPatientDevice
+        #region HttpPost = api/Enrollment/ElrUploadPatientDevice
         [HttpPost("ElrUploadPatientDevice")]
         public async Task<ActionResult<ResponseDTO>> ElrUploadPatientDevice([FromForm] PatientEnrollmentDTO obj)
         {
@@ -48,7 +48,7 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrUploadSignature
+        #region HttpPost = api/Enrollment/ElrUploadSignature
         [HttpPost("ElrUploadSignature")]
         public async Task<ActionResult<ResponseDTO>> ElrUploadSignature([FromForm] PatientEnrollmentDTO obj)
         {
@@ -56,7 +56,7 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrStartHookUpPatient?patient_enrollment_id=
+        #region HttpPost = api/Enrollment/ElrStartHookUpPatient?patient_enrollment_id=
         [HttpPost("ElrStartHookUpPatient")]
         public async Task<ActionResult<ResponseDTO>> ElrStartHookUpPatient(long patient_enrollment_id)
         {
@@ -64,7 +64,24 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrCompleteHookUpPatient?patient_enrollment_id=
+        #region HttpPost = api/Enrollment/ElrSymtomsList
+        [HttpGet("ElrSymtomsList")]
+        public async Task<ResponseDTO> ElrSymtomsList()
+        {
+            return await _enrollment.ElrSymtomsList();
+        }
+        #endregion
+
+        #region HttpPost = api/Enrollment/ElrAddSymtoms
+        [HttpPost("ElrAddSymtoms")]
+        public async Task<ActionResult<ResponseDTO>> ElrAddSymtoms(SymtomsDTO obj)
+        {
+            return await _enrollment.ElrAddSymtoms(obj);
+        }
+        #endregion
+
+
+        #region HttpPost = api/Enrollment/ElrCompleteHookUpPatient?patient_enrollment_id=
         [HttpPost("ElrCompleteHookUpPatient")]
         public async Task<ActionResult<ResponseDTO>> ElrCompleteHookUpPatient(long patient_enrollment_id)
         {
@@ -73,7 +90,7 @@ namespace elr_API.Controllers.Entrolement
         #endregion
 
 
-        #region HttpPost = api/Home/GetPatientEnrollment
+        #region HttpPost = api/Enrollment/GetPatientEnrollment
         [HttpPost("GetPatientEnrollment")]
         public async Task<ActionResult<ResponseDTO>> GetPatientEnrollment(PatientEnrollmentDTO obj)
         {
@@ -81,7 +98,7 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrAddUpdatePatientEnrollment
+        #region HttpPost = api/Enrollment/ElrAddUpdatePatientEnrollment
         [HttpPost("ElrAddUpdatePatientEnrollment")]
         public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj)
         {

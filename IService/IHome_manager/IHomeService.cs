@@ -39,6 +39,7 @@ namespace elr_API.IService.IHome_manager
         Task<List<AddUpdateTestPricesDTO>> TestPricesList(AddUpdateTestPricesDTO obj);
         Task<ResponseDTO> AddUpdateTestPrices(AddUpdateTestPricesDTO obj);
 
+        Task<ResponseDTO> ElrSymtomsTypeList();
 
         Task<ResponseDTO> GetLocation(LocationDTO obj);
         Task<List<LocationDTO>> LocationList(LocationDTO obj);
@@ -46,8 +47,8 @@ namespace elr_API.IService.IHome_manager
 
         Task<ResponseDTO> ElrUploadProcessedData(ProcessedRawDataDTO obj);
 
-        Task<ResponseDTO> ElrQueueEventList(QueuedEventReqDTO obj);
-        Task<ResponseDTO> ElrAddQueueEvent(QueuedEventDTO obj);
+        Task<ResponseDTO> ElrQueueAnomalyList(QueuedAnomalyReqDTO obj);
+        Task<ResponseDTO> ElrUploadQueueAnomaly(QueuedAnomalyDTO obj);
 
 
     }

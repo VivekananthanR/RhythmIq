@@ -162,6 +162,15 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
 
+        #region HttpGet = api/Home/ElrSymtomsTypeList
+        [HttpGet("ElrSymtomsTypeList")]
+        public async Task<ResponseDTO> ElrSymtomsTypeList()
+        {
+            return await _homeService.ElrSymtomsTypeList();
+        }
+        #endregion
+
+
         #region HttpPost = api/Home/GetLocation
         [HttpPost("GetLocation")]
         public async Task<ActionResult<ResponseDTO>> GetLocation(LocationDTO obj)
@@ -186,19 +195,19 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrQueueEventList
-        [HttpPost("ElrQueueEventList")]
-        public async Task<ActionResult<ResponseDTO>> ElrQueueEventList(QueuedEventReqDTO obj)
+        #region HttpPost = api/Home/ElrQueueAnomalyList
+        [HttpPost("ElrQueueAnomalyList")]
+        public async Task<ActionResult<ResponseDTO>> ElrQueueAnomalyList(QueuedAnomalyReqDTO obj)
         {
-            return await _homeService.ElrQueueEventList(obj);
+            return await _homeService.ElrQueueAnomalyList(obj);
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrAddQueueEvent
-        [HttpPost("ElrAddQueueEvent")]
-        public async Task<ActionResult<ResponseDTO>> ElrAddQueueEvent(QueuedEventDTO obj)
+        #region HttpPost = api/Home/ElrUploadQueueAnomaly
+        [HttpPost("ElrUploadQueueAnomaly")]
+        public async Task<ActionResult<ResponseDTO>> ElrUploadQueueAnomaly([FromForm] QueuedAnomalyDTO obj)
         {
-            return await _homeService.ElrAddQueueEvent(obj);
+            return await _homeService.ElrUploadQueueAnomaly(obj);
         }
         #endregion
     }
