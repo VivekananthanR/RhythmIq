@@ -1,6 +1,9 @@
-﻿using elr_API.DTO.ReqDTO;
+﻿using elr_API.Common;
+using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
+using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.IHome_manager;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace elr_API.Controllers.Home_manager
@@ -208,6 +211,15 @@ namespace elr_API.Controllers.Home_manager
         public async Task<ActionResult<ResponseDTO>> ElrUploadQueueAnomaly([FromForm] QueuedAnomalyDTO obj)
         {
             return await _homeService.ElrUploadQueueAnomaly(obj);
+        }
+        #endregion
+
+        #region HttpGet= api/Home/ElrGetNextEvent
+        [HttpGet("ElrGetNextEvent"), Authorize]
+        public async Task<ResponseDTO> ElrGetNextEvent([FromHeader] string authorization)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrGetNextEvent(tokenClaims.id);
         }
         #endregion
     }

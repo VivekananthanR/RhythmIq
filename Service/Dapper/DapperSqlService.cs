@@ -23,7 +23,8 @@ namespace elr_API.Service.Dapper
                 dbConnection.Open();
 
                 // Combine the insert statement with the query for the identitybuilder.Services.AddScoped<IDapperSqlService, DapperSql>();
-                var query = $"{sql}; Select Cast(Scope_Identity() as int;";
+
+                var query = $"{sql}; SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
                 // Execute the combined query and retrieve the newly inserted ID
                 var newId = await dbConnection.ExecuteScalarAsync<int>(query, parameters);

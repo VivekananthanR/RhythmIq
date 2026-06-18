@@ -728,6 +728,7 @@ namespace elr_API.DTO.ReqDTO
 
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
+        public DateTime? processing_datetime { get; set; }
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
@@ -740,8 +741,137 @@ namespace elr_API.DTO.ReqDTO
                      values (@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @bpm, @event_status, @event_start_datetime,@event_end_datetime, @event_file_path, @created_by)";
         }
 
+
+
         #endregion
 
+    }
+
+    public class GetNextEventResDTO
+    {
+        public long queued_events_records_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public long enrollment_raw_data_id { get; set; }
+        public string priority_level { get; set; }
+        public string trigger_type { get; set; }
+        public int bpm { get; set; }
+        public string event_status { get; set; }
+        public string event_file_path { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public DateTime? processing_datetime { get; set; }
+        internal static string priority_anomly_select()
+        {
+            return $@"
+                    SELECT TOP 1
+                        queued_events_records_id,
+                        patient_enrollment_id,
+                        enrollment_raw_data_id,
+                        priority_level,
+                        trigger_type,
+                        bpm,
+                        event_status,
+                        event_start_datetime,
+                        event_end_datetime,
+                        event_file_path
+                    FROM {Tbl.queued_events_records}
+                    WHERE event_status = 'pending'
+                    ORDER BY
+
+                        CASE priority_level
+                            WHEN 'high' THEN 1
+                            WHEN 'medium' THEN 2
+                            WHEN 'low' THEN 3
+                            ELSE 4
+                        END,
+
+                        CASE trigger_type
+                            WHEN 'AF' THEN 1
+                            WHEN 'VT' THEN 2
+                            WHEN 'Pause' THEN 3
+                            WHEN 'Brady' THEN 4
+                            WHEN 'Tachy' THEN 5
+                            ELSE 6
+                        END,
+
+                        created_datetime ASC";
+        }
+        internal static string update_processing_status()
+        {
+            return $@"
+                    UPDATE {Tbl.queued_events_records}
+                    SET
+                        event_status = 'processing',
+                        processing_datetime = GETDATE()
+                    WHERE queued_events_records_id = @queued_events_records_id";
+        }
+    }
+    public class EventAssignDTO
+    {
+        public long event_assign_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public long queued_events_records_id { get; set; }
+        public long assigned_by { get; set; }
+        public DateTime? assigned_datetime { get; set; }
+        public DateTime? analysis_start_datetime { get; set; }
+        public DateTime? last_activity_datetime { get; set; }
+        public string work_status { get; set; }
+        public string remarks { get; set; }
+        public DateTime? analysis_end_datetime { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        internal static string event_assign_insert()
+        {
+            return $@" insert into {Tbl.event_assign}(patient_enrollment_id,queued_events_records_id,assigned_by,assigned_datetime,analysis_start_datetime,last_activity_datetime,work_status,created_by)
+                        values(@patient_enrollment_id, @queued_events_records_id, @assigned_by, getdate(),@analysis_start_datetime,@last_activity_datetime, @work_status, @created_by)";
+        }
+        internal static string reassign_expired_events()
+        {
+            return $@"
+                    UPDATE {Tbl.event_assign}
+                    SET
+                        work_status = 'Reassigned',
+                        modified_datetime = GETDATE()
+                    WHERE work_status = 'InProgress'
+                    AND DATEDIFF(MINUTE,
+                                 analysis_start_datetime,
+                                 GETDATE()) >= 10";
+        }
+        internal static string reassign_idle_events()
+        {
+            return $@"
+                UPDATE {Tbl.event_assign}
+                SET
+                    work_status = 'Reassigned',
+                    remarks = 'No activity for 2 minutes',
+                    modified_datetime = GETDATE()
+                WHERE work_status = 'InProgress'
+                AND DATEDIFF(
+                        MINUTE,
+                        last_activity_datetime,
+                        GETDATE()
+                    ) >= 3";
+        }
+
+        internal static string reset_reassigned_events()
+        {
+            return $@"
+        UPDATE q
+        SET
+            q.event_status = 'pending',
+            q.processing_datetime = NULL,
+            q.last_assigned_datetime = NULL,
+            q.modified_datetime = GETDATE()
+        FROM {Tbl.queued_events_records} q
+        INNER JOIN {Tbl.event_assign} ea
+            ON ea.queued_events_records_id = q.queued_events_records_id
+        WHERE ea.work_status = 'Reassigned'
+        AND q.event_status = 'processing'";
+        }
     }
 
 

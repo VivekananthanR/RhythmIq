@@ -4,6 +4,7 @@ using elr_API.IService.IEntrolement;
 using elr_API.IService.IHome_manager;
 using elr_API.IService.IToken;
 using elr_API.IService.IUser_manager;
+using elr_API.Service.Background_services;
 using elr_API.Service.Common_manager;
 using elr_API.Service.Dapper;
 using elr_API.Service.Enrolment;
@@ -34,7 +35,11 @@ builder.Services.AddCors(op =>
 });
 #endregion
 
+
+builder.Services.AddHostedService<EventReassignService>();
+
 #region Service configuration
+
 builder.Services.AddScoped<IDapperSqlService, DapperSqlService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IUserService, UserService>();

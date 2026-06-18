@@ -333,10 +333,12 @@ namespace elr_API.DTO.ReqDTO
         }
         internal static string update_status()
         {
-            return $@"update {Tbl.enrollment_raw_data}
-                       set auto_check_status = @auto_check_status ,checking_datetime =@checking_datetime
-                        where enrollment_raw_data_id = @enrollment_raw_data_id";
+            return $@"UPDATE {Tbl.enrollment_raw_data}
+                    SET auto_check_status = 'checking',
+                        checking_datetime = GETDATE()
+                    WHERE enrollment_raw_data_id = @enrollment_raw_data_id";
         }
+
         internal static string update_raw_data_status()
         {
             return $@"UPDATE {Tbl.enrollment_raw_data}
@@ -344,6 +346,7 @@ namespace elr_API.DTO.ReqDTO
                         completed_datetime = GETDATE()
                     WHERE enrollment_raw_data_id = @enrollment_raw_data_id";
         }
+
         #endregion
 
     }

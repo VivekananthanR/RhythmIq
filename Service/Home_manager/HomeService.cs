@@ -415,14 +415,14 @@ namespace elr_API.Service.Home_manager
             try
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
-                if (obj.event_processed_file != null || obj.event_processed_file.Length > 0)
+                if (obj.event_processed_file != null && obj.event_processed_file.Length > 0)
                 {
                     var extention = Path.GetExtension(obj.event_processed_file.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
                     var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
 
-                    var folderName = CommonFunctions.FolderPath($"ECG-ProcessedData\\Patient_{obj.patient_enrollment_id}");
+                    var folderName = CommonFunctions.FolderPath($"ECG-ProcessedData\\{obj.patient_enrollment_id}");
 
                     var path = await CommonFunctions.UploadFile(obj.event_processed_file, fileName, folderName);
 
@@ -433,11 +433,11 @@ namespace elr_API.Service.Home_manager
                     query = ProcessedRawDataDTO.insert_processed_data();
                     var result = await _db.Execute(query, obj, ELR_db);
 
-                    //if (result > 0)
-                    //{
-                    //    query = EnrollmentRawDataDTO.update_raw_data_status();
-                    //    await _db.Execute(query, new { enrollment_raw_data_id = obj.enrollment_raw_data_id }, ELR_db);
-                    //}
+                    if (result > 0)
+                    {
+                        query = EnrollmentRawDataDTO.update_raw_data_status();
+                        await _db.Execute(query, new { enrollment_raw_data_id = obj.enrollment_raw_data_id }, ELR_db);
+                    }
 
                     return new ResponseDTO(result > 0, result > 0 ? (obj.patient_base_line_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
                 }
@@ -483,14 +483,14 @@ namespace elr_API.Service.Home_manager
             try
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
-                if (obj.file_name != null || obj.file_name.Length > 0)
+                if (obj.file_name != null && obj.file_name.Length > 0)
                 {
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
                     var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
 
-                    var folderName = CommonFunctions.FolderPath($"ECG-AnomalyData\\Patient_{obj.patient_enrollment_id}");
+                    var folderName = CommonFunctions.FolderPath($"ECG-AnomalyData\\{obj.patient_enrollment_id}");
 
                     var path = await CommonFunctions.UploadFile(obj.file_name, fileName, folderName);
 
@@ -513,7 +513,39 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<ResponseDTO> ElrGetNextEvent(long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = GetNextEventResDTO.priority_anomly_select();
+                var data = await _db.QuerySingle<GetNextEventResDTO>(query, null, ELR_db);
+                if (data == null)
+                    return new ResponseDTO(false, "No pending events");
+                //query = GetNextEventResDTO.update_processing_status();
+                //await _db.Execute(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db);
 
+                query = EventAssignDTO.event_assign_insert();
+                await _db.Execute(query, new
+                {
+                    patient_enrollment_id = data.patient_enrollment_id,
+                    queued_events_records_id = data.queued_events_records_id,
+                    assigned_by = emp_id,
+                    created_by = emp_id,
+                    work_status = "InProgress",
+                    analysis_start_datetime = DateTime.Now,
+                    last_activity_datetime = DateTime.Now
+                }, ELR_db);
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
     }
 }
