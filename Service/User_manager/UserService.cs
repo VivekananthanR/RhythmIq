@@ -303,7 +303,24 @@ namespace elr_API.Service.User_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-
+        public async Task<ResponseDTO> ElrGetPatientEventPage(long patient_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (patient_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                query = PatientVerifyLoginResDTO.patient_detatils();
+                var data = await _dp.QuerySingle<PatientVerifyLoginResDTO>(query, new { patient_id = patient_id }, Elr_db);
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
     }
 
 

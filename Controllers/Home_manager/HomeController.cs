@@ -216,10 +216,38 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpGet= api/Home/ElrGetNextEvent
         [HttpGet("ElrGetNextEvent"), Authorize]
-        public async Task<ResponseDTO> ElrGetNextEvent([FromHeader] string authorization)
+        public async Task<ActionResult<ResponseDTO>> ElrGetNextEvent([FromHeader] string authorization)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
             return await _homeService.ElrGetNextEvent(tokenClaims.id);
+        }
+        #endregion
+
+
+        #region HttpGet= api/Home/ElrTimeOutEvent?queued_events_records_id=
+        [HttpGet("ElrTimeOutEvent"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrTimeOutEvent([FromHeader] string authorization, long queued_events_records_id)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrTimeOutEvent(queued_events_records_id, tokenClaims.id);
+        }
+        #endregion
+
+        #region HttpGet= api/Home/ElrPatientCurrentStrip?queued_events_records_id=
+        [HttpGet("ElrPatientCurrentStrip"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrPatientCurrentStrip(long queued_events_records_id)
+        {
+            return await _homeService.ElrPatientCurrentStrip(queued_events_records_id);
+        }
+        #endregion
+
+        #region HttpPost= api/Home/ElrSubStripEvent
+        [HttpPost("ElrSubStripEvent"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrSubStripEvent([FromHeader] string authorization, SubStripEventDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrSubStripEvent(obj);
         }
         #endregion
     }

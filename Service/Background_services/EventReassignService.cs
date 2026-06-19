@@ -22,7 +22,6 @@ namespace elr_API.Service.Background_services
                 using var scope = _serviceScopeFactory.CreateScope();
 
                 var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
-                await db.Execute(EventAssignDTO.reassign_idle_events(), null, ELR_db);
                 await db.Execute(EventAssignDTO.reassign_expired_events(), null, ELR_db);
                 await db.Execute(EventAssignDTO.reset_reassigned_events(), null, ELR_db);
 

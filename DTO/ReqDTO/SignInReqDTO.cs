@@ -63,6 +63,20 @@ namespace elr_API.DTO.ReqDTO
         public bool is_active { get; set; }
 
 
+        internal static string patient_detatils()
+        {
+            return $@"select p.patient_id, p.patient_name, p.dob, p.age, p.phone_no, p.emergency_phone_no, p.email_id, p.gender, p.city, p.pincode, p.district_id, p.state_id,p.country_id, p.created_by, p.created_datetime, p.is_active 
+                        d.district_name,c.country_name, s.state_name
+                        from {Tbl.patient} as p
+                        left join {Tbl.district} as d
+                        on p.district_id = d.district_id
+                        left join {Tbl.state} as s
+                        on p.state_id = s.state_id
+                        left join {Tbl.country} as c
+                        on p.country_id = c.country_id
+                        where p.is_active = 1 and  p.patient_id = @patient_id";
+        }
+
     }
     public class MasterEmployeeLoginReqDTO
     {

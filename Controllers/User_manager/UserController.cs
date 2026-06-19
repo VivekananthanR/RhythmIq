@@ -72,11 +72,20 @@ namespace elr_API.Controllers.User_manager
             return await _userService.ElrphysiciansList(physiciansName);
         }
         #endregion
-        #region HttpPost = api/User/ElrTechniciansList?technicians_name =
+
+        #region HttpGet = api/User/ElrTechniciansList?technicians_name =
         [HttpGet("ElrTechniciansList")]
         public async Task<ResponseDTO> ElrTechniciansList(string? technicians_name)
         {
             return await _userService.ElrTechniciansList(technicians_name);
+        }
+        #endregion
+
+        #region HttpGet = api/User/ElrGetPatientEventPage?patient_id=
+        [HttpGet("ElrGetPatientEventPage")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetPatientEventPage(long patient_id)
+        {
+            return await _userService.ElrGetPatientEventPage(patient_id);
         }
         #endregion
     }

@@ -12,9 +12,12 @@ using elr_API.Service.Exception_handler;
 using elr_API.Service.Home_manager;
 using elr_API.Service.Token;
 using elr_API.Service.User_manager;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +36,26 @@ builder.Services.AddCors(op =>
         builder.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
     });
 });
+#endregion
+
+
+#region Authentication 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromSeconds(0), // no buffertime after expiry
+        ValidAudience = builder.Configuration["Token:Audience"],
+        ValidIssuer = builder.Configuration["Token:Issuer"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Token:Key"]))
+    };
+});
+
 #endregion
 
 
@@ -80,8 +103,8 @@ app.UseStaticFiles(new StaticFileOptions()
     RequestPath = new PathString("/Resources")
 });
 
-app.UseAuthorization();
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

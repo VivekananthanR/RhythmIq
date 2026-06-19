@@ -51,5 +51,9 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrUploadQueueAnomaly(QueuedAnomalyDTO obj);
 
         Task<ResponseDTO> ElrGetNextEvent(long emp_id);
+        Task<ResponseDTO> ElrTimeOutEvent(long queued_events_records_id, long emp_id);
+        Task<ResponseDTO> ElrPatientCurrentStrip(long queued_events_records_id);
+
+        Task<ResponseDTO> ElrSubStripEvent(SubStripEventDTO obj);
     }
 }
