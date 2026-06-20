@@ -3,6 +3,7 @@ using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
 using elr_API.IService.IDapper;
 using elr_API.IService.IHome_manager;
+using System.Text.Json;
 
 namespace elr_API.Service.Home_manager
 {
@@ -523,32 +524,43 @@ namespace elr_API.Service.Home_manager
 
                 var active = await _db.QuerySingle<int>(query, new { emp_id }, ELR_db);
 
-                if (active > 0)
-                {
-                    return new ResponseDTO(false,
-                        "Current event must be completed before taking next event");
-                }
+                if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
 
-                query = GetNextEventResDTO.priority_anomly_select();
-                var data = await _db.QuerySingle<GetNextEventResDTO>(query, null, ELR_db);
+                query = GetNextEventResDTO.get_next_event();
+
+                long? queuedId = await _db.QuerySingle<long?>(query, null, ELR_db);
+
+                if (!queuedId.HasValue) return new ResponseDTO(false, "No pending events");
+
+                query = GetNextEventResDTO.get_event_details();
+
+                var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = queuedId.Value }, ELR_db);
 
                 if (data == null)
                     return new ResponseDTO(false, "No pending events");
 
-                query = QueuedAnomalyDTO.update_processing_status();
-                await _db.Execute(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db);
 
-                query = EventAssignDTO.event_assign_insert();
-                await _db.Execute(query, new
+                try
                 {
-                    patient_enrollment_id = data.patient_enrollment_id,
-                    queued_events_records_id = data.queued_events_records_id,
-                    assigned_by = emp_id,
-                    created_by = emp_id,
-                    work_status = "inprogress",
-                    analysis_start_datetime = DateTime.Now,
-                    last_activity_datetime = DateTime.Now
-                }, ELR_db);
+                    query = EventAssignDTO.event_assign_insert();
+                    await _db.Execute(query, new
+                    {
+                        patient_enrollment_id = data.patient_enrollment_id,
+                        queued_events_records_id = data.queued_events_records_id,
+                        assigned_by = emp_id,
+                        created_by = emp_id,
+                        work_status = "inprogress",
+                        analysis_start_datetime = DateTime.Now,
+                        last_activity_datetime = DateTime.Now
+                    }, ELR_db);
+                }
+                catch
+                {
+                    query = QueuedAnomalyDTO.reset_to_pending();
+                    await _db.Execute(query, new { data.queued_events_records_id }, ELR_db);
+                    throw;
+                }
+
                 return new ResponseDTO(data);
             }
             catch (Exception ex)
@@ -591,7 +603,14 @@ namespace elr_API.Service.Home_manager
 
                 query = CurrentStripDTO.get_current_pateint_strip();
 
-                var data = await _db.QuerySingle<CurrentStripDTO>(query, new { queued_events_records_id }, ELR_db);
+                var data = await _db.QuerySingle<CurrentStripDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db);
+
+                if (data != null)
+                {
+                    query = SubStripEventDTO.get_sub_strip();
+
+                    data.sub_strip = (await _db.SelectQuery<SubStripEventDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+                }
 
                 if (data == null)
                     return new ResponseDTO(false, "No current strip found");
@@ -614,20 +633,29 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null || (obj.queued_events_records_id <= 0 || obj.event_assign_id <= 0)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                if (string.IsNullOrWhiteSpace(obj.json_data)) return new ResponseDTO(false, "JSON data is required.");
-
-                if (!string.IsNullOrEmpty(obj.json_data))
+                if (obj.json_data?.ValueKind == JsonValueKind.Undefined || obj.json_data?.ValueKind == JsonValueKind.Null)
                 {
-                    string folderPath = CommonFunctions.FolderPath($"Sub-Strip\\{obj.queued_events_records_id}");
-
-                    string fileName = $"{obj.queued_events_records_id}_{DateTime.Now:yyyyMMddHHmmssfff}.json";
-
-                    string fullPath = Path.Combine(folderPath, fileName);
-
-                    await File.WriteAllTextAsync(fullPath, obj.json_data);
-
-                    obj.sub_strip_file_path = fullPath.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                    return new ResponseDTO(false, "JSON data is required.");
                 }
+
+
+                string folderPath = CommonFunctions.FolderPath($"Sub-Strip\\{obj.queued_events_records_id}");
+
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
+
+                string fileName = $"{obj.queued_events_records_id}_{DateTime.Now:yyyyMMddHHmmssfff}.json";
+
+                string fullPath = Path.Combine(folderPath, fileName);
+
+                string json = obj.json_data?.GetRawText();
+
+                await File.WriteAllTextAsync(fullPath, json);
+
+                obj.sub_strip_file_path = fullPath.Replace(Directory.GetCurrentDirectory() + "\\", "");
+
                 query = SubStripEventDTO.insert_sub_strip();
                 var subStripId = await _db.ExecuteAndGetId(query, obj, ELR_db);
                 return new ResponseDTO(subStripId > 0, subStripId > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
@@ -640,5 +668,79 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<ResponseDTO> ElrInActiveSubStrip(long sub_strip_event_id, long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (sub_strip_event_id < 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = SubStripEventDTO.in_active_sub_strip();
+                int rows = await _db.Execute(query, new { sub_strip_event_id = sub_strip_event_id, modified_by = emp_id }, ELR_db);
+                return new ResponseDTO(rows > 0, rows > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<ResponseDTO> ElrSubStripReport(SubStripReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null)
+                    return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = SubStripReqDTO.get_sub_strip_report(obj);
+
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, SubStripEventDTO>(query, obj, ELR_db);
+                if (data == null) return new ResponseDTO(false, "No Data");
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                return new ResponseDTO(false, ex.Message);
+            }
+        }
+
+        public async Task<ResponseDTO> ElrAddUpdateFindingEvent(FindingEventDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.event_finding_id == 0)
+                {
+                    query = FindingEventDTO.insert_finding_mast();
+                }
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = FindingEventDTO.update_finding_mast();
+                }
+                var changed = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.event_finding_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                return new ResponseDTO(false, ex.Message);
+            }
+        }
+
+
     }
 }

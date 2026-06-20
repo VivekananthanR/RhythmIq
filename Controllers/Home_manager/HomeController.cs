@@ -250,6 +250,33 @@ namespace elr_API.Controllers.Home_manager
             return await _homeService.ElrSubStripEvent(obj);
         }
         #endregion
+
+        #region HttpPost= api/Home/ElrInActiveSubStrip
+        [HttpPost("ElrInActiveSubStrip"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrInActiveSubStrip([FromHeader] string authorization, long sub_strip_event_id)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrInActiveSubStrip(sub_strip_event_id, tokenClaims.id);
+        }
+        #endregion
+
+        #region HttpPost= api/Home/ElrSubStripReport
+        [HttpPost("ElrSubStripReport"), Authorize]
+        public async Task<ResponseDTO> ElrSubStripReport(SubStripReqDTO obj)
+        {
+            return await _homeService.ElrSubStripReport(obj);
+        }
+        #endregion
+
+        #region HttpPost= api/Home/ElrAddUpdateFindingEvent
+        [HttpPost("ElrAddUpdateFindingEvent"), Authorize]
+        public async Task<ResponseDTO> ElrAddUpdateFindingEvent([FromHeader] string authorization, FindingEventDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdateFindingEvent(obj);
+        }
+        #endregion
     }
 
 }

@@ -1,4 +1,5 @@
 ﻿
+using elr_API.Common;
 using Newtonsoft.Json;
 
 namespace elr_API.Service.Exception_handler
@@ -76,11 +77,21 @@ namespace elr_API.Service.Exception_handler
                 }
                 catch (Exception ex)
                 {
-                    // Handle unexpected errors globally, if necessary
-                    context.Response.StatusCode = 500;
-                    var errorResponse = new { status = false, errorCode = "Internal Server Error", data = "" };
-                    context.Response.Body = originalBodyStream;
-                    await context.Response.WriteAsJsonAsync(errorResponse);
+                    CommonFunctions.ILogging("", ex.ToString());
+
+                    if (!context.Response.HasStarted)
+                    {
+                        context.Response.Clear();
+                        context.Response.Body = originalBodyStream;
+                        context.Response.StatusCode = 500;
+
+                        await context.Response.WriteAsJsonAsync(new
+                        {
+                            status = false,
+                            errorCode = ex.Message,
+                            data = ""
+                        });
+                    }
                 }
             }
         }

@@ -55,5 +55,8 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrPatientCurrentStrip(long queued_events_records_id);
 
         Task<ResponseDTO> ElrSubStripEvent(SubStripEventDTO obj);
+        Task<ResponseDTO> ElrInActiveSubStrip(long sub_strip_event_id, long emp_id);
+        Task<ResponseDTO> ElrSubStripReport(SubStripReqDTO obj);
+        Task<ResponseDTO> ElrAddUpdateFindingEvent(FindingEventDTO obj);
     }
 }
