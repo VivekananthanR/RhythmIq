@@ -214,6 +214,15 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
+        #region HttpPost = api/Home/ElrQueueNextEvent?queued_events_records_id=
+        [HttpPost("ElrQueueNextEvent")]
+        public async Task<ActionResult<ResponseDTO>> ElrQueueNextEvent([FromHeader] string authorization, long queued_events_records_id)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrQueueNextEvent(tokenClaims.id, queued_events_records_id);
+        }
+        #endregion
+
         #region HttpGet= api/Home/ElrGetNextEvent
         [HttpGet("ElrGetNextEvent"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrGetNextEvent([FromHeader] string authorization)

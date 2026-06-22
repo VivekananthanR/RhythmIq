@@ -775,7 +775,13 @@ namespace elr_API.DTO.ReqDTO
                         modified_datetime = GETDATE()
                     WHERE queued_events_records_id = @queued_events_records_id";
         }
-
+        internal static string update_event_processing()
+        {
+            return @$"
+                    UPDATE {Tbl.queued_events_records}
+                    SET event_status = 'processing'
+                    WHERE queued_events_records_id = @queued_events_records_id ";
+        }
         #endregion
 
     }
@@ -952,6 +958,7 @@ namespace elr_API.DTO.ReqDTO
                     WHERE assigned_by = @emp_id
                     AND work_status = 'inprogress'";
         }
+
         #endregion
     }
 

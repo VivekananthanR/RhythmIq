@@ -49,6 +49,7 @@ namespace elr_API.IService.IHome_manager
 
         Task<ResponseDTO> ElrQueueAnomalyList(QueuedAnomalyReqDTO obj);
         Task<ResponseDTO> ElrUploadQueueAnomaly(QueuedAnomalyDTO obj);
+        Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id);
 
         Task<ResponseDTO> ElrGetNextEvent(long emp_id);
         Task<ResponseDTO> ElrTimeOutEvent(long queued_events_records_id, long emp_id);

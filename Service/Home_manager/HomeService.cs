@@ -514,6 +514,59 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+        public async Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = EventAssignDTO.get_active_event();
+
+                var active = await _db.QuerySingle<int>(query, new { emp_id }, ELR_db);
+
+                if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
+
+                query = GetNextEventResDTO.get_event_details();
+
+                var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = @queued_events_records_id }, ELR_db);
+
+                if (data == null)
+                    return new ResponseDTO(false, "No pending events");
+                try
+                {
+
+                    query = EventAssignDTO.event_assign_insert();
+                    await _db.Execute(query, new
+                    {
+                        patient_enrollment_id = data.patient_enrollment_id,
+                        queued_events_records_id = data.queued_events_records_id,
+                        assigned_by = emp_id,
+                        created_by = emp_id,
+                        work_status = "inprogress",
+                        analysis_start_datetime = DateTime.Now,
+                        last_activity_datetime = DateTime.Now
+                    }, ELR_db);
+
+                    query = QueuedAnomalyDTO.update_event_processing();
+                    await _db.Execute(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db);
+                }
+                catch
+                {
+                    query = QueuedAnomalyDTO.reset_to_pending();
+                    await _db.Execute(query, new { data.queued_events_records_id }, ELR_db);
+                    throw;
+                }
+
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message);
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
         public async Task<ResponseDTO> ElrGetNextEvent(long emp_id)
         {
             ErrorMessage = string.Empty;
@@ -553,6 +606,9 @@ namespace elr_API.Service.Home_manager
                         analysis_start_datetime = DateTime.Now,
                         last_activity_datetime = DateTime.Now
                     }, ELR_db);
+
+                    query = QueuedAnomalyDTO.update_event_processing();
+                    await _db.Execute(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db);
                 }
                 catch
                 {
