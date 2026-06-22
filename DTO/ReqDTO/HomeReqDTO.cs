@@ -1,6 +1,5 @@
 ﻿using elr_API.Common;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace elr_API.DTO.ReqDTO
 {
@@ -996,7 +995,7 @@ namespace elr_API.DTO.ReqDTO
         public long event_assign_id { get; set; }
         public long queued_events_records_id { get; set; }
 
-        public List<SubStripEventDTO> sub_strip { get; set; }
+        public List<SubStripEventResDTO> sub_strip { get; set; }
 
         #region Query
         internal static string get_current_pateint_strip()
@@ -1017,8 +1016,7 @@ namespace elr_API.DTO.ReqDTO
                     WHERE ea.queued_events_records_id = @queued_events_records_id
                       AND ea.work_status = 'inprogress'
                       AND ea.is_active = 1
-                      AND qer.is_active = 1
-                      ";
+                      AND qer.is_active = 1 ";
 
         }
 
@@ -1050,7 +1048,6 @@ namespace elr_API.DTO.ReqDTO
                         sse.sub_strip_event_id,
                         sse.queued_events_records_id,
                         sse.event_assign_id,
-                        sse.sub_strip_file_path,
                         sse.sub_strip_start_datetime,
                         sse.sub_strip_end_datetime,
                         sse.created_by,
@@ -1079,8 +1076,7 @@ namespace elr_API.DTO.ReqDTO
         public string? sub_strip_start_datetime { get; set; }
         public string? sub_strip_end_datetime { get; set; }
         public string remarks { get; set; }
-        [JsonIgnore]
-        public JsonElement? json_data { get; set; }
+        public JsonElement json_data { get; set; }
 
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
@@ -1124,7 +1120,21 @@ namespace elr_API.DTO.ReqDTO
 
         #endregion
     }
-
+    public class SubStripEventResDTO
+    {
+        public long sub_strip_event_id { get; set; }
+        public long queued_events_records_id { get; set; }
+        public long event_assign_id { get; set; }
+        public string sub_strip_file_path { get; set; }
+        public string? sub_strip_start_datetime { get; set; }
+        public string? sub_strip_end_datetime { get; set; }
+        public string remarks { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+    }
     public class FindingEventDTO
     {
         public long event_finding_id { get; set; }
@@ -1135,18 +1145,79 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+        public List<FindingEventDTO> child_list { get; set; }
 
         #region Query
         internal static string insert_finding_mast()
         {
-            return $@"insert into {Tbl.event_finding_mast}(event_finding_id,finding_name,parent_finding_id,created_by)
-                        values(@event_finding_id,@finding_name,@parent_finding_id,@created_by)";
+            return $@"insert into {Tbl.event_finding_mast}(finding_name,parent_finding_id,created_by)
+                        values(@finding_name,@parent_finding_id,@created_by)";
         }
         internal static string update_finding_mast()
         {
-            return $@"Update{Tbl.event_finding_mast}
-                        set event_finding_id = @event_finding_id,finding_name=@finding_name, parent_finding_id =@parent_finding_id,modified_by =@modified_by,modified_datetime=getdate(),is_active =@is_active
-                        where event_finding_id =@event_finding_id";
+            return $@"UPDATE {Tbl.event_finding_mast}
+              SET finding_name = @finding_name,
+                  parent_finding_id = @parent_finding_id,
+                  modified_by = @modified_by,
+                  modified_datetime = GETDATE(),
+                  is_active = @is_active
+              WHERE event_finding_id = @event_finding_id";
+        }
+        internal static string get_finding_mast()
+        {
+            return $@"
+                    SELECT
+                        event_finding_id,
+                        finding_name,
+                        parent_finding_id,
+                        is_active
+                    FROM {Tbl.event_finding_mast}
+                    WHERE is_active = 1
+                      AND parent_finding_id IS NULL";
+        }
+        internal static string get_finding_parent_id()
+        {
+            return $@"
+                    SELECT
+                        event_finding_id,
+                        finding_name,
+                        parent_finding_id,
+                        is_active
+                    FROM {Tbl.event_finding_mast}
+                    WHERE is_active = 1
+                      AND parent_finding_id = @parent_finding_id";
+        }
+        #endregion
+
+
+    }
+
+    public class ParentStripDTO
+    {
+        public long? patient_enrollment_id { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long? queued_events_records_id { get; set; }
+        public string trigger_type { get; set; }
+        public long? sub_strip_event_id { get; set; }
+        public string sub_strip_file_path { get; set; }
+
+        #region Query
+        internal static string select_parent_strip()
+        {
+            return $@"
+                    SELECT
+                        pe.patient_enrollment_id,
+                        pe.created_datetime,
+                        qer.queued_events_records_id,
+                        qer.trigger_type,
+                        sse.sub_strip_event_id,
+                        sse.sub_strip_file_path
+                    FROM {Tbl.sub_strip_event} sse
+                    INNER JOIN {Tbl.queued_events_records} qer
+                        ON sse.queued_events_records_id = qer.queued_events_records_id
+                    INNER JOIN {Tbl.patient_enrollment} pe
+                        ON qer.patient_enrollment_id = pe.patient_enrollment_id
+                    WHERE sse.sub_strip_event_id = @sub_strip_event_id";
         }
         #endregion
     }

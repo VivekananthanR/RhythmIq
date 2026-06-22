@@ -58,5 +58,9 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrInActiveSubStrip(long sub_strip_event_id, long emp_id);
         Task<ResponseDTO> ElrSubStripReport(SubStripReqDTO obj);
         Task<ResponseDTO> ElrAddUpdateFindingEvent(FindingEventDTO obj);
+        Task<ResponseDTO> ElrFindingList();
+        Task<List<FindingEventDTO>> ElrGetChildFinding(long parent_finding_id);
+        Task<ResponseDTO> ElrGetParentStrip(ParentStripDTO obj);
+
     }
 }

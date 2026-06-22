@@ -40,6 +40,13 @@ namespace elr_API.Service.Dapper
                 return await connection.QuerySingleAsync<T>(sql, parameters);
             }
         }
+        public async Task<T> QuerySingleOrDefault<T>(string sql, object parameters = null, string connectionString = null)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
+                return await connection.QuerySingleOrDefaultAsync<T>(sql, parameters);
+            }
+        }
 
         public async Task<IEnumerable<T>> SelectQuery<T>(string sql, object parameters = null, string connectionString = null)
         {

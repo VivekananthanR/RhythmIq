@@ -603,17 +603,17 @@ namespace elr_API.Service.Home_manager
 
                 query = CurrentStripDTO.get_current_pateint_strip();
 
-                var data = await _db.QuerySingle<CurrentStripDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db);
+                var data = await _db.QuerySingleOrDefault<CurrentStripDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db);
+
+                if (data == null)
+                    return new ResponseDTO(false, "No current strip found");
 
                 if (data != null)
                 {
                     query = SubStripEventDTO.get_sub_strip();
 
-                    data.sub_strip = (await _db.SelectQuery<SubStripEventDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+                    data.sub_strip = (await _db.SelectQuery<SubStripEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
                 }
-
-                if (data == null)
-                    return new ResponseDTO(false, "No current strip found");
 
                 return new ResponseDTO(data);
             }
@@ -633,7 +633,7 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null || (obj.queued_events_records_id <= 0 || obj.event_assign_id <= 0)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                if (obj.json_data?.ValueKind == JsonValueKind.Undefined || obj.json_data?.ValueKind == JsonValueKind.Null)
+                if (obj.json_data.ValueKind == JsonValueKind.Undefined || obj.json_data.ValueKind == JsonValueKind.Null)
                 {
                     return new ResponseDTO(false, "JSON data is required.");
                 }
@@ -650,7 +650,7 @@ namespace elr_API.Service.Home_manager
 
                 string fullPath = Path.Combine(folderPath, fileName);
 
-                string json = obj.json_data?.GetRawText();
+                string json = obj.json_data.GetRawText();
 
                 await File.WriteAllTextAsync(fullPath, json);
 
@@ -699,7 +699,7 @@ namespace elr_API.Service.Home_manager
 
                 query = SubStripReqDTO.get_sub_strip_report(obj);
 
-                var (totalCount, data) = await _db.SelectQueryWithCount<long, SubStripEventDTO>(query, obj, ELR_db);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, SubStripEventResDTO>(query, obj, ELR_db);
                 if (data == null) return new ResponseDTO(false, "No Data");
                 var response = new
                 {
@@ -736,11 +736,65 @@ namespace elr_API.Service.Home_manager
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging("", ex.ToString());
+                CommonFunctions.ILogging(obj, ex.ToString());
                 return new ResponseDTO(false, ex.Message);
             }
         }
 
+        public async Task<ResponseDTO> ElrFindingList()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
 
+            try
+            {
+                query = FindingEventDTO.get_finding_mast();
+
+                var data = (await _db.SelectQuery<FindingEventDTO>(query, null, ELR_db)).ToList();
+
+                foreach (var item in data)
+                {
+                    item.child_list = await ElrGetChildFinding(item.event_finding_id);
+                }
+
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                return new ResponseDTO(false, ex.Message);
+            }
+        }
+        public async Task<List<FindingEventDTO>> ElrGetChildFinding(long parent_finding_id)
+        {
+            string query = FindingEventDTO.get_finding_parent_id();
+
+            var children = (await _db.SelectQuery<FindingEventDTO>(query, new { parent_finding_id = parent_finding_id }, ELR_db)).ToList();
+
+            foreach (var child in children)
+            {
+                child.child_list = await ElrGetChildFinding(child.event_finding_id);
+            }
+
+            return children;
+        }
+        public async Task<ResponseDTO> ElrGetParentStrip(ParentStripDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                query = ParentStripDTO.select_parent_strip();
+                var data = await _db.QuerySingle<ParentStripDTO>(query, new { sub_strip_event_id = obj.sub_strip_event_id }, ELR_db);
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                return new ResponseDTO(false, ex.Message);
+            }
+
+        }
     }
 }

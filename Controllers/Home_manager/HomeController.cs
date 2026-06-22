@@ -262,7 +262,7 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpPost= api/Home/ElrSubStripReport
         [HttpPost("ElrSubStripReport"), Authorize]
-        public async Task<ResponseDTO> ElrSubStripReport(SubStripReqDTO obj)
+        public async Task<ActionResult<ResponseDTO>> ElrSubStripReport(SubStripReqDTO obj)
         {
             return await _homeService.ElrSubStripReport(obj);
         }
@@ -270,11 +270,27 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpPost= api/Home/ElrAddUpdateFindingEvent
         [HttpPost("ElrAddUpdateFindingEvent"), Authorize]
-        public async Task<ResponseDTO> ElrAddUpdateFindingEvent([FromHeader] string authorization, FindingEventDTO obj)
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateFindingEvent([FromHeader] string authorization, FindingEventDTO obj)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
             obj.created_by = tokenClaims.id;
             return await _homeService.ElrAddUpdateFindingEvent(obj);
+        }
+        #endregion
+
+        #region HttpGet= api/Home/ElrFindingList
+        [HttpGet("ElrFindingList")]
+        public async Task<ActionResult<ResponseDTO>> ElrFindingList()
+        {
+            return await _homeService.ElrFindingList();
+        }
+        #endregion
+
+        #region HttpGet= api/Home/ElrGetParentStrip
+        [HttpGet("ElrGetParentStrip")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetParentStrip(ParentStripDTO obj)
+        {
+            return await _homeService.ElrGetParentStrip(obj);
         }
         #endregion
     }
