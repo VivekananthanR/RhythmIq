@@ -62,6 +62,8 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrFindingList();
         Task<List<FindingEventDTO>> ElrGetChildFinding(long parent_finding_id);
         Task<ResponseDTO> ElrGetParentStrip(ParentStripDTO obj);
+        Task<ResponseDTO> ElrPushToQcEvent(PushToQCDTO obj);
+        Task<ResponseDTO> ElrCompletedFindingList(CompletedFindingListReqDTO obj);
 
     }
 }

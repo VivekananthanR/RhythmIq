@@ -302,6 +302,24 @@ namespace elr_API.Controllers.Home_manager
             return await _homeService.ElrGetParentStrip(obj);
         }
         #endregion
+
+        #region HttpPost= api/Home/ElrPushToQcEvent
+        [HttpPost("ElrPushToQcEvent"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrPushToQcEvent([FromHeader] string authorization, PushToQCDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrPushToQcEvent(obj);
+        }
+        #endregion
+
+        #region HttpGet= api/Home/ElrCompletedFindingList
+        [HttpPost("ElrCompletedFindingList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrCompletedFindingList(CompletedFindingListReqDTO obj)
+        {
+            return await _homeService.ElrCompletedFindingList(obj);
+        }
+        #endregion
     }
 
 }

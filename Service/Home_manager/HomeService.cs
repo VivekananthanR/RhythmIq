@@ -553,7 +553,7 @@ namespace elr_API.Service.Home_manager
                 }
                 catch
                 {
-                    query = QueuedAnomalyDTO.reset_to_pending();
+                    query = QueuedAnomalyDTO.reset_event_status();
                     await _db.Execute(query, new { data.queued_events_records_id }, ELR_db);
                     throw;
                 }
@@ -612,7 +612,7 @@ namespace elr_API.Service.Home_manager
                 }
                 catch
                 {
-                    query = QueuedAnomalyDTO.reset_to_pending();
+                    query = QueuedAnomalyDTO.reset_event_status();
                     await _db.Execute(query, new { data.queued_events_records_id }, ELR_db);
                     throw;
                 }
@@ -767,8 +767,9 @@ namespace elr_API.Service.Home_manager
             catch (Exception ex)
             {
                 CommonFunctions.ILogging("", ex.ToString());
-                return new ResponseDTO(false, ex.Message);
+                ErrorMessage = ex.Message.ToString();
             }
+            return new ResponseDTO(false, ErrorMessage);
         }
 
         public async Task<ResponseDTO> ElrAddUpdateFindingEvent(FindingEventDTO obj)
@@ -793,8 +794,9 @@ namespace elr_API.Service.Home_manager
             catch (Exception ex)
             {
                 CommonFunctions.ILogging(obj, ex.ToString());
-                return new ResponseDTO(false, ex.Message);
+                ErrorMessage = ex.Message.ToString();
             }
+            return new ResponseDTO(false, ErrorMessage);
         }
 
         public async Task<ResponseDTO> ElrFindingList()
@@ -818,8 +820,9 @@ namespace elr_API.Service.Home_manager
             catch (Exception ex)
             {
                 CommonFunctions.ILogging("", ex.ToString());
-                return new ResponseDTO(false, ex.Message);
+                ErrorMessage = ex.Message.ToString();
             }
+            return new ResponseDTO(false, ErrorMessage);
         }
         public async Task<List<FindingEventDTO>> ElrGetChildFinding(long parent_finding_id)
         {
@@ -848,9 +851,95 @@ namespace elr_API.Service.Home_manager
             catch (Exception ex)
             {
                 CommonFunctions.ILogging("", ex.ToString());
-                return new ResponseDTO(false, ex.Message);
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrPushToQcEvent(PushToQCDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PushToQCDTO.insert_sub_strip_finding();
+                foreach (var item in obj.finding_list)
+                {
+                    await _db.Execute(query,
+                   new
+                   {
+                       obj.queued_events_records_id,
+                       obj.sub_strip_event_id,
+                       item.event_finding_id,
+                       item.value1,
+                       item.value2,
+                       created_by = obj.created_by
+                   }, ELR_db);
+                }
+                query = PushToQCDTO.insert_detection();
+
+                await _db.Execute(
+                    query,
+                    new
+                    {
+                        obj.sub_strip_event_id,
+                        obj.queued_events_records_id,
+                        detection_status = "push-to-qc",
+                        created_by = obj.created_by
+                    },
+                    ELR_db);
+                obj.modified_by = obj.created_by;
+                query = QueuedAnomalyDTO.update_event_completed();
+                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
+
+                query = EventAssignDTO.update_status_completed();
+                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
+
+                return new ResponseDTO(true, ResponseMessage.Success);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<ResponseDTO> ElrCompletedFindingList(CompletedFindingListReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+
+            try
+            {
+                obj.shortColumn = obj.shortColumn?.ToLower() switch
+                {
+                    "detection_id" => "d.detection_id",
+                    "created_datetime" => "d.created_datetime",
+                    _ => "d.created_datetime"
+                };
+
+                obj.orderBy = obj.orderBy?.ToUpper() == "ASC" ? "ASC" : "DESC";
+
+                query = CompletedFindingListReqDTO.get_completed_findings(obj);
+
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, CompletedFindingListDTO>(query, obj, ELR_db);
+                if (data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(null, ex.ToString());
+                ErrorMessage = ex.Message;
             }
 
+            return new ResponseDTO(false, ErrorMessage);
         }
     }
 }

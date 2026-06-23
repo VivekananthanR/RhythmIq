@@ -29,5 +29,7 @@
         public static readonly string event_assign = "tbl_event_assign";
         public static readonly string sub_strip_event = "tbl_sub_strip_event";
         public static readonly string event_finding_mast = "tbl_event_finding_mast";
+        public static readonly string sub_strip_event_finding = "tbl_sub_strip_event_finding";
+        public static readonly string detection = "tbl_detection";
     }
 }
