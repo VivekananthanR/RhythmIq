@@ -592,30 +592,17 @@ namespace elr_API.Service.Home_manager
                 if (data == null)
                     return new ResponseDTO(false, "No pending events");
 
-
-                try
+                query = EventAssignDTO.event_assign_insert();
+                await _db.Execute(query, new
                 {
-                    query = EventAssignDTO.event_assign_insert();
-                    await _db.Execute(query, new
-                    {
-                        patient_enrollment_id = data.patient_enrollment_id,
-                        queued_events_records_id = data.queued_events_records_id,
-                        assigned_by = emp_id,
-                        created_by = emp_id,
-                        work_status = "inprogress",
-                        analysis_start_datetime = DateTime.Now,
-                        last_activity_datetime = DateTime.Now
-                    }, ELR_db);
-
-                    query = QueuedAnomalyDTO.update_event_processing();
-                    await _db.Execute(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db);
-                }
-                catch
-                {
-                    query = QueuedAnomalyDTO.reset_event_status();
-                    await _db.Execute(query, new { data.queued_events_records_id }, ELR_db);
-                    throw;
-                }
+                    patient_enrollment_id = data.patient_enrollment_id,
+                    queued_events_records_id = data.queued_events_records_id,
+                    assigned_by = emp_id,
+                    created_by = emp_id,
+                    work_status = "inprogress",
+                    analysis_start_datetime = DateTime.Now,
+                    last_activity_datetime = DateTime.Now
+                }, ELR_db);
 
                 return new ResponseDTO(data);
             }
@@ -864,38 +851,44 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                query = PushToQCDTO.insert_sub_strip_finding();
-                foreach (var item in obj.finding_list)
-                {
-                    await _db.Execute(query,
-                   new
-                   {
-                       obj.queued_events_records_id,
-                       obj.sub_strip_event_id,
-                       item.event_finding_id,
-                       item.value1,
-                       item.value2,
-                       created_by = obj.created_by
-                   }, ELR_db);
-                }
+                string detectionStatus = obj.is_experienced_user ? "submit" : "push-to-qc";
+
                 query = PushToQCDTO.insert_detection();
 
-                await _db.Execute(
+                long detection_id = await _db.ExecuteAndGetId(
                     query,
                     new
                     {
                         obj.sub_strip_event_id,
                         obj.queued_events_records_id,
-                        detection_status = "push-to-qc",
+                        detection_status = detectionStatus,
                         created_by = obj.created_by
                     },
                     ELR_db);
-                obj.modified_by = obj.created_by;
-                query = QueuedAnomalyDTO.update_event_completed();
-                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
 
-                query = EventAssignDTO.update_status_completed();
-                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
+                query = PushToQCDTO.insert_sub_strip_finding();
+                foreach (var item in obj.finding_list)
+                {
+                    await _db.Execute(query,
+                      new
+                      {
+                          detection_id,
+                          obj.queued_events_records_id,
+                          obj.sub_strip_event_id,
+                          item.event_finding_id,
+                          item.value1,
+                          item.value2,
+                          created_by = obj.created_by
+                      }, ELR_db);
+                }
+                string status = obj.is_experienced_user ? "completed" : "partial-completed";
+
+                obj.modified_by = obj.created_by;
+                query = QueuedAnomalyDTO.update_event_status();
+                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by, event_status = status }, ELR_db);
+
+                query = EventAssignDTO.update_work_status();
+                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by, work_status = status }, ELR_db);
 
                 return new ResponseDTO(true, ResponseMessage.Success);
             }
@@ -906,6 +899,7 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
         public async Task<ResponseDTO> ElrCompletedFindingList(CompletedFindingListReqDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -939,6 +933,91 @@ namespace elr_API.Service.Home_manager
                 ErrorMessage = ex.Message;
             }
 
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrGetCompleteQc(long detection_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (detection_id < 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                query = CompletedFindingListResDTO.select_complete_qc_report();
+                var data = await _db.QuerySingle<CompletedFindingListResDTO>(query, new { detection_id = detection_id }, ELR_db);
+                if (data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                var findingQuery = FindingDTO.select_complete_qc_report_findings();
+                data.findings = (await _db.SelectQuery<FindingDTO>(findingQuery, new { detection_id = detection_id }, ELR_db)).ToList();
+
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrSubmitQcEvent(CompletedFindingListResDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                long oldSubStripId = obj.sub_strip_event_id.Value;
+                query = CompletedFindingListResDTO.is_active_old_sub_strip();
+                await _db.Execute(query, new
+                {
+                    sub_strip_event_id = oldSubStripId,
+                    modified_by = obj.modified_by
+                }, ELR_db);
+
+
+                query = CompletedFindingListResDTO.insert_new_strip();
+                long newSubStripId = await _db.ExecuteAndGetId(query, new
+                {
+                    detection_id = obj.detection_id,
+                    created_by = obj.modified_by
+                }, ELR_db);
+
+                query = CompletedFindingListResDTO.insert_submit_qc();
+                foreach (var item in obj.findings)
+                {
+                    await _db.Execute(query, new
+                    {
+                        obj.detection_id,
+                        sub_strip_event_id = newSubStripId,
+                        item.event_finding_id,
+                        item.value1,
+                        item.value2,
+                        obj.modified_by
+                    }, ELR_db);
+                }
+
+                query = CompletedFindingListResDTO.update_submit_status();
+
+                var rows = await _db.Execute(query, new { detection_id = obj.detection_id, modified_by = obj.modified_by }, ELR_db);
+
+                if (rows == 0) return new ResponseDTO(false, "Record not found or already submitted.");
+
+                query = CompletedFindingListResDTO.update_event_completed();
+                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
+
+                query = CompletedFindingListResDTO.update_status_completed();
+                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
+
+                return new ResponseDTO(rows > 0, "QC submitted successfully.");
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
             return new ResponseDTO(false, ErrorMessage);
         }
     }

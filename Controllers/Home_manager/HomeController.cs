@@ -313,11 +313,30 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
-        #region HttpGet= api/Home/ElrCompletedFindingList
+        #region HttpPost= api/Home/ElrCompletedFindingList
         [HttpPost("ElrCompletedFindingList"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrCompletedFindingList(CompletedFindingListReqDTO obj)
         {
             return await _homeService.ElrCompletedFindingList(obj);
+        }
+        #endregion
+
+
+        #region HttpGet= api/Home/ElrGetCompleteQc
+        [HttpGet("ElrGetCompleteQc")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetCompleteQc(long detection_id)
+        {
+            return await _homeService.ElrGetCompleteQc(detection_id);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrSubmitQcEvent
+        [HttpPost("ElrSubmitQcEvent"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrSubmitQcEvent([FromHeader] string authorization, CompletedFindingListResDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.modified_by = tokenClaims.id;
+            return await _homeService.ElrSubmitQcEvent(obj);
         }
         #endregion
     }
