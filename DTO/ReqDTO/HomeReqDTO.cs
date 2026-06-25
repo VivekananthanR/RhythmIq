@@ -1252,7 +1252,6 @@ namespace elr_API.DTO.ReqDTO
 
     public class PushToQCDTO
     {
-        public long sub_strip_event_finding_id { get; set; }
         public long? sub_strip_event_id { get; set; }
         public long? queued_events_records_id { get; set; }
 
@@ -1482,72 +1481,6 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? modified_datetime { get; set; }
 
         #region Query
-
-        internal static string is_active_old_sub_strip()
-        {
-            return $@"UPDATE {Tbl.sub_strip_event}
-                  SET is_active = 0,
-                      modified_by = @modified_by,
-                      modified_date = GETDATE()
-                  WHERE sub_strip_event_id = @sub_strip_event_id";
-        }
-        internal static string insert_new_strip()
-        {
-            return $@"insert into{Tbl.sub_strip_event}(detection_id,created_by)
-                    values(@detection_id,@created_by)";
-        }
-        internal static string insert_submit_qc()
-        {
-            return $@" INSERT INTO {Tbl.sub_strip_event_finding}
-                            (
-                                detection_id,
-                                sub_strip_event_id,
-                                event_finding_id,
-                                value1,
-                                value2,
-                                modified_by,
-                                modified_datetime
-                            )
-                            VALUES
-                            (
-                                @detection_id,
-                                @sub_strip_event_id,
-                                @event_finding_id,
-                                @value1,
-                                @value2,
-                                @modified_by,
-                                GETDATE()
-                            );";
-        }
-        internal static string update_submit_status()
-        {
-            return $@"UPDATE {Tbl.detection}
-                SET
-                    detection_status = 'submit',
-                    modified_by = @modified_by,
-                    modified_datetime = GETDATE()
-                WHERE detection_id = @detection_id";
-        }
-        internal static string update_event_completed()
-        {
-            return @$"
-                    UPDATE {Tbl.queued_events_records}
-                    SET event_status = 'completed',
-                        modified_by = @modified_by,
-                    last_assigned_datetime = GETDATE()
-                    WHERE queued_events_records_id = @queued_events_records_id ";
-        }
-        internal static string update_status_completed()
-        {
-            return $@"
-                    UPDATE {Tbl.event_assign}
-                    SET
-                        work_status = 'completed',
-                        modified_by = @modified_by,
-                        modified_datetime = GETDATE(),
-                        analysis_end_datetime = getdate()
-                    WHERE queued_events_records_id = @queued_events_records_id";
-        }
         internal static string select_complete_qc_report()
         {
             return $@"
@@ -1642,6 +1575,49 @@ namespace elr_API.DTO.ReqDTO
                         u.user_id,
                         u.user_name,
                         sse.sub_strip_file_path";
+        }
+        #endregion
+    }
+
+    public class ConfirmSubmitDTO
+    {
+        public long detection_id { get; set; }
+        public long parent_detection_id { get; set; }
+        public long picked_by { get; set; }
+        public DateTime? picked_datetime { get; set; }
+
+        public long? sub_strip_event_id { get; set; }
+        public long? queued_events_records_id { get; set; }
+
+        public List<FindingDTO> finding_list { get; set; }
+
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long? modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+
+        #region Query
+        internal static string insert_detection()
+        {
+            return $@"insert into {Tbl.detection} (parent_detection_id,sub_strip_event_id,queued_events_records_id,detection_status,created_by)
+                    values(@parent_detection_id, @sub_strip_event_id, @queued_events_records_id, @detection_status, @created_by)";
+        }
+        internal static string insert_sub_strip_finding()
+        {
+            return $@"insert into {Tbl.sub_strip_event_finding} (sub_strip_event_id,queued_events_records_id,event_finding_id,detection_id, value1, value2,created_by)
+                        values (@sub_strip_event_id, @queued_events_records_id, @event_finding_id, @detection_id, @value1, @value2, @created_by)";
+        }
+
+        internal static string pick_detection()
+        {
+            return $@"
+                    UPDATE {Tbl.detection}
+                    SET
+                        picked_by = @picked_by,
+                        picked_datetime = GETDATE()
+                    WHERE detection_id = @detection_id
+                    AND is_active = 1
+                    AND (picked_by IS NULL OR picked_by = @picked_by)";
         }
         #endregion
     }

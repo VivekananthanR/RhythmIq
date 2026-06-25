@@ -65,7 +65,8 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrPushToQcEvent(PushToQCDTO obj);
         Task<ResponseDTO> ElrCompletedFindingList(CompletedFindingListReqDTO obj);
         Task<ResponseDTO> ElrGetCompleteQc(long detection_id);
-        Task<ResponseDTO> ElrSubmitQcEvent(CompletedFindingListResDTO obj);
+        Task<ResponseDTO> ElrUpdateSubmitQcEvent(ConfirmSubmitDTO obj);
+        Task<ResponseDTO> ElrQcPickDetection(ConfirmSubmitDTO obj);
 
     }
 }

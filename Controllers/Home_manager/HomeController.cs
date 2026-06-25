@@ -330,13 +330,23 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
-        #region HttpPost = api/Home/ElrSubmitQcEvent
-        [HttpPost("ElrSubmitQcEvent"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrSubmitQcEvent([FromHeader] string authorization, CompletedFindingListResDTO obj)
+        #region HttpPost = api/Home/ElrUpdateSubmitQcEvent
+        [HttpPost("ElrUpdateSubmitQcEvent"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrUpdateSubmitQcEvent([FromHeader] string authorization, ConfirmSubmitDTO obj)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            obj.modified_by = tokenClaims.id;
-            return await _homeService.ElrSubmitQcEvent(obj);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrUpdateSubmitQcEvent(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/PickDetection
+        [HttpPost("ElrQcPickDetection"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrQcPickDetection([FromHeader] string authorization, ConfirmSubmitDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.picked_by = tokenClaims.id;
+            return await _homeService.ElrQcPickDetection(obj);
         }
         #endregion
     }

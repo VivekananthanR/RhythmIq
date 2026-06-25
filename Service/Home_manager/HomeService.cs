@@ -555,7 +555,7 @@ namespace elr_API.Service.Home_manager
                 {
                     query = QueuedAnomalyDTO.reset_event_status();
                     await _db.Execute(query, new { data.queued_events_records_id }, ELR_db);
-                    throw;
+                    return new ResponseDTO(false, "Already Assigined Event");
                 }
 
                 return new ResponseDTO(data);
@@ -960,7 +960,7 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrSubmitQcEvent(CompletedFindingListResDTO obj)
+        public async Task<ResponseDTO> ElrUpdateSubmitQcEvent(ConfirmSubmitDTO obj)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
@@ -968,49 +968,58 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                long oldSubStripId = obj.sub_strip_event_id.Value;
-                query = CompletedFindingListResDTO.is_active_old_sub_strip();
-                await _db.Execute(query, new
-                {
-                    sub_strip_event_id = oldSubStripId,
-                    modified_by = obj.modified_by
-                }, ELR_db);
+                query = ConfirmSubmitDTO.insert_detection();
+                long newDetectionId = await _db.ExecuteAndGetId(query,
+                     new
+                     {
+                         parent_detection_id = obj.detection_id,
+                         obj.sub_strip_event_id,
+                         obj.queued_events_records_id,
+                         detection_status = "confirm-submit",
+                         created_by = obj.created_by
+                     }, ELR_db);
 
-
-                query = CompletedFindingListResDTO.insert_new_strip();
-                long newSubStripId = await _db.ExecuteAndGetId(query, new
+                query = ConfirmSubmitDTO.insert_sub_strip_finding();
+                foreach (var item in obj.finding_list)
                 {
-                    detection_id = obj.detection_id,
-                    created_by = obj.modified_by
-                }, ELR_db);
-
-                query = CompletedFindingListResDTO.insert_submit_qc();
-                foreach (var item in obj.findings)
-                {
-                    await _db.Execute(query, new
-                    {
-                        obj.detection_id,
-                        sub_strip_event_id = newSubStripId,
-                        item.event_finding_id,
-                        item.value1,
-                        item.value2,
-                        obj.modified_by
-                    }, ELR_db);
+                    await _db.Execute(query,
+                        new
+                        {
+                            obj.sub_strip_event_id,
+                            obj.queued_events_records_id,
+                            item.event_finding_id,
+                            detection_id = newDetectionId,
+                            item.value1,
+                            item.value2,
+                            created_by = obj.created_by
+                        }, ELR_db);
                 }
 
-                query = CompletedFindingListResDTO.update_submit_status();
+                query = QueuedAnomalyDTO.update_event_status();
 
-                var rows = await _db.Execute(query, new { detection_id = obj.detection_id, modified_by = obj.modified_by }, ELR_db);
+                await _db.Execute(
+                    query,
+                    new
+                    {
+                        queued_events_records_id = obj.queued_events_records_id,
+                        modified_by = obj.created_by,
+                        event_status = "completed"
+                    },
+                    ELR_db);
 
-                if (rows == 0) return new ResponseDTO(false, "Record not found or already submitted.");
+                query = EventAssignDTO.update_work_status();
 
-                query = CompletedFindingListResDTO.update_event_completed();
-                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
+                await _db.Execute(
+                    query,
+                    new
+                    {
+                        queued_events_records_id = obj.queued_events_records_id,
+                        modified_by = obj.created_by,
+                        work_status = "completed"
+                    },
+                    ELR_db);
 
-                query = CompletedFindingListResDTO.update_status_completed();
-                await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by }, ELR_db);
-
-                return new ResponseDTO(rows > 0, "QC submitted successfully.");
+                return new ResponseDTO(true, "QC Update TO Submitted Successfully.");
 
             }
             catch (Exception ex)
@@ -1020,5 +1029,29 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+        public async Task<ResponseDTO> ElrQcPickDetection(ConfirmSubmitDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj.detection_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                query = ConfirmSubmitDTO.pick_detection();
+                int rows = await _db.Execute(query, new { detection_id = obj.detection_id, picked_by = obj.picked_by }, ELR_db);
+                if (rows == 0)
+                {
+                    return new ResponseDTO(false, "This detection is already taken");
+                }
+                return new ResponseDTO(true, "Detection assigned successfully");
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
     }
 }
