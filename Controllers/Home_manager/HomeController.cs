@@ -330,6 +330,15 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
+        #region HttpGet= api/Home/ElrGetNextQcDetection
+        [HttpGet("ElrGetNextQcDetection"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetNextQcDetection([FromHeader] string authorization)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrGetNextQcDetection(tokenClaims.id);
+        }
+        #endregion
+
         #region HttpPost = api/Home/ElrUpdateSubmitQcEvent
         [HttpPost("ElrUpdateSubmitQcEvent"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrUpdateSubmitQcEvent([FromHeader] string authorization, ConfirmSubmitDTO obj)
@@ -347,6 +356,15 @@ namespace elr_API.Controllers.Home_manager
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
             obj.picked_by = tokenClaims.id;
             return await _homeService.ElrQcPickDetection(obj);
+        }
+        #endregion
+
+
+        #region HttpPost = api/Home/ElrCompletePriorityReport
+        [HttpPost("ElrCompletePriorityReport"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrCompletePriorityReport(PriorityCompleteReportReqDTO obj)
+        {
+            return await _homeService.ElrCompletePriorityReport(obj);
         }
         #endregion
     }

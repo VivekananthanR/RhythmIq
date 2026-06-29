@@ -365,9 +365,7 @@ namespace elr_API.Service.Enrolment
                             "enrollment_raw_data_id");
                         try
                         {
-                            var response = await _httpClient.PostAsync(
-                                "http://192.168.97.140:5006/api/process",
-                                formData);
+                            var response = await _httpClient.PostAsync("http://192.168.97.140:5006/api/process", formData);
 
                             string result = await response.Content.ReadAsStringAsync();
 

@@ -1030,6 +1030,32 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
+        public async Task<ResponseDTO> ElrGetNextQcDetection(long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = ConfirmSubmitDTO.get_my_picked_detection();
+                var myDetection = (await _db.SelectQuery<ConfirmSubmitDTO>(query, new { picked_by = emp_id }, ELR_db)).FirstOrDefault();
+                if (myDetection != null) return new ResponseDTO(myDetection);
+
+                query = ConfirmSubmitDTO.get_next_qc_detection();
+
+                var data = (await _db.SelectQuery<ConfirmSubmitDTO>(query, null, ELR_db)).FirstOrDefault();
+
+                if (data == null) return new ResponseDTO(false, "No QC records available.");
+
+                return new ResponseDTO(data);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
         public async Task<ResponseDTO> ElrQcPickDetection(ConfirmSubmitDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -1037,6 +1063,14 @@ namespace elr_API.Service.Home_manager
             try
             {
                 if (obj.detection_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.qc_tech_detection == false)
+                {
+                    query = ConfirmSubmitDTO.release_pick_detection();
+
+                    int row = await _db.Execute(query, new { detection_id = obj.detection_id, modified_by = obj.picked_by }, ELR_db);
+
+                    return new ResponseDTO(true, "Detection released successfully");
+                }
                 query = ConfirmSubmitDTO.pick_detection();
                 int rows = await _db.Execute(query, new { detection_id = obj.detection_id, picked_by = obj.picked_by }, ELR_db);
                 if (rows == 0)
@@ -1052,6 +1086,43 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+
+        public async Task<ResponseDTO> ElrCompletePriorityReport(PriorityCompleteReportReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null && obj.patient_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PriorityCompleteReportReqDTO.detection_complete_report(obj);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, PriorityCompleteReportDTO>(query, obj, ELR_db);
+
+                if (data == null || !data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                foreach (var item in data)
+                {
+                    query = SubStripEventResDTO.sub_strip_files_select();
+                    item.sub_strip_files = (await _db.SelectQuery<SubStripEventResDTO>(query, new { queued_events_records_id = item.queued_events_records_id }, ELR_db)).ToList();
+                }
+
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data,
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
 
     }
 }

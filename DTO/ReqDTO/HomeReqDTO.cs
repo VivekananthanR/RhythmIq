@@ -1074,6 +1074,7 @@ namespace elr_API.DTO.ReqDTO
                         sse.sub_strip_event_id,
                         sse.queued_events_records_id,
                         sse.event_assign_id,
+                        sse.sub_strip_file_path,
                         sse.sub_strip_start_datetime,
                         sse.sub_strip_end_datetime,
                         sse.created_by,
@@ -1160,6 +1161,30 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+
+        #region Query
+        internal static string sub_strip_files_select()
+        {
+            return $@"
+                SELECT
+                    sub_strip_event_id,
+                    queued_events_records_id,
+                    event_assign_id,
+                    sub_strip_file_path,
+                    sub_strip_start_datetime,
+                    sub_strip_end_datetime,
+                    remarks,
+                    created_by,
+                    created_datetime,
+                    modified_by,
+                    modified_datetime,
+                    is_active
+                FROM {Tbl.sub_strip_event}
+                WHERE queued_events_records_id = @queued_events_records_id 
+                AND is_active = 1";
+        }
+        #endregion
+
     }
     public class FindingEventDTO
     {
@@ -1581,6 +1606,7 @@ namespace elr_API.DTO.ReqDTO
 
     public class ConfirmSubmitDTO
     {
+        public bool qc_tech_detection { get; set; }
         public long detection_id { get; set; }
         public long parent_detection_id { get; set; }
         public long picked_by { get; set; }
@@ -1595,6 +1621,7 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? created_datetime { get; set; }
         public long? modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
+
 
         #region Query
         internal static string insert_detection()
@@ -1617,8 +1644,121 @@ namespace elr_API.DTO.ReqDTO
                         picked_datetime = GETDATE()
                     WHERE detection_id = @detection_id
                     AND is_active = 1
-                    AND (picked_by IS NULL OR picked_by = @picked_by)";
+                    AND picked_by IS NULL";
+        }
+
+        internal static string release_pick_detection()
+        {
+            return $@"update {Tbl.detection}
+                     set picked_by = null,
+                         picked_datetime = null,
+                        modified_by = @modified_by,
+                        modified_datetime = getdate()
+                      WHERE detection_id = @detection_id ";
+        }
+
+
+        internal static string get_my_picked_detection()
+        {
+            return $@"
+                    SELECT TOP 1 *
+                    FROM {Tbl.detection}
+                    WHERE picked_by = @picked_by
+                      AND is_active = 1
+                      AND detection_status NOT IN ('confirm-submit', 'submit')
+                    ORDER BY picked_datetime DESC";
+        }
+        internal static string get_next_qc_detection()
+        {
+            return $@"
+                    SELECT TOP 1
+                        detection_id,
+                        parent_detection_id,
+                        sub_strip_event_id,
+                        queued_events_records_id
+                    FROM {Tbl.detection}
+                    WHERE is_active = 1
+                      AND detection_status NOT IN ('confirm-submit', 'submit')
+                      AND picked_by IS NULL
+                    ORDER BY detection_id";
         }
         #endregion
     }
+
+    public class PriorityCompleteReportReqDTO
+    {
+        public int pageNumber { get; set; }
+        public int pageSize { get; set; }
+        public int offSet => (pageNumber - 1) * pageSize;
+        public string shortColumn { get; set; }
+        public string orderBy { get; set; }
+        public long patient_id { get; set; }
+
+        #region Query
+        internal static string detection_complete_report(PriorityCompleteReportReqDTO obj)
+        {
+            return $@"
+                    SELECT COUNT(1)
+                    FROM {Tbl.detection} d
+                    LEFT JOIN {Tbl.queued_events_records} q
+                        ON d.queued_events_records_id = q.queued_events_records_id
+                    LEFT JOIN {Tbl.patient_enrollment} pe
+                        ON q.patient_enrollment_id = pe.patient_enrollment_id
+                    WHERE d.detection_status IN ('confirm-submit', 'submit')
+                    AND pe.patient_id = @patient_id;
+
+                    SELECT
+                        d.detection_id,
+                        d.sub_strip_event_id,
+                        d.queued_events_records_id,
+                        q.event_file_path,
+                        d.detection_status,
+                        d.remarks,
+                        d.created_by,
+                        d.created_datetime,
+                        d.modified_by,
+                        d.modified_datetime,
+                        d.picked_by,
+                        d.picked_datetime,
+                        pe.patient_id,
+                        p.patient_name
+                    FROM {Tbl.detection} d
+                    LEFT JOIN {Tbl.queued_events_records} q
+                        ON d.queued_events_records_id = q.queued_events_records_id
+                    LEFT JOIN {Tbl.patient_enrollment} pe
+                        ON q.patient_enrollment_id = pe.patient_enrollment_id
+                    LEFT JOIN {Tbl.patient} p
+                        ON pe.patient_id = p.patient_id
+                    WHERE d.detection_status IN ('confirm-submit', 'submit')
+                    AND (@patient_id = 0 OR pe.patient_id = @patient_id)
+                    ORDER BY d.{obj.shortColumn} {obj.orderBy}
+                    OFFSET @offSet ROWS
+                    FETCH NEXT @pageSize ROWS ONLY";
+        }
+
+        #endregion
+
+    }
+    public class PriorityCompleteReportDTO
+    {
+        public long detection_id { get; set; }
+        public long? sub_strip_event_id { get; set; }
+        public long queued_events_records_id { get; set; }
+        public string event_file_path { get; set; }
+        public string detection_status { get; set; }
+        public string remarks { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long? modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public long? picked_by { get; set; }
+        public DateTime? picked_datetime { get; set; }
+
+        public List<SubStripEventResDTO> sub_strip_files { get; set; }
+
+        public long patient_id { get; set; }
+        public string patient_name { get; set; }
+
+    }
+
 }

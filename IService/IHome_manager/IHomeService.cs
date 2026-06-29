@@ -58,15 +58,20 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrSubStripEvent(SubStripEventDTO obj);
         Task<ResponseDTO> ElrInActiveSubStrip(long sub_strip_event_id, long emp_id);
         Task<ResponseDTO> ElrSubStripReport(SubStripReqDTO obj);
+
         Task<ResponseDTO> ElrAddUpdateFindingEvent(FindingEventDTO obj);
         Task<ResponseDTO> ElrFindingList();
+
         Task<List<FindingEventDTO>> ElrGetChildFinding(long parent_finding_id);
         Task<ResponseDTO> ElrGetParentStrip(ParentStripDTO obj);
+
         Task<ResponseDTO> ElrPushToQcEvent(PushToQCDTO obj);
         Task<ResponseDTO> ElrCompletedFindingList(CompletedFindingListReqDTO obj);
         Task<ResponseDTO> ElrGetCompleteQc(long detection_id);
+        Task<ResponseDTO> ElrGetNextQcDetection(long emp_id);
         Task<ResponseDTO> ElrUpdateSubmitQcEvent(ConfirmSubmitDTO obj);
         Task<ResponseDTO> ElrQcPickDetection(ConfirmSubmitDTO obj);
+        Task<ResponseDTO> ElrCompletePriorityReport(PriorityCompleteReportReqDTO obj);
 
     }
 }
