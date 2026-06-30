@@ -991,8 +991,6 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? record_st { get; set; }
         public DateTime? record_end { get; set; }
         public int duration_seconds { get; set; }
-        public IFormFile? event_parent_file { get; set; }
-        public string? event_parent_path { get; set; }
         public IFormFile? event_processed_file { get; set; }
         public string? event_processed_path { get; set; }
         public long created_by { get; set; }
@@ -1004,8 +1002,8 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string insert_processed_data()
         {
-            return $@"insert into {Tbl.patient_base_line} (enrollment_raw_data_id,patient_enrollment_id,record_st,record_end,event_parent_path,event_processed_path)
-                       values(@enrollment_raw_data_id, @patient_enrollment_id, @record_st, @record_end, @event_parent_path, @event_processed_path)";
+            return $@"insert into {Tbl.patient_base_line} (enrollment_raw_data_id,patient_enrollment_id,record_st,record_end,event_processed_path)
+                       values(@enrollment_raw_data_id, @patient_enrollment_id, @record_st, @record_end, @event_processed_path)";
         }
         #endregion
     }
@@ -1657,17 +1655,6 @@ namespace elr_API.DTO.ReqDTO
                       WHERE detection_id = @detection_id ";
         }
 
-
-        internal static string get_my_picked_detection()
-        {
-            return $@"
-                    SELECT TOP 1 *
-                    FROM {Tbl.detection}
-                    WHERE picked_by = @picked_by
-                      AND is_active = 1
-                      AND detection_status NOT IN ('confirm-submit', 'submit')
-                    ORDER BY picked_datetime DESC";
-        }
         internal static string get_next_qc_detection()
         {
             return $@"
@@ -1680,7 +1667,7 @@ namespace elr_API.DTO.ReqDTO
                     WHERE is_active = 1
                       AND detection_status NOT IN ('confirm-submit', 'submit')
                       AND picked_by IS NULL
-                    ORDER BY detection_id";
+                    ORDER BY detection_id asc";
         }
         #endregion
     }
@@ -1761,4 +1748,59 @@ namespace elr_API.DTO.ReqDTO
 
     }
 
+    public class FetchECGReqDTO
+    {
+        public long queued_events_records_id { get; set; }
+        public int minutes { get; set; }
+        public string fetch_direction { get; set; }
+
+        #region Query
+        internal static string get_current_event()
+        {
+            return $@"
+                    SELECT
+                        enrollment_raw_data_id,
+                        patient_enrollment_id,  
+                        event_start_datetime,
+                        event_end_datetime
+                    FROM {Tbl.queued_events_records}
+                    WHERE queued_events_records_id=@queued_events_records_id
+                    AND is_active=1";
+        }
+
+        internal static string get_baseline()
+        {
+            return $@"
+                    SELECT TOP 1
+                        patient_base_line_id,
+                        event_processed_path,
+                        record_st,
+                        record_end
+                    FROM {Tbl.patient_base_line}
+                    WHERE patient_enrollment_id=@patient_enrollment_id
+                    AND @time BETWEEN record_st AND record_end
+                    AND is_active=1
+                    ORDER BY record_st asc";
+        }
+        #endregion
+    }
+    public class FetchECGResDTO
+    {
+        public DateTime event_start_datetime { get; set; }
+        public DateTime event_end_datetime { get; set; }
+
+        public DateTime target_datetime { get; set; }
+
+        public long current_patient_base_line_id { get; set; }
+        public string current_event_processed_path { get; set; }
+        public DateTime current_record_st { get; set; }
+        public DateTime current_record_end { get; set; }
+
+        public long target_patient_base_line_id { get; set; }
+        public string target_event_processed_path { get; set; }
+        public DateTime target_record_st { get; set; }
+        public DateTime target_record_end { get; set; }
+
+        public bool is_same_file { get; set; }
+    }
 }

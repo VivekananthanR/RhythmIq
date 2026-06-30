@@ -68,10 +68,14 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrPushToQcEvent(PushToQCDTO obj);
         Task<ResponseDTO> ElrCompletedFindingList(CompletedFindingListReqDTO obj);
         Task<ResponseDTO> ElrGetCompleteQc(long detection_id);
-        Task<ResponseDTO> ElrGetNextQcDetection(long emp_id);
+        Task<ResponseDTO> ElrGetNextQcDetection();
         Task<ResponseDTO> ElrUpdateSubmitQcEvent(ConfirmSubmitDTO obj);
         Task<ResponseDTO> ElrQcPickDetection(ConfirmSubmitDTO obj);
         Task<ResponseDTO> ElrCompletePriorityReport(PriorityCompleteReportReqDTO obj);
+
+        Task<ResponseDTO> ElrGetByIdEventAssign(long emp_id);
+
+        Task<ResponseDTO> ElrFetchECG(FetchECGReqDTO obj);
 
     }
 }

@@ -581,7 +581,7 @@ namespace elr_API.Service.Home_manager
 
                 query = GetNextEventResDTO.get_next_event();
 
-                long? queuedId = await _db.QuerySingle<long?>(query, null, ELR_db);
+                long? queuedId = await _db.QuerySingleOrDefault<long?>(query, null, ELR_db);
 
                 if (!queuedId.HasValue) return new ResponseDTO(false, "No pending events");
 
@@ -1030,16 +1030,12 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrGetNextQcDetection(long emp_id)
+        public async Task<ResponseDTO> ElrGetNextQcDetection()
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                query = ConfirmSubmitDTO.get_my_picked_detection();
-                var myDetection = (await _db.SelectQuery<ConfirmSubmitDTO>(query, new { picked_by = emp_id }, ELR_db)).FirstOrDefault();
-                if (myDetection != null) return new ResponseDTO(myDetection);
-
                 query = ConfirmSubmitDTO.get_next_qc_detection();
 
                 var data = (await _db.SelectQuery<ConfirmSubmitDTO>(query, null, ELR_db)).FirstOrDefault();
@@ -1122,7 +1118,88 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
+        public async Task<ResponseDTO> ElrGetByIdEventAssign(long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
 
+            try
+            {
+                query = $@"select queued_events_records_id from {Tbl.event_assign} where work_status = 'inprogress' and assigned_by = @assigned_by";
+                var data = (await _db.SelectQuery<long>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
+        public async Task<ResponseDTO> ElrFetchECG(FetchECGReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = FetchECGReqDTO.get_current_event();
+                var currentEventData = (await _db.SelectQuery<dynamic>(query, new { queued_events_records_id = obj.queued_events_records_id }, ELR_db)).FirstOrDefault();
+                if (currentEventData == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                DateTime currentTime;
+                DateTime targetTime;
+
+                if (obj.fetch_direction.ToLower() == "before")
+                {
+                    currentTime = currentEventData.event_start_datetime;
+                    targetTime = currentEventData.event_start_datetime.AddMinutes(-obj.minutes);
+                }
+                else
+                {
+                    currentTime = currentEventData.event_end_datetime;
+                    targetTime = currentEventData.event_end_datetime.AddMinutes(obj.minutes);
+                }
+
+                query = FetchECGReqDTO.get_baseline();
+                var currentBaseLine = (await _db.SelectQuery<dynamic>(query, new { patient_enrollment_id = currentEventData.patient_enrollment_id, time = currentTime }, ELR_db)).FirstOrDefault();
+
+                if (currentBaseLine == null) return new ResponseDTO(false, "Current processed ECG not found.");
+
+                query = FetchECGReqDTO.get_baseline();
+                var targetBaseline = (await _db.SelectQuery<dynamic>(query, new { patient_enrollment_id = currentEventData.patient_enrollment_id, time = targetTime }, ELR_db)).FirstOrDefault();
+
+                if (targetBaseline == null) return new ResponseDTO(false, "Target processed ECG not found.");
+
+                FetchECGResDTO res = new FetchECGResDTO
+                {
+                    event_start_datetime = currentEventData.event_start_datetime,
+                    event_end_datetime = currentEventData.event_end_datetime,
+                    target_datetime = targetTime,
+
+                    current_patient_base_line_id = currentBaseLine.patient_base_line_id,
+                    current_event_processed_path = currentBaseLine.event_processed_path,
+                    current_record_st = currentBaseLine.record_st,
+                    current_record_end = currentBaseLine.record_end,
+
+                    target_patient_base_line_id = targetBaseline.patient_base_line_id,
+                    target_event_processed_path = targetBaseline.event_processed_path,
+                    target_record_st = targetBaseline.record_st,
+                    target_record_end = targetBaseline.record_end,
+
+                    is_same_file = currentBaseLine.patient_base_line_id == targetBaseline.patient_base_line_id
+
+                };
+
+                return new ResponseDTO(res);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
     }
 }

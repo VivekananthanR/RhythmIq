@@ -332,10 +332,9 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpGet= api/Home/ElrGetNextQcDetection
         [HttpGet("ElrGetNextQcDetection"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrGetNextQcDetection([FromHeader] string authorization)
+        public async Task<ActionResult<ResponseDTO>> ElrGetNextQcDetection()
         {
-            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            return await _homeService.ElrGetNextQcDetection(tokenClaims.id);
+            return await _homeService.ElrGetNextQcDetection();
         }
         #endregion
 
@@ -365,6 +364,24 @@ namespace elr_API.Controllers.Home_manager
         public async Task<ActionResult<ResponseDTO>> ElrCompletePriorityReport(PriorityCompleteReportReqDTO obj)
         {
             return await _homeService.ElrCompletePriorityReport(obj);
+        }
+        #endregion
+
+        //Testing event assign status
+        #region HttpGet = api/Home/ElrGetByIdEventAssign
+        [HttpGet("ElrGetByIdEventAssign"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetByIdEventAssign([FromHeader] string authorization)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrGetByIdEventAssign(tokenClaims.id);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrFetchECG
+        [HttpPost("ElrFetchECG")]
+        public async Task<ActionResult<ResponseDTO>> ElrFetchECG(FetchECGReqDTO obj)
+        {
+            return await _homeService.ElrFetchECG(obj);
         }
         #endregion
     }
