@@ -3,6 +3,7 @@ using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
 using elr_API.IService.IDapper;
 using elr_API.IService.IHome_manager;
+using Newtonsoft.Json.Linq;
 using System.Text.Json;
 
 namespace elr_API.Service.Home_manager
@@ -514,7 +515,12 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-
+        public async Task<List<SymptomDTO>> ElrSymptomList(SymptomDTO obj)
+        {
+            string query = SymptomDTO.get_event_symptoms();
+            var data = (await _db.SelectQuery<SymptomDTO>(query, obj, ELR_db)).ToList();
+            return data;
+        }
         public async Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id)
         {
             ErrorMessage = string.Empty;
@@ -531,8 +537,14 @@ namespace elr_API.Service.Home_manager
 
                 var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = @queued_events_records_id }, ELR_db);
 
-                if (data == null)
-                    return new ResponseDTO(false, "No pending events");
+                data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
+
+                query = FetchHistoryDTO.get_fetch_history();
+
+                data.fetch_history = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = @queued_events_records_id }, ELR_db)).ToList();
+
+                if (data == null) return new ResponseDTO(false, "No pending events");
+
                 try
                 {
 
@@ -589,8 +601,13 @@ namespace elr_API.Service.Home_manager
 
                 var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = queuedId.Value }, ELR_db);
 
-                if (data == null)
-                    return new ResponseDTO(false, "No pending events");
+                data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
+
+                query = FetchHistoryDTO.get_fetch_history();
+
+                data.fetch_history = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db)).ToList();
+
+                if (data == null) return new ResponseDTO(false, "No pending events");
 
                 query = EventAssignDTO.event_assign_insert();
                 await _db.Execute(query, new
@@ -943,8 +960,15 @@ namespace elr_API.Service.Home_manager
             try
             {
                 if (detection_id < 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
                 query = CompletedFindingListResDTO.select_complete_qc_report();
                 var data = await _db.QuerySingle<CompletedFindingListResDTO>(query, new { detection_id = detection_id }, ELR_db);
+
+                data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
+
+                query = FetchHistoryDTO.get_fetch_history();
+                data.fetch_history = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db)).ToList();
+
                 if (data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
                 var findingQuery = FindingDTO.select_complete_qc_report_findings();
@@ -1143,52 +1167,146 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
                 query = FetchECGReqDTO.get_current_event();
                 var currentEventData = (await _db.SelectQuery<dynamic>(query, new { queued_events_records_id = obj.queued_events_records_id }, ELR_db)).FirstOrDefault();
                 if (currentEventData == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
-                DateTime currentTime;
-                DateTime targetTime;
+                DateTime fromTime;
+                DateTime toTime;
 
-                if (obj.fetch_direction.ToLower() == "before")
+                if (obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase))
                 {
-                    currentTime = currentEventData.event_start_datetime;
-                    targetTime = currentEventData.event_start_datetime.AddMinutes(-obj.minutes);
+                    fromTime = currentEventData.event_start_datetime.AddMinutes(-obj.minutes);
+                    toTime = currentEventData.event_start_datetime;
+                }
+                else if (obj.fetch_direction.Equals("after", StringComparison.OrdinalIgnoreCase))
+                {
+                    fromTime = currentEventData.event_end_datetime;
+                    toTime = currentEventData.event_end_datetime.AddMinutes(obj.minutes);
                 }
                 else
                 {
-                    currentTime = currentEventData.event_end_datetime;
-                    targetTime = currentEventData.event_end_datetime.AddMinutes(obj.minutes);
+                    return new ResponseDTO(false, "Invalid fetch direction.");
                 }
 
-                query = FetchECGReqDTO.get_baseline();
-                var currentBaseLine = (await _db.SelectQuery<dynamic>(query, new { patient_enrollment_id = currentEventData.patient_enrollment_id, time = currentTime }, ELR_db)).FirstOrDefault();
+                query = FetchECGReqDTO.get_baseline_files();
 
-                if (currentBaseLine == null) return new ResponseDTO(false, "Current processed ECG not found.");
+                var baselineFiles = (await _db.SelectQuery<PatientBaseLineDTO>(
+                    query,
+                    new
+                    {
+                        patient_enrollment_id = currentEventData.patient_enrollment_id,
+                        fromTime,
+                        toTime
+                    },
+                    ELR_db)).ToList();
 
-                query = FetchECGReqDTO.get_baseline();
-                var targetBaseline = (await _db.SelectQuery<dynamic>(query, new { patient_enrollment_id = currentEventData.patient_enrollment_id, time = targetTime }, ELR_db)).FirstOrDefault();
+                if (!baselineFiles.Any()) return new ResponseDTO(false, "Processed ECG not found.");
 
-                if (targetBaseline == null) return new ResponseDTO(false, "Target processed ECG not found.");
+                var mergedData = new List<EcgJsonDTO>();
+
+                // Processed ECG Files
+                foreach (var item in baselineFiles)
+                {
+                    string fullFilePath = Path.Combine(Directory.GetCurrentDirectory(), item.event_processed_path);
+
+                    if (!File.Exists(fullFilePath))
+                        continue;
+
+                    string json = await File.ReadAllTextAsync(fullFilePath);
+
+                    var token = JToken.Parse(json);
+
+                    var list = token.Type == JTokenType.Array ? token.ToObject<List<EcgJsonDTO>>() : new List<EcgJsonDTO>
+                        {
+                             token.ToObject<EcgJsonDTO>()
+                        };
+
+                    if (list != null) mergedData.AddRange(list);
+
+
+                }
+
+                string detectionPath = currentEventData.event_file_path;
+
+                if (!string.IsNullOrWhiteSpace(detectionPath))
+                {
+                    string fullDetectionPath = Path.Combine(Directory.GetCurrentDirectory(), detectionPath);
+
+                    if (File.Exists(fullDetectionPath))
+                    {
+                        string json = await File.ReadAllTextAsync(fullDetectionPath);
+
+                        var token = JToken.Parse(json);
+
+                        var list = token.Type == JTokenType.Array ? token.ToObject<List<EcgJsonDTO>>() : new List<EcgJsonDTO>
+                            {
+                                token.ToObject<EcgJsonDTO>()
+                            };
+
+                        if (list != null) mergedData.AddRange(list);
+                    }
+                }
+
+                string fileName = $"{currentEventData.patient_enrollment_id}-{obj.queued_events_records_id}-{DateTime.Now:yyyyMMddHHmmssfff}.json";
+
+                string folderPath = CommonFunctions.FolderPath($"ECG-FetchData\\{currentEventData.patient_enrollment_id}");
+
+                string fullPath = await CommonFunctions.MergeJsonFile(mergedData, fileName, folderPath);
+
+                if (string.IsNullOrEmpty(fullPath)) return new ResponseDTO(false, "JSON file not created.");
+
+                string relativePath = fullPath.Replace(Directory.GetCurrentDirectory() + "\\", "");
+
+                query = FetchECGReqDTO.check_fetch_exists();
+
+                long existingFetch = (await _db.SelectQuery<long>(
+                    query,
+                    new
+                    {
+                        parent_queued_events_records_id = obj.queued_events_records_id,
+                        event_source = obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase) ? "fetch_before" : "fetch_after",
+                        fetch_duration_minutes = obj.minutes
+                    },
+                    ELR_db)).FirstOrDefault();
+
+                if (existingFetch > 0)
+                {
+                    return new ResponseDTO(false, $"ECG already fetched {obj.fetch_direction} {obj.minutes} minutes.");
+                }
+
+                query = FetchECGReqDTO.insert_fetch_event();
+
+                long newQueuedEventId = await _db.ExecuteAndGetId(query,
+                    new
+                    {
+                        patient_enrollment_id = currentEventData.patient_enrollment_id,
+                        enrollment_raw_data_id = currentEventData.enrollment_raw_data_id,
+                        priority_level = currentEventData.priority_level,
+                        trigger_type = "Fetch-ECG",
+                        bpm = currentEventData.bpm,
+                        event_start_datetime = fromTime,
+                        event_end_datetime = toTime,
+                        event_file_path = relativePath,
+                        parent_queued_events_records_id = obj.queued_events_records_id,
+                        event_source = obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase) ? "fetch_before" : "fetch_after",
+                        fetch_duration_minutes = obj.minutes,
+                        created_by = obj.created_by,
+                        event_status = "pending"
+                    },
+                    ELR_db);
 
                 FetchECGResDTO res = new FetchECGResDTO
                 {
+                    queued_events_records_id = newQueuedEventId,
                     event_start_datetime = currentEventData.event_start_datetime,
                     event_end_datetime = currentEventData.event_end_datetime,
-                    target_datetime = targetTime,
-
-                    current_patient_base_line_id = currentBaseLine.patient_base_line_id,
-                    current_event_processed_path = currentBaseLine.event_processed_path,
-                    current_record_st = currentBaseLine.record_st,
-                    current_record_end = currentBaseLine.record_end,
-
-                    target_patient_base_line_id = targetBaseline.patient_base_line_id,
-                    target_event_processed_path = targetBaseline.event_processed_path,
-                    target_record_st = targetBaseline.record_st,
-                    target_record_end = targetBaseline.record_end,
-
-                    is_same_file = currentBaseLine.patient_base_line_id == targetBaseline.patient_base_line_id
-
+                    from_datetime = fromTime,
+                    to_datetime = toTime,
+                    merged_file_path = relativePath,
+                    baseline_files = baselineFiles
                 };
 
                 return new ResponseDTO(res);
@@ -1200,6 +1318,60 @@ namespace elr_API.Service.Home_manager
                 ErrorMessage = ex.Message.ToString();
             }
             return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrGetFetchHistory(long queued_events_records_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = FetchHistoryDTO.get_event();
+
+                var eventData = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).FirstOrDefault();
+
+                if (eventData == null) return new ResponseDTO(false, "Event not found.");
+
+                long parentId = eventData.parent_queued_events_records_id ?? eventData.queued_events_records_id;
+
+                query = FetchHistoryDTO.get_fetch_history();
+
+                eventData.fetch_list = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = parentId }, ELR_db)).ToList();
+
+                eventData.fetch_list ??= new List<FetchHistoryDTO>();
+
+                return new ResponseDTO(eventData);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrMyProgress(long emp_id, string type)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = MyProgressDTO.get_progress_summary(type);
+                var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+
+                summary ??= new MyProgressDTO();
+
+
+                query = MyProgressDTO.get_progress_chart(type);
+                summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
+
+                return new ResponseDTO(summary);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+                return new ResponseDTO(false, ex.Message);
+            }
         }
     }
 }

@@ -648,7 +648,7 @@ namespace elr_API.DTO.ReqDTO
         #region Query   
         internal static string queue_anomaly_list(QueuedAnomalyReqDTO obj)
         {
-            return $@"select count(1) from {Tbl.queued_events_records} as a where a.is_active = 1 and a.event_status <> 'partial-completed'
+            return $@"select count(1) from {Tbl.queued_events_records} as a where a.is_active = 1 and a.event_status <> 'partial-completed' and a.event_status <> 'completed'
 
                         SELECT
                             a.queued_events_records_id,
@@ -699,7 +699,7 @@ namespace elr_API.DTO.ReqDTO
                                 ON pe.device_id = d.device_id
 
                                 where a.is_active = 1
-                                        and a.event_status <> 'partial-completed'
+                                        and a.event_status <> 'partial-completed' and a.event_status <> 'completed'
 
                                 order by {obj.shortColumn} {obj.orderBy}
                                 offset @offset rows fetch next @pageSize rows only";
@@ -799,6 +799,10 @@ namespace elr_API.DTO.ReqDTO
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
         public DateTime? processing_datetime { get; set; }
+        public List<FetchHistoryDTO>? fetch_history { get; set; }
+
+
+        public List<SymptomDTO> symptoms { get; set; }
 
 
         public long patient_id { get; set; }
@@ -855,33 +859,123 @@ namespace elr_API.DTO.ReqDTO
         internal static string get_event_details()
         {
             return $@"
-        SELECT
-            q.queued_events_records_id,
-            q.patient_enrollment_id,
-            q.enrollment_raw_data_id,
-            q.priority_level,
-            q.trigger_type,
-            q.bpm,
-            q.event_status,
-            q.event_file_path,
-            q.created_by,
-            q.created_datetime,
-            q.processing_datetime,
-            p.patient_id,
-            p.patient_name,
-            d.device_id,
-            d.device_no,
-            d.device_name
-        FROM {Tbl.queued_events_records} q
-        INNER JOIN {Tbl.patient_enrollment} pe
-            ON pe.patient_enrollment_id = q.patient_enrollment_id
-        INNER JOIN {Tbl.patient} p
-            ON p.patient_id = pe.patient_id
-        LEFT JOIN {Tbl.device_mast} d
-            ON d.device_id = pe.device_id
-        WHERE q.queued_events_records_id = @queued_events_records_id";
+                    SELECT
+                        q.queued_events_records_id,
+                        q.patient_enrollment_id,
+                        q.enrollment_raw_data_id,
+                        q.priority_level,
+                        q.trigger_type,
+                        q.bpm,
+                        q.event_status,
+                        q.event_file_path,
+                        q.created_by,
+                        q.created_datetime,
+                        q.processing_datetime,
+                        p.patient_id,
+                        p.patient_name,
+                        d.device_id,
+                        d.device_no,
+                        d.device_name
+                    FROM {Tbl.queued_events_records} q
+                    INNER JOIN {Tbl.patient_enrollment} pe
+                        ON pe.patient_enrollment_id = q.patient_enrollment_id
+                    INNER JOIN {Tbl.patient} p
+                        ON p.patient_id = pe.patient_id
+                    LEFT JOIN {Tbl.device_mast} d
+                        ON d.device_id = pe.device_id
+                    WHERE q.queued_events_records_id = @queued_events_records_id";
         }
 
+    }
+
+
+    public class SymptomDTO
+    {
+        public long symptoms_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public string symptom_notes { get; set; }
+        public string custom_symptom_text { get; set; }
+        public DateTime? symptom_start_datetime { get; set; }
+        public DateTime? symptom_end_datetime { get; set; }
+
+        public long symptoms_type_id { get; set; }
+        public string symptoms_type { get; set; }
+
+
+        public long queued_events_records_id { get; set; }
+
+        #region Query 
+        internal static string get_event_symptoms()
+        {
+            return $@" SELECT
+                            s.symptoms_id,
+                            s.patient_enrollment_id,
+                            s.symptom_notes,
+                            s.custom_symptom_text,
+                            s.symptom_start_datetime,
+                            s.symptom_end_datetime,
+                            s.symptoms_type_id,
+                            st.symptoms_type
+                        FROM {Tbl.queued_events_records} q
+                        INNER JOIN {Tbl.symptoms} s
+                            ON s.patient_enrollment_id = q.patient_enrollment_id
+                        LEFT JOIN {Tbl.symptoms_type} st
+                            ON st.symptoms_type_id = s.symptoms_type_id
+                        WHERE q.queued_events_records_id = @queued_events_records_id
+                          AND s.is_active = 1
+                          AND (
+                                q.event_start_datetime BETWEEN s.symptom_start_datetime AND s.symptom_end_datetime
+                             OR q.event_end_datetime BETWEEN s.symptom_start_datetime AND s.symptom_end_datetime
+                             OR (
+                                    q.event_start_datetime <= s.symptom_start_datetime
+                                AND q.event_end_datetime >= s.symptom_end_datetime
+                             )
+                          )
+                        ORDER BY s.symptom_start_datetime asc ;";
+        }
+        #endregion
+
+    }
+
+
+    public class FetchHistoryDTO
+    {
+        public long queued_events_records_id { get; set; }
+        public string event_source { get; set; }
+        public int? fetch_duration_minutes { get; set; }
+        public long? parent_queued_events_records_id { get; set; }
+
+        public List<FetchHistoryDTO> fetch_list { get; set; }
+
+        #region Query 
+
+        internal static string get_fetch_history()
+        {
+            return $@"
+                    SELECT
+                        queued_events_records_id,
+                        event_source,
+                        fetch_duration_minutes,
+                        parent_queued_events_records_id
+                    FROM {Tbl.queued_events_records}
+                    WHERE parent_queued_events_records_id = @queued_events_records_id
+                      AND is_active = 1";
+        }
+        internal static string get_event()
+        {
+            return $@"
+                    SELECT
+                        queued_events_records_id,
+                        parent_queued_events_records_id,
+                        event_source,
+                        fetch_duration_minutes
+                    FROM {Tbl.queued_events_records}
+                    WHERE queued_events_records_id = @queued_events_records_id
+                      AND is_active = 1";
+        }
+
+
+        #endregion
     }
     public class EventAssignDTO
     {
@@ -1480,7 +1574,9 @@ namespace elr_API.DTO.ReqDTO
         public string event_file_path { get; set; }
         public DateTime? created_datetime { get; set; }
         public DateTime? last_assigned_datetime { get; set; }
+        public List<FetchHistoryDTO>? fetch_history { get; set; }
 
+        public List<SymptomDTO> symptoms { get; set; }
 
         public long patient_id { get; set; }
         public string patient_name { get; set; }
@@ -1753,54 +1849,232 @@ namespace elr_API.DTO.ReqDTO
         public long queued_events_records_id { get; set; }
         public int minutes { get; set; }
         public string fetch_direction { get; set; }
+        public long created_by { get; set; }
 
         #region Query
         internal static string get_current_event()
         {
             return $@"
-                    SELECT
-                        enrollment_raw_data_id,
-                        patient_enrollment_id,  
-                        event_start_datetime,
-                        event_end_datetime
-                    FROM {Tbl.queued_events_records}
-                    WHERE queued_events_records_id=@queued_events_records_id
-                    AND is_active=1";
+            SELECT
+                patient_enrollment_id,
+                enrollment_raw_data_id,
+                priority_level,
+                trigger_type,
+                bpm,
+                event_start_datetime,
+                event_end_datetime,
+                event_file_path
+            FROM {Tbl.queued_events_records}
+            WHERE queued_events_records_id=@queued_events_records_id
+            AND is_active=1";
         }
 
-        internal static string get_baseline()
+        internal static string get_baseline_files()
         {
             return $@"
-                    SELECT TOP 1
-                        patient_base_line_id,
-                        event_processed_path,
-                        record_st,
-                        record_end
-                    FROM {Tbl.patient_base_line}
-                    WHERE patient_enrollment_id=@patient_enrollment_id
-                    AND @time BETWEEN record_st AND record_end
-                    AND is_active=1
-                    ORDER BY record_st asc";
+            SELECT
+                patient_base_line_id,
+                event_processed_path,
+                record_st,
+                record_end
+            FROM {Tbl.patient_base_line}
+            WHERE patient_enrollment_id=@patient_enrollment_id
+              AND record_end>@fromTime
+              AND record_st<@toTime
+              AND is_active=1
+            ORDER BY record_st";
         }
+
+        internal static string check_fetch_exists()
+        {
+            return $@"
+            SELECT queued_events_records_id
+            FROM {Tbl.queued_events_records}
+            WHERE parent_queued_events_records_id=@parent_queued_events_records_id
+            AND event_source=@event_source
+            AND fetch_duration_minutes=@fetch_duration_minutes
+            AND is_active=1";
+        }
+
+        internal static string insert_fetch_event()
+        {
+            return $@"insert into {Tbl.queued_events_records}
+                      ( patient_enrollment_id, enrollment_raw_data_id, priority_level, trigger_type, bpm, event_start_datetime, event_end_datetime,
+                                               event_status, event_file_path, parent_queued_events_records_id, event_source,fetch_duration_minutes, created_by)
+                        values(@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @bpm, @event_start_datetime, @event_end_datetime,
+                                                @event_status, @event_file_path, @parent_queued_events_records_id, @event_source, @fetch_duration_minutes, @created_by);";
+        }
+
+
         #endregion
     }
     public class FetchECGResDTO
     {
+        public long queued_events_records_id { get; set; }
         public DateTime event_start_datetime { get; set; }
         public DateTime event_end_datetime { get; set; }
+        public DateTime from_datetime { get; set; }
+        public DateTime to_datetime { get; set; }
+        public string merged_file_path { get; set; }
 
-        public DateTime target_datetime { get; set; }
+        public List<PatientBaseLineDTO> baseline_files { get; set; }
+    }
+    public class PatientBaseLineDTO
+    {
+        public long patient_base_line_id { get; set; }
+        public string event_processed_path { get; set; }
+        public DateTime record_st { get; set; }
+        public DateTime record_end { get; set; }
+    }
+    public class EcgJsonDTO
+    {
+        public string type { get; set; }
+        public string timestamp { get; set; }
+        public string end_timestamp { get; set; }
+        public string severity { get; set; }
+        public double confidence { get; set; }
+        public double movement_g { get; set; }
+        public WaveformSnippet waveform_snippet { get; set; }
+    }
 
-        public long current_patient_base_line_id { get; set; }
-        public string current_event_processed_path { get; set; }
-        public DateTime current_record_st { get; set; }
-        public DateTime current_record_end { get; set; }
+    public class WaveformSnippet
+    {
+        public List<long> timestamp_ms { get; set; }
+        public List<double> voltage_mv { get; set; }
+        public List<long> beat_positions { get; set; }
+        public List<string> beat_labels { get; set; }
+    }
 
-        public long target_patient_base_line_id { get; set; }
-        public string target_event_processed_path { get; set; }
-        public DateTime target_record_st { get; set; }
-        public DateTime target_record_end { get; set; }
 
-        public bool is_same_file { get; set; }
+
+
+
+    public class MyProgressDTO
+    {
+        public int EventsSubmitted { get; set; }
+
+        public decimal Productivity { get; set; }
+
+        public string ProductivityUnit { get; set; }
+
+        public List<MyProgressChartDTO> Chart { get; set; } = new();
+
+        #region Query
+
+        internal static string get_date_filter(string type)
+        {
+            switch (type.ToLower())
+            {
+                case "week":
+                    return "analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE))";
+
+                case "month":
+                    return "analysis_end_datetime >= DATEADD(WEEK,-4,CAST(GETDATE() AS DATE))";
+
+                default:
+                    return "CAST(analysis_end_datetime AS DATE)=CAST(GETDATE() AS DATE)";
+            }
+        }
+
+        internal static string get_progress_summary(string type)
+        {
+            string productivity;
+            string unit;
+
+            switch (type.ToLower())
+            {
+                case "week":
+                    productivity = "CAST(COUNT(DISTINCT queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
+                    unit = "'events/day'";
+                    break;
+
+                case "month":
+                    productivity = "CAST(COUNT(DISTINCT queued_events_records_id) / 28.0 AS DECIMAL(10,2))";
+                    unit = "'events/day'";
+                    break;
+
+                default:
+                    productivity = "CAST(COUNT(DISTINCT queued_events_records_id) AS DECIMAL(10,2))";
+                    unit = "'events/day'";
+                    break;
+            }
+
+            return $@"
+                SELECT
+                    COUNT(DISTINCT queued_events_records_id) AS EventsSubmitted,
+                    {productivity} AS Productivity,
+                    {unit} AS ProductivityUnit
+                FROM {Tbl.event_assign}
+                WHERE assigned_by = @assigned_by
+                  AND work_status = 'completed'
+                  AND {get_date_filter(type)}";
+        }
+        internal static string get_progress_chart(string type)
+        {
+            switch (type.ToLower())
+            {
+                case "week":
+
+                    return $@"
+                            SELECT
+                                DATENAME(WEEKDAY, analysis_end_datetime) AS Label,
+                                COUNT(DISTINCT queued_events_records_id) AS Events
+                            FROM {Tbl.event_assign}
+                            WHERE assigned_by = @assigned_by
+                              AND work_status = 'completed'
+                              AND {get_date_filter(type)}
+                            GROUP BY
+                                DATEPART(WEEKDAY, analysis_end_datetime),
+                                DATENAME(WEEKDAY, analysis_end_datetime)
+                            ORDER BY
+                                DATEPART(WEEKDAY, analysis_end_datetime)";
+
+                case "month":
+
+                    return $@"
+                            SELECT
+                                CONCAT(
+                                    'Week ',
+                                    DENSE_RANK() OVER (
+                                        ORDER BY YEAR(analysis_end_datetime),
+                                                 DATEPART(WEEK, analysis_end_datetime)
+                                    )
+                                ) AS Label,
+                                COUNT(DISTINCT queued_events_records_id) AS Events
+                            FROM {Tbl.event_assign}
+                            WHERE assigned_by = @assigned_by
+                              AND work_status = 'completed'
+                              AND {get_date_filter(type)}
+                            GROUP BY
+                                YEAR(analysis_end_datetime),
+                                DATEPART(WEEK, analysis_end_datetime)
+                            ORDER BY
+                                YEAR(analysis_end_datetime),
+                                DATEPART(WEEK, analysis_end_datetime)";
+
+                default:
+
+                    return $@"
+                            SELECT
+                                FORMAT(analysis_end_datetime, 'HH:00') AS Label,
+                                COUNT(DISTINCT queued_events_records_id) AS Events
+                            FROM {Tbl.event_assign}
+                            WHERE assigned_by = @assigned_by
+                              AND work_status = 'completed'
+                              AND {get_date_filter(type)}
+                            GROUP BY
+                                FORMAT(analysis_end_datetime, 'HH:00')
+                            ORDER BY
+                                Label";
+            }
+        }
+        #endregion
+    }
+
+    public class MyProgressChartDTO
+    {
+        public string Label { get; set; }
+
+        public int Events { get; set; }
     }
 }

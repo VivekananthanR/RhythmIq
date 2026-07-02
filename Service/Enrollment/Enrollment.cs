@@ -162,22 +162,28 @@ namespace elr_API.Service.Enrolment
                 if (obj.patient_enrollment_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
                 if ((obj.sign_patient_file == null || obj.sign_patient_file.Length == 0) && (obj.sign_field_emp_file == null || obj.sign_field_emp_file.Length == 0)) return new ResponseDTO(false, ResponseMessage.File_Not_Uploaded);
 
-                if (obj.sign_patient_file != null || obj.sign_patient_file.Length > 0)
+                if (obj.sign_patient_file != null && obj.sign_patient_file.Length > 0)
                 {
-                    var extension = Path.GetExtension(obj.sign_patient_file.FileName).ToLowerInvariant();
+                    var extension = Path.GetExtension(obj.sign_patient_file.FileName)?.ToLowerInvariant();
                     if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
-                    var fileName = $"{obj.patient_enrollment_id}-sign{extension}";
+
+                    var fileName = $"{obj.patient_enrollment_id}-patient-sign{extension}";
                     var fileFolder = CommonFunctions.FolderPath("Signature\\Patient");
+
                     var path = await CommonFunctions.UploadFile(obj.sign_patient_file, fileName, fileFolder);
+
                     obj.sign_patient_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
                 }
                 if (obj.sign_field_emp_file != null && obj.sign_field_emp_file.Length > 0)
                 {
-                    var extension = Path.GetExtension(obj.sign_field_emp_file.FileName).ToLowerInvariant();
+                    var extension = Path.GetExtension(obj.sign_field_emp_file.FileName)?.ToLowerInvariant();
                     if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
-                    var fileName = $"{obj.patient_enrollment_id}-sign{extension}";
+
+                    var fileName = $"{obj.patient_enrollment_id}-fieldemp-sign{extension}";
                     var fileFolder = CommonFunctions.FolderPath("Signature\\FieldEmp");
-                    var path = await CommonFunctions.UploadFile(obj.sign_patient_file, fileName, fileFolder);
+
+                    var path = await CommonFunctions.UploadFile(obj.sign_field_emp_file, fileName, fileFolder);
+
                     obj.sign_field_emp_img = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
                 }
 
@@ -190,7 +196,16 @@ namespace elr_API.Service.Enrolment
                     obj.sign_field_emp_img
                 }, ELR_db);
 
-                string message = !string.IsNullOrEmpty(obj.sign_patient_img) ? "Patient signature uploaded successfully" : "Field employee signature uploaded successfully";
+                string message;
+
+                if (!string.IsNullOrEmpty(obj.sign_patient_img) && !string.IsNullOrEmpty(obj.sign_field_emp_img))
+                    message = "Both signatures uploaded successfully";
+
+                else if (!string.IsNullOrEmpty(obj.sign_patient_img))
+                    message = "Patient signature uploaded successfully";
+
+                else
+                    message = "Field employee signature uploaded successfully";
 
                 return new ResponseDTO(result > 0, result > 0 ? message : "Failed to upload signature");
             }

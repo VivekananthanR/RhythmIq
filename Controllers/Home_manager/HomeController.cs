@@ -378,10 +378,31 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/ElrFetchECG
-        [HttpPost("ElrFetchECG")]
-        public async Task<ActionResult<ResponseDTO>> ElrFetchECG(FetchECGReqDTO obj)
+        [HttpPost("ElrFetchECG"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrFetchECG([FromHeader] string authorization, FetchECGReqDTO obj)
         {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _homeService.ElrFetchECG(obj);
+        }
+        #endregion
+
+
+        #region HttpGet = api/Home/ElrGetFetchHistory?queued_events_records_id=
+        [HttpGet("ElrGetFetchHistory"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetFetchHistory(long queued_events_records_id)
+        {
+            return await _homeService.ElrGetFetchHistory(queued_events_records_id);
+        }
+        #endregion
+
+
+        #region HttpGet = api/Home/ElrMyProgress
+        [HttpGet("ElrMyProgress"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrMyProgress([FromHeader] string authorization, string type = "today")
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrMyProgress(tokenClaims.id, type);
         }
         #endregion
     }

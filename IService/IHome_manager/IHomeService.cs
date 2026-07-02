@@ -51,6 +51,8 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrUploadQueueAnomaly(QueuedAnomalyDTO obj);
         Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id);
 
+        Task<List<SymptomDTO>> ElrSymptomList(SymptomDTO obj);
+
         Task<ResponseDTO> ElrGetNextEvent(long emp_id);
         Task<ResponseDTO> ElrTimeOutEvent(long queued_events_records_id, long emp_id);
         Task<ResponseDTO> ElrPatientCurrentStrip(long queued_events_records_id);
@@ -76,6 +78,10 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrGetByIdEventAssign(long emp_id);
 
         Task<ResponseDTO> ElrFetchECG(FetchECGReqDTO obj);
+        Task<ResponseDTO> ElrGetFetchHistory(long queued_events_records_id);
+
+
+        Task<ResponseDTO> ElrMyProgress(long emp_id, string type);
 
     }
 }

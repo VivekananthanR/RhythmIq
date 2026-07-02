@@ -255,7 +255,7 @@ namespace elr_API.DTO.ReqDTO
         internal static string complete_hookup_status(long complete_hookup_patient)
         {
             return $@"UPDATE {Tbl.patient_enrollment}
-              SET actual_hookup_completed = GETDATE(),
+              SET actual_removal = GETDATE(),
                   enrollment_status = 'completed'
               WHERE patient_enrollment_id = @patient_enrollment_id";
         }

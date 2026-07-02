@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using elr_API.DTO.ReqDTO;
+using Newtonsoft.Json;
+using Serilog;
 using System.Security.Cryptography;
 
 namespace elr_API.Common
@@ -87,6 +89,24 @@ namespace elr_API.Common
             }
             return 1;
         }
+
+        public static async Task<string> MergeJsonFile(List<EcgJsonDTO> mergedData, string fileName, string folderPath)
+        {
+            await checkDirectory(folderPath);
+
+            string filePath = Path.Combine(folderPath, fileName);
+
+            DeleteImage(filePath);
+
+            string json = JsonConvert.SerializeObject(
+                mergedData,
+                Formatting.Indented);
+
+            await File.WriteAllTextAsync(filePath, json);
+
+            return filePath;
+        }
+
 
         #region Generate OTP
 
