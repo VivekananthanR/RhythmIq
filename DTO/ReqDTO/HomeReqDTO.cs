@@ -1946,7 +1946,12 @@ namespace elr_API.DTO.ReqDTO
     }
 
 
-
+    public class MyProgressReqDTO
+    {
+        public string type { get; set; }
+        public bool isExperienced { get; set; }
+        public long created_by { get; set; }
+    }
 
 
     public class MyProgressDTO
@@ -1957,13 +1962,13 @@ namespace elr_API.DTO.ReqDTO
 
         public string ProductivityUnit { get; set; }
 
-        public List<MyProgressChartDTO> Chart { get; set; } = new();
+        public List<MyProgressChartDTO> Chart { get; set; }
 
         #region Query
 
         internal static string get_date_filter(string type)
         {
-            switch (type.ToLower())
+            switch (type?.Trim().ToLowerInvariant())
             {
                 case "week":
                     return "analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE))";
@@ -1981,7 +1986,7 @@ namespace elr_API.DTO.ReqDTO
             string productivity;
             string unit;
 
-            switch (type.ToLower())
+            switch (type?.Trim().ToLowerInvariant())
             {
                 case "week":
                     productivity = "CAST(COUNT(DISTINCT queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
@@ -2006,12 +2011,12 @@ namespace elr_API.DTO.ReqDTO
                     {unit} AS ProductivityUnit
                 FROM {Tbl.event_assign}
                 WHERE assigned_by = @assigned_by
-                  AND work_status = 'completed'
+                  AND work_status = @work_status
                   AND {get_date_filter(type)}";
         }
         internal static string get_progress_chart(string type)
         {
-            switch (type.ToLower())
+            switch (type?.Trim().ToLowerInvariant())
             {
                 case "week":
 
@@ -2021,7 +2026,7 @@ namespace elr_API.DTO.ReqDTO
                                 COUNT(DISTINCT queued_events_records_id) AS Events
                             FROM {Tbl.event_assign}
                             WHERE assigned_by = @assigned_by
-                              AND work_status = 'completed'
+                              AND work_status = @work_status
                               AND {get_date_filter(type)}
                             GROUP BY
                                 DATEPART(WEEKDAY, analysis_end_datetime),
@@ -2043,7 +2048,7 @@ namespace elr_API.DTO.ReqDTO
                                 COUNT(DISTINCT queued_events_records_id) AS Events
                             FROM {Tbl.event_assign}
                             WHERE assigned_by = @assigned_by
-                              AND work_status = 'completed'
+                              AND work_status = @work_status
                               AND {get_date_filter(type)}
                             GROUP BY
                                 YEAR(analysis_end_datetime),
@@ -2060,12 +2065,11 @@ namespace elr_API.DTO.ReqDTO
                                 COUNT(DISTINCT queued_events_records_id) AS Events
                             FROM {Tbl.event_assign}
                             WHERE assigned_by = @assigned_by
-                              AND work_status = 'completed'
+                              AND work_status = @work_status
                               AND {get_date_filter(type)}
                             GROUP BY
                                 FORMAT(analysis_end_datetime, 'HH:00')
-                            ORDER BY
-                                Label";
+                            ORDER BY Label ";
             }
         }
         #endregion

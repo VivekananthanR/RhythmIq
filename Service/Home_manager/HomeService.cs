@@ -579,6 +579,8 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+
         public async Task<ResponseDTO> ElrGetNextEvent(long emp_id)
         {
             ErrorMessage = string.Empty;
@@ -1224,8 +1226,7 @@ namespace elr_API.Service.Home_manager
                              token.ToObject<EcgJsonDTO>()
                         };
 
-                    if (list != null) mergedData.AddRange(list);
-
+                    AddTrimmedData(list, mergedData, fromTime, toTime);
 
                 }
 
@@ -1246,7 +1247,7 @@ namespace elr_API.Service.Home_manager
                                 token.ToObject<EcgJsonDTO>()
                             };
 
-                        if (list != null) mergedData.AddRange(list);
+                        AddTrimmedData(list, mergedData, fromTime, toTime);
                     }
                 }
 
@@ -1319,7 +1320,98 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        private EcgJsonDTO TrimWaveform(EcgJsonDTO ecg, DateTime fromTime, DateTime toTime)
+        {
+            if (ecg?.waveform_snippet == null || ecg.waveform_snippet.timestamp_ms == null || ecg.waveform_snippet.timestamp_ms.Count == 0)
+                return null;
 
+
+            long fromMs = new DateTimeOffset(fromTime).ToUnixTimeMilliseconds();
+            long toMs = new DateTimeOffset(toTime).ToUnixTimeMilliseconds();
+
+            var indexes = new List<int>();
+
+            for (int i = 0; i < ecg.waveform_snippet.timestamp_ms.Count; i++)
+            {
+                long ts = ecg.waveform_snippet.timestamp_ms[i];
+
+                if (ts >= fromMs && ts <= toMs)
+                {
+                    indexes.Add(i);
+                }
+            }
+
+
+            if (!indexes.Any())
+                return null;
+
+            ecg.waveform_snippet.timestamp_ms =
+                indexes.Select(i => ecg.waveform_snippet.timestamp_ms[i]).ToList();
+
+            if (ecg.waveform_snippet.voltage_mv != null)
+                ecg.waveform_snippet.voltage_mv =
+                    indexes.Select(i => ecg.waveform_snippet.voltage_mv[i]).ToList();
+
+            if (ecg.waveform_snippet.beat_positions != null && ecg.waveform_snippet.beat_labels != null)
+            {
+                int firstIndex = indexes.First();
+                int lastIndex = indexes.Last();
+
+                var newBeatPositions = new List<long>();
+                var newBeatLabels = new List<string>();
+
+                for (int i = 0; i < ecg.waveform_snippet.beat_positions.Count; i++)
+                {
+                    int pos = (int)ecg.waveform_snippet.beat_positions[i];
+
+                    if (pos >= firstIndex && pos <= lastIndex)
+                    {
+                        newBeatPositions.Add(pos - firstIndex);
+
+                        if (i < ecg.waveform_snippet.beat_labels.Count)
+                            newBeatLabels.Add(ecg.waveform_snippet.beat_labels[i]);
+                    }
+                }
+
+                ecg.waveform_snippet.beat_positions = newBeatPositions;
+                ecg.waveform_snippet.beat_labels = newBeatLabels;
+            }
+
+            ecg.timestamp = DateTimeOffset
+                .FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.First())
+                .LocalDateTime
+                .ToString("yyyy-MM-ddTHH:mm:ss.fff");
+
+            ecg.end_timestamp = DateTimeOffset
+                .FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.Last())
+                .LocalDateTime
+                .ToString("yyyy-MM-ddTHH:mm:ss.fff");
+
+
+            return ecg;
+        }
+        private void AddTrimmedData(List<EcgJsonDTO> source, List<EcgJsonDTO> mergedData, DateTime fromTime, DateTime toTime)
+        {
+            if (source == null)
+                return;
+
+            foreach (var ecg in source)
+            {
+                DateTime start = DateTime.Parse(ecg.timestamp);
+                DateTime end = DateTime.Parse(ecg.end_timestamp);
+
+                if (end >= fromTime && start <= toTime)
+                {
+                    var ecgCopy = Newtonsoft.Json.JsonConvert.DeserializeObject<EcgJsonDTO>(
+                        Newtonsoft.Json.JsonConvert.SerializeObject(ecg));
+
+                    var trimmed = TrimWaveform(ecgCopy, fromTime, toTime);
+
+                    if (trimmed != null)
+                        mergedData.Add(trimmed);
+                }
+            }
+        }
         public async Task<ResponseDTO> ElrGetFetchHistory(long queued_events_records_id)
         {
             ErrorMessage = string.Empty;
@@ -1350,20 +1442,22 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrMyProgress(long emp_id, string type)
+        public async Task<ResponseDTO> ElrMyProgress(MyProgressReqDTO obj)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                query = MyProgressDTO.get_progress_summary(type);
-                var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+                string work_status = obj.isExperienced ? "completed" : "partial-completed";
+
+                query = MyProgressDTO.get_progress_summary(obj.type);
+                var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = obj.created_by, work_status = work_status }, ELR_db)).FirstOrDefault();
 
                 summary ??= new MyProgressDTO();
 
 
-                query = MyProgressDTO.get_progress_chart(type);
-                summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
+                query = MyProgressDTO.get_progress_chart(obj.type);
+                summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = obj.created_by, work_status = work_status }, ELR_db)).ToList();
 
                 return new ResponseDTO(summary);
             }

@@ -81,7 +81,7 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrGetFetchHistory(long queued_events_records_id);
 
 
-        Task<ResponseDTO> ElrMyProgress(long emp_id, string type);
+        Task<ResponseDTO> ElrMyProgress(MyProgressReqDTO obj);
 
     }
 }
