@@ -29,23 +29,23 @@ namespace elr_API.DTO.ReqDTO
         }
         internal static string Send_otp_update(PatientVerifyLoginResDTO obj)
         {
-            return $@"UPDATE {Tbl.patient} SET otp = {obj.otp}, expiry_date = DATEADD(MINUTE, 10, GETDATE())  WHERE phone_no = {obj.phone_no} and is_active = 1";
+            return $@"UPDATE {Tbl.patient} SET otp = {obj.otp.Value}, expiry_date = DATEADD(MINUTE, 10, GETDATE())  WHERE phone_no = {obj.phone_no} and is_active = 1";
         }
         #endregion
     }
 
     public class PatientVerifyLoginResDTO
     {
-        public int patient_id { get; set; }
+        public long patient_id { get; set; }
         public string patient_name { get; set; }
-        public DateTime dob { get; set; }
+        public DateTime? dob { get; set; }
         public int age { get; set; }
         public string phone_no { get; set; }
         public string emergency_phone_no { get; set; }
         public string email_id { get; set; }
         public string gender { get; set; }
         public string city { get; set; }
-        public int otp { get; set; }
+        public int? otp { get; set; }
         public DateTime? expiry_date { get; set; }
         public string pincode { get; set; }
 
@@ -62,6 +62,22 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
 
+        #region Query
+
+        internal static string insert_patient_details()
+        {
+            return $@"Insert Into{Tbl.patient}(patient_name,dob,age,phone_no,emergency_phone_no,email_id,gender,state_id,country_id,district_id,city,pincode,created_by)
+                        Values (@patient_name, @dob, @age, @phone_no, @emergency_phone_no ,@email_id ,@gender, @state_id ,@country_id, @district_id,@city ,@pincode,@created_by)";
+        }
+
+        internal static string update_patient_details()
+        {
+            return $@"Update {Tbl.patient}
+                      Set patient_name =@patient_name,dob = @dob,age = @age,phone_no = @phone_no,emergency_phone_no = @emergency_phone_no, email_id = @email_id, gender= @gender,state_id =@state_id,country_id=@country_id,
+                            state_id =@state_id,country_id=@country_id,district_id = @district_id,city = @city,pincode=@pincode
+                      where patient_id = @patient_id";
+
+        }
 
         internal static string patient_detatils()
         {
@@ -76,7 +92,7 @@ namespace elr_API.DTO.ReqDTO
                         on p.country_id = c.country_id
                         where p.is_active = 1 and  p.patient_id = @patient_id";
         }
-
+        #endregion
     }
     public class MasterEmployeeLoginReqDTO
     {

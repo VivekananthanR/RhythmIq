@@ -18,6 +18,7 @@ namespace elr_API.IService.IEntrolement
         Task<List<PatientEnrollmentDTO>> PatientEnrollmentList(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrUploadEnrollmentRawData(EnrollmentRawDataDTO obj);
+        Task ElrPhythonProcessEnrollmentRawData();
         Task<ResponseDTO> ElrGetRawDataList();
     }
 }

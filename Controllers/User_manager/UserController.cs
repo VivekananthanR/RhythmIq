@@ -1,6 +1,9 @@
-﻿using elr_API.DTO.ReqDTO;
+﻿using elr_API.Common;
+using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
+using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.IUser_manager;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -22,6 +25,16 @@ namespace elr_API.Controllers.User_manager
         public async Task<ActionResult<ResponseDTO>> ElrGetPatient(string phone_no)
         {
             return await _userService.ElrGetPatient(phone_no);
+        }
+        #endregion
+
+        #region HttpPost = api/User/ElrAddUpdatePatientDetails
+        [HttpPost("ElrAddUpdatePatientDetails"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientDetails([FromHeader] string authorization, [FromBody] PatientVerifyLoginResDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _userService.ElrAddUpdatePatientDetails(obj);
         }
         #endregion
 

@@ -7,6 +7,7 @@ namespace elr_API.IService.IUser_manager
     {
 
         Task<ResponseDTO> ElrGetPatient(string phone_no);
+        Task<ResponseDTO> ElrAddUpdatePatientDetails(PatientVerifyLoginResDTO obj);
         Task<ResponseDTO> ElrPatientVerifyLogin(PatientVerifyLoginReqDTO obj);
         Task<ResponseDTO> ElrGetEmployeeNameList(string user_name);
         Task<ResponseDTO> ElrGetEmployee(string emp_code);

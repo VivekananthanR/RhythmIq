@@ -321,6 +321,19 @@ namespace elr_API.DTO.ReqDTO
 
         }
 
+        internal static string GetWaitingRecords()
+        {
+            return $@"
+                    SELECT TOP (50)
+                        enrollment_raw_data_id,
+                        patient_enrollment_id,
+                        file_path
+                    FROM {Tbl.enrollment_raw_data}
+                    WHERE auto_check_status = 'waiting'
+                      AND is_active = 1
+                    ORDER BY waiting_datetime";
+        }
+
         internal static string status_waiting_list()
         {
             return $@"select top 1 erd.enrollment_raw_data_id, erd.patient_enrollment_id, erd.data_start, erd.data_end, erd.file_path, erd.battery_percentage,
@@ -331,15 +344,24 @@ namespace elr_API.DTO.ReqDTO
                     where erd.is_active = 1 
                     order by enrollment_raw_data_id asc;";
         }
-        internal static string update_status()
+        internal static string update_checking_status()
         {
             return $@"UPDATE {Tbl.enrollment_raw_data}
                     SET auto_check_status = 'checking',
                         checking_datetime = GETDATE()
-                    WHERE enrollment_raw_data_id = @enrollment_raw_data_id";
+                    WHERE enrollment_raw_data_id = @enrollment_raw_data_id and auto_check_status = 'waiting'";
+        }
+        internal static string update_waiting_status()
+        {
+            return $@"
+                    UPDATE {Tbl.enrollment_raw_data}
+                    SET
+                        auto_check_status='waiting',
+                        checking_datetime=NULL
+                    WHERE enrollment_raw_data_id=@enrollment_raw_data_id";
         }
 
-        internal static string update_raw_data_status()
+        internal static string update_completed_status()
         {
             return $@"UPDATE {Tbl.enrollment_raw_data}
                       SET auto_check_status = 'completed',

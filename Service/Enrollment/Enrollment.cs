@@ -13,15 +13,17 @@ namespace elr_API.Service.Enrolment
         private readonly IQikberrychatService _iqberrychatService;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IConfiguration _configuration;
 
         public string ELR_db = CommonFunctions.GetConnectionString("elr_db");
         public string ErrorMessage = string.Empty;
-        public Enrollment(IDapperSqlService db, IQikberrychatService iqberrychatService, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory)
+        public Enrollment(IDapperSqlService db, IQikberrychatService iqberrychatService, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory, IConfiguration configuration)
         {
             _db = db;
             _iqberrychatService = iqberrychatService;
             _httpClientFactory = httpClientFactory;
             _scopeFactory = scopeFactory;
+            _configuration = configuration;
         }
 
         public async Task<ResponseDTO> ElrGetValidEnrollmentId(long patient_enrollment_id)
@@ -312,10 +314,9 @@ namespace elr_API.Service.Enrolment
 
                 if (obj.patient_enrollment_id == 0) query = PatientEnrollmentDTO.insert_enrollment();
 
-                else query = PatientEnrollmentDTO.update_enrollment();
+                obj.patient_enrollment_id = await _db.ExecuteAndGetId(query, obj, ELR_db);
 
-                var changed = await _db.Execute(query, obj, ELR_db);
-                return new ResponseDTO(changed > 0, changed > 0 ? (obj.patient_enrollment_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+                return new ResponseDTO(obj.patient_enrollment_id > 0, ResponseMessage.Saved_Successfully);
             }
             catch (Exception ex)
             {
@@ -352,64 +353,63 @@ namespace elr_API.Service.Enrolment
                 {
                     obj.waiting_datetime = DateTime.Now;
 
+                    obj.auto_check_status = "waiting";
+
                     query = EnrollmentRawDataDTO.insert_raw_data();
+
                     long enrollmentRawDataId = await _db.ExecuteAndGetId(query, obj, ELR_db);
 
                     if (enrollmentRawDataId <= 0) return new ResponseDTO(false, ResponseMessage.Failed);
 
-                    query = EnrollmentRawDataDTO.update_status();
+                    #region
+                    //try
+                    //{
 
-                    await _db.Execute(query, new { enrollment_raw_data_id = enrollmentRawDataId }, ELR_db);
+                    //    string physicalPath = Path.Combine(Directory.GetCurrentDirectory(), obj.file_path);
 
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
+                    //    using var formData = new MultipartFormDataContent();
 
-                            string physicalPath = Path.Combine(Directory.GetCurrentDirectory(), obj.file_path);
+                    //    using var fileStream = File.OpenRead(physicalPath);
 
-                            using var formData = new MultipartFormDataContent();
+                    //    var fileContent = new StreamContent(fileStream);
 
-                            using var fileStream = File.OpenRead(physicalPath);
+                    //    fileContent.Headers.ContentType =
+                    //        new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-                            var fileContent = new StreamContent(fileStream);
+                    //    formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
+                    //    formData.Add(new StringContent(obj.patient_enrollment_id.ToString()), "patient_enrollment_id");
+                    //    formData.Add(new StringContent(enrollmentRawDataId.ToString()), "enrollment_raw_data_id");
 
-                            fileContent.Headers.ContentType =
-                                new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                    //    using var scope = _scopeFactory.CreateScope();
 
-                            formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
-                            formData.Add(new StringContent(obj.patient_enrollment_id.ToString()), "patient_enrollment_id");
-                            formData.Add(new StringContent(enrollmentRawDataId.ToString()), "enrollment_raw_data_id");
+                    //    var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
 
-                            using var scope = _scopeFactory.CreateScope();
+                    //    using var client = _httpClientFactory.CreateClient();
 
-                            var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
+                    //    var response = await client.PostAsync("http://192.168.97.140:5006/api/process", formData);
 
-                            using var client = _httpClientFactory.CreateClient();
-
-                            var response = await client.PostAsync("http://192.168.97.140:5006/api/process", formData);
-
-                            string result = await response.Content.ReadAsStringAsync();
+                    //    string result = await response.Content.ReadAsStringAsync();
 
 
-                            if (response.IsSuccessStatusCode)
-                            {
+                    //    if (response.IsSuccessStatusCode)
+                    //    {
 
-                                query = PatientEnrollmentDTO.monitoring_hookup_status(obj.patient_enrollment_id);
+                    //        query = PatientEnrollmentDTO.monitoring_hookup_status(obj.patient_enrollment_id);
 
-                                await db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
+                    //        await db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
 
-                            }
-                            else
-                            {
-                                CommonFunctions.ILogging(obj, $"ECG Engine Error : {result}");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            CommonFunctions.ILogging(obj, ex.ToString());
-                        }
-                    });
+                    //    }
+                    //    else
+                    //    {
+                    //        CommonFunctions.ILogging(obj, $"ECG Engine Error : {result}");
+                    //    }
+                    //}
+                    //catch (Exception ex)
+                    //{
+                    //    CommonFunctions.ILogging(obj, ex.ToString());
+                    //}
+                    #endregion
+
                     return new ResponseDTO(true, ResponseMessage.Saved_Successfully);
                 }
             }
@@ -420,6 +420,107 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+        public async Task ElrPhythonProcessEnrollmentRawData()
+        {
+            string query = string.Empty;
+
+            query = EnrollmentRawDataDTO.GetWaitingRecords();
+
+            var records = await _db.SelectQuery<EnrollmentRawDataDTO>(query, null, ELR_db);
+
+            foreach (var item in records)
+            {
+                try
+                {
+                    query = EnrollmentRawDataDTO.update_checking_status();
+
+                    var row = await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+
+                    if (row == 0)
+                    {
+                        continue;
+                    }
+
+                    string physicalPath = Path.Combine(Directory.GetCurrentDirectory(), item.file_path);
+
+                    CommonFunctions.ILogging(item, $"File not found : {physicalPath}");
+
+                    if (!File.Exists(physicalPath))
+                    {
+
+                        CommonFunctions.ILogging(item, $"File not found : {physicalPath}");
+
+                        query = EnrollmentRawDataDTO.update_waiting_status();
+
+                        await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+
+                        continue;
+                    }
+
+                    using var formData = new MultipartFormDataContent();
+
+                    using var fileStream = File.OpenRead(physicalPath);
+
+                    var fileContent = new StreamContent(fileStream);
+
+                    fileContent.Headers.ContentType =
+                        new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+                    formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
+                    formData.Add(new StringContent(item.patient_enrollment_id.ToString()), "patient_enrollment_id");
+                    formData.Add(new StringContent(item.enrollment_raw_data_id.ToString()), "enrollment_raw_data_id");
+
+                    using var client = _httpClientFactory.CreateClient();
+
+                    client.Timeout = TimeSpan.FromSeconds(30);
+
+                    var url = _configuration["PythonApi:ProcessUrl"];
+
+                    var response = await client.PostAsync(url, formData);
+
+                    string result = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        query = EnrollmentRawDataDTO.update_completed_status();
+
+                        await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+
+                        query = PatientEnrollmentDTO.monitoring_hookup_status(item.patient_enrollment_id);
+
+                        await _db.Execute(query, new { patient_enrollment_id = item.patient_enrollment_id }, ELR_db);
+                    }
+                    else
+                    {
+                        query = EnrollmentRawDataDTO.update_waiting_status();
+                        await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+
+                        CommonFunctions.ILogging(item,
+                        $@"EnrollmentRawDataId : {item.enrollment_raw_data_id}
+                        PatientEnrollmentId : {item.patient_enrollment_id}
+                        Response : {result}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await _db.Execute(
+                        EnrollmentRawDataDTO.update_waiting_status(),
+                        new
+                        {
+                            enrollment_raw_data_id = item.enrollment_raw_data_id
+                        },
+                        ELR_db);
+
+                    CommonFunctions.ILogging(item, ex.ToString());
+
+                    continue;
+                }
+            }
+        }
+
+
+
 
 
         public async Task<ResponseDTO> ElrGetRawDataList()
@@ -440,7 +541,7 @@ namespace elr_API.Service.Enrolment
                     checking_datetime = DateTime.Now
                 };
 
-                query = EnrollmentRawDataDTO.update_status();
+                query = EnrollmentRawDataDTO.update_checking_status();
                 await _db.Execute(query, param, ELR_db);
 
                 return new ResponseDTO(data);

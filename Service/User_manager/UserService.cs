@@ -41,6 +41,29 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(ErrorMessage);
         }
 
+        public async Task<ResponseDTO> ElrAddUpdatePatientDetails(PatientVerifyLoginResDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.patient_id == 0) query = PatientVerifyLoginResDTO.insert_patient_details();
+                query = PatientVerifyLoginResDTO.update_patient_details();
+
+                var result = await _dp.Execute(query, obj, Elr_db);
+                return new ResponseDTO(result > 0, result > 0 ? (obj.patient_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
         public async Task<ResponseDTO> ElrPatientVerifyLogin(PatientVerifyLoginReqDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -65,7 +88,7 @@ namespace elr_API.Service.User_manager
                         existPatientConnect = new PatientVerifyLoginResDTO
                         {
 
-                            patient_id = (int)connectDetails.patient_id,
+                            patient_id = connectDetails.patient_id,
                             patient_name = connectDetails.patient_fullname,
                             dob = DateTime.TryParse(connectDetails.patient_dob, out var parsedDob) ? parsedDob : default,
                             age = int.TryParse(connectDetails.patient_age, out var parsedAge) ? parsedAge : 0,
@@ -98,7 +121,7 @@ namespace elr_API.Service.User_manager
                             OtpForLoggingReqDTO otpForLoggingReqDTO = new OtpForLoggingReqDTO
                             {
                                 phone_no = existPatient.phone_no,
-                                otp = existPatient.otp
+                                otp = existPatient.otp.Value
                             };
                             await _iqberrychatService.OtpForLoggingPatient(otpForLoggingReqDTO);
 
@@ -106,7 +129,7 @@ namespace elr_API.Service.User_manager
                         #endregion
                         query = PatientVerifyLoginReqDTO.Send_otp_update(existPatient);
 
-                        int a = await _dp.Execute(query, new { phone_no = existPatient.phone_no, otp = existPatient.otp }, Elr_db);
+                        int a = await _dp.Execute(query, new { phone_no = existPatient.phone_no, otp = existPatient.otp.Value }, Elr_db);
 
                         return new ResponseDTO(a > 0, a > 0 ? ResponseMessage.OTP_sended : ResponseMessage.Failed);
                     }

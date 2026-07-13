@@ -100,7 +100,7 @@ namespace elr_API.Controllers.Entrolement
 
         #region HttpPost = api/Enrollment/ElrAddUpdatePatientEnrollment
         [HttpPost("ElrAddUpdatePatientEnrollment")]
-        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj)
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment([FromBody] PatientEnrollmentDTO obj)
         {
             return await _enrollment.ElrAddUpdatePatientEnrollment(obj);
         }

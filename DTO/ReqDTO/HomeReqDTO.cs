@@ -1369,6 +1369,7 @@ namespace elr_API.DTO.ReqDTO
 
     public class PushToQCDTO
     {
+        public long? detection_id { get; set; }
         public long? sub_strip_event_id { get; set; }
         public long? queued_events_records_id { get; set; }
 
@@ -1386,6 +1387,14 @@ namespace elr_API.DTO.ReqDTO
 
 
         #region Query
+
+
+
+        internal static string get_by_detection_id()
+        {
+            return $@" select top (1) detection_id from {Tbl.detection} where queued_events_records_id =@queued_events_records_id and sub_strip_event_id = @sub_strip_event_id and is_active = 1";
+        }
+
         internal static string insert_sub_strip_finding()
         {
             return $@"
@@ -1421,7 +1430,6 @@ namespace elr_API.DTO.ReqDTO
                         detection_status,
                         created_by
                     )
-                    OUTPUT INSERTED.detection_id
                     VALUES
                     (
                         @sub_strip_event_id,
@@ -1429,6 +1437,24 @@ namespace elr_API.DTO.ReqDTO
                         @detection_status,
                         @created_by
                     )";
+        }
+        internal static string update_detection()
+        {
+            return $@"Update {Tbl.detection}
+                        Set detection_status =@detection_status, modified_datetime = getdate(), modified_by = @modified_by
+                        Where detection_id = @detection_id";
+        }
+
+        internal static string inactive_sub_strip_finding()
+        {
+            return $@"
+                    UPDATE {Tbl.sub_strip_event_finding}
+                    SET
+                        is_active = 0,
+                        modified_by = @modified_by,
+                        modified_datetime = getdate()
+                    WHERE detection_id = @detection_id
+                      AND is_active = 1";
         }
         #endregion
     }
@@ -1453,7 +1479,7 @@ namespace elr_API.DTO.ReqDTO
         FROM {Tbl.sub_strip_event_finding} ssf
         INNER JOIN {Tbl.event_finding_mast} ef
             ON ef.event_finding_id = ssf.event_finding_id
-        WHERE ssf.detection_id = @detection_id
+        WHERE ssf.detection_id = @detection_id and ssf.is_active = 1
         ORDER BY ssf.sub_strip_event_finding_id";
         }
         #endregion
@@ -1524,7 +1550,7 @@ namespace elr_API.DTO.ReqDTO
                     ON u.user_id = d.created_by
 
 
-                WHERE qu.event_status = 'partial-completed'
+                WHERE qu.event_status = 'partial-completed' and d.is_active = 1
                   AND (
                         ISNULL(@search, '') = ''
                         OR pt.patient_name LIKE '%' + @search + '%'
@@ -1670,7 +1696,7 @@ namespace elr_API.DTO.ReqDTO
                     LEFT JOIN {Tbl.sub_strip_event} sse
                         ON sse.sub_strip_event_id = d.sub_strip_event_id
 
-                    WHERE d.detection_id = @detection_id
+                    WHERE d.detection_id = @detection_id and d.is_active = 1
 
                    GROUP BY
                         d.detection_id,
@@ -1701,7 +1727,7 @@ namespace elr_API.DTO.ReqDTO
     public class ConfirmSubmitDTO
     {
         public bool qc_tech_detection { get; set; }
-        public long detection_id { get; set; }
+        public long? detection_id { get; set; }
         public long parent_detection_id { get; set; }
         public long picked_by { get; set; }
         public DateTime? picked_datetime { get; set; }
@@ -1721,12 +1747,23 @@ namespace elr_API.DTO.ReqDTO
         internal static string insert_detection()
         {
             return $@"insert into {Tbl.detection} (parent_detection_id,sub_strip_event_id,queued_events_records_id,detection_status,created_by)
-                    values(@parent_detection_id, @sub_strip_event_id, @queued_events_records_id, @detection_status, @created_by)";
+                    values(@parent_detection_id,@sub_strip_event_id, @queued_events_records_id, @detection_status, @created_by)";
+        }
+        internal static string update_detection()
+        {
+            return $@"Update {Tbl.detection}
+                       set sub_strip_event_id =@sub_strip_event_id, queued_events_records_id =@queued_events_records_id, modified_by =@modified_by,  modified_datetime = @modified_datetime
+                       Where detection_id = @detection_id and is_active =1 ";
         }
         internal static string insert_sub_strip_finding()
         {
             return $@"insert into {Tbl.sub_strip_event_finding} (sub_strip_event_id,queued_events_records_id,event_finding_id,detection_id, value1, value2,created_by)
                         values (@sub_strip_event_id, @queued_events_records_id, @event_finding_id, @detection_id, @value1, @value2, @created_by)";
+        }
+        internal static string update_sub_strip_finding()
+        {
+            return $@"Update{Tbl.sub_strip_event_finding}
+";
         }
 
         internal static string pick_detection()
@@ -1965,10 +2002,63 @@ namespace elr_API.DTO.ReqDTO
         public List<MyProgressChartDTO> Chart { get; set; }
 
         #region Query
+        //internal static string get_progress_summary()
+        //{
+        //    return $@"
+        //            SELECT
+        //                COUNT(DISTINCT queued_events_records_id) AS EventsSubmitted,
+        //                CAST(
+        //                    COUNT(DISTINCT queued_events_records_id) /
+        //                    CASE
+        //                        WHEN @type = 'week' THEN 7.0
+        //                        WHEN @type = 'month' THEN 28.0
+        //                        ELSE 1.0
+        //                    END
+        //                AS DECIMAL(10,2)) AS Productivity,
+        //                'events/day' AS ProductivityUnit
+        //            FROM {Tbl.event_assign}
+        //            WHERE assigned_by = @assigned_by
+        //              AND work_status = @work_status
+        //              AND (
+        //                    (@type = 'day' AND CAST(analysis_end_datetime AS DATE) = CAST(GETDATE() AS DATE))
+        //                 OR (@type = 'week' AND analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE)))
+        //                 OR (@type = 'month' AND analysis_end_datetime >= DATEADD(WEEK,-4,CAST(GETDATE() AS DATE)))
+        //              )";
+        //}
 
+        //internal static string get_progress_chart()
+        //{
+        //    return $@"
+        //            SELECT
+        //                CASE
+        //                    WHEN @type = 'day'
+        //                        THEN FORMAT(analysis_end_datetime,'HH:00')
+        //                    WHEN @type = 'week'
+        //                        THEN DATENAME(WEEKDAY,analysis_end_datetime)
+        //                    ELSE CONCAT('Week ',DATEPART(WEEK,analysis_end_datetime))
+        //                END AS Label,
+        //                COUNT(DISTINCT queued_events_records_id) AS Events
+        //            FROM {Tbl.event_assign}
+        //            WHERE assigned_by = @assigned_by
+        //              AND work_status = @work_status
+        //              AND (
+        //                    (@type = 'day' AND CAST(analysis_end_datetime AS DATE) = CAST(GETDATE() AS DATE))
+        //                 OR (@type = 'week' AND analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE)))
+        //                 OR (@type = 'month' AND analysis_end_datetime >= DATEADD(WEEK,-4,CAST(GETDATE() AS DATE)))
+        //              )
+        //            GROUP BY
+        //                CASE
+        //                    WHEN @type = 'day'
+        //                        THEN FORMAT(analysis_end_datetime,'HH:00')
+        //                    WHEN @type = 'week'
+        //                        THEN DATENAME(WEEKDAY,analysis_end_datetime)
+        //                    ELSE CONCAT('Week ',DATEPART(WEEK,analysis_end_datetime))
+        //                END
+        //            ORDER BY Label";
+        //}
         internal static string get_date_filter(string type)
         {
-            switch (type?.Trim().ToLowerInvariant())
+            switch (type.ToLower())
             {
                 case "week":
                     return "analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE))";
@@ -1986,7 +2076,7 @@ namespace elr_API.DTO.ReqDTO
             string productivity;
             string unit;
 
-            switch (type?.Trim().ToLowerInvariant())
+            switch (type.ToLower())
             {
                 case "week":
                     productivity = "CAST(COUNT(DISTINCT queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
@@ -2011,12 +2101,12 @@ namespace elr_API.DTO.ReqDTO
                     {unit} AS ProductivityUnit
                 FROM {Tbl.event_assign}
                 WHERE assigned_by = @assigned_by
-                  AND work_status = @work_status
+                  AND work_status = 'completed'
                   AND {get_date_filter(type)}";
         }
         internal static string get_progress_chart(string type)
         {
-            switch (type?.Trim().ToLowerInvariant())
+            switch (type.ToLower())
             {
                 case "week":
 
@@ -2026,7 +2116,7 @@ namespace elr_API.DTO.ReqDTO
                                 COUNT(DISTINCT queued_events_records_id) AS Events
                             FROM {Tbl.event_assign}
                             WHERE assigned_by = @assigned_by
-                              AND work_status = @work_status
+                              AND work_status = 'completed'
                               AND {get_date_filter(type)}
                             GROUP BY
                                 DATEPART(WEEKDAY, analysis_end_datetime),
@@ -2048,7 +2138,7 @@ namespace elr_API.DTO.ReqDTO
                                 COUNT(DISTINCT queued_events_records_id) AS Events
                             FROM {Tbl.event_assign}
                             WHERE assigned_by = @assigned_by
-                              AND work_status = @work_status
+                              AND work_status = 'completed'
                               AND {get_date_filter(type)}
                             GROUP BY
                                 YEAR(analysis_end_datetime),
@@ -2065,11 +2155,12 @@ namespace elr_API.DTO.ReqDTO
                                 COUNT(DISTINCT queued_events_records_id) AS Events
                             FROM {Tbl.event_assign}
                             WHERE assigned_by = @assigned_by
-                              AND work_status = @work_status
+                              AND work_status = 'completed'
                               AND {get_date_filter(type)}
                             GROUP BY
                                 FORMAT(analysis_end_datetime, 'HH:00')
-                            ORDER BY Label ";
+                            ORDER BY
+                                Label";
             }
         }
         #endregion

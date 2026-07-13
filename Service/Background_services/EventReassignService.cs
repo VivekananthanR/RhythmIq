@@ -1,6 +1,7 @@
 ﻿using elr_API.Common;
 using elr_API.DTO.ReqDTO;
 using elr_API.IService.IDapper;
+using elr_API.IService.IEntrolement;
 
 namespace elr_API.Service.Background_services
 {
@@ -17,16 +18,26 @@ namespace elr_API.Service.Background_services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+
+            try
             {
                 using var scope = _serviceScopeFactory.CreateScope();
 
                 var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
+
                 await db.Execute(EventAssignDTO.reassign_expired_events(), null, ELR_db);
                 await db.Execute(EventAssignDTO.reset_reassigned_events(), null, ELR_db);
 
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                var service = scope.ServiceProvider.GetRequiredService<IEnrollment>();
+
+                await service.ElrPhythonProcessEnrollmentRawData();
             }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("BackgroundService", ex.ToString());
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
         }
     }
 }

@@ -8,6 +8,8 @@ namespace elr_API.DTO.ResDTO
         public string Message { get; set; } = string.Empty;
         public object Data { get; set; } = Array.Empty<object>();
 
+        public ResponseDTO() { }
+
         public ResponseDTO(object data)
         {
             //Data = ResponseEncrypt.EncryptData(data);
@@ -19,6 +21,12 @@ namespace elr_API.DTO.ResDTO
             Status = status;
             Message = message;
         }
-        public ResponseDTO() { }
+
+        public ResponseDTO(bool status, string message, object data) : this(data)
+        {
+            Status = status;
+            Message = message;
+            Data = data;
+        }
     }
 }
