@@ -535,7 +535,7 @@ namespace elr_API.Service.Home_manager
 
                 query = GetNextEventResDTO.get_event_details();
 
-                var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = @queued_events_records_id }, ELR_db);
+                var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db);
 
                 data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
 
@@ -587,15 +587,16 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
+
                 query = EventAssignDTO.get_active_event();
 
-                var active = await _db.QuerySingle<int>(query, new { emp_id }, ELR_db);
+                var active = await _db.QuerySingle<int>(query, new { emp_id = emp_id }, ELR_db);
 
                 if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
 
                 query = GetNextEventResDTO.get_next_event();
 
-                long? queuedId = await _db.QuerySingleOrDefault<long?>(query, null, ELR_db);
+                long? queuedId = await _db.QuerySingleOrDefault<long?>(query, new { emp_id = emp_id }, ELR_db);
 
                 if (!queuedId.HasValue) return new ResponseDTO(false, "No pending events");
 
@@ -640,12 +641,19 @@ namespace elr_API.Service.Home_manager
             try
             {
                 query = EventAssignDTO.time_out_reassign_event();
-                await _db.Execute(query, new { queued_events_records_id = queued_events_records_id, modified_by = emp_id }, ELR_db);
+                int row = await _db.Execute(query, new { queued_events_records_id = queued_events_records_id, modified_by = emp_id }, ELR_db);
+                if (row > 0)
+                {
+                    query = SubStripEventResDTO.time_out_substrip();
+                    await _db.Execute(query, new { queued_events_records_id = queued_events_records_id, modified_by = emp_id }, ELR_db);
 
-                query = QueuedAnomalyDTO.reset_event_status();
-                await _db.Execute(query, new { queued_events_records_id = queued_events_records_id }, ELR_db);
+                    query = QueuedAnomalyDTO.reset_event_status();
+                    await _db.Execute(query, new { queued_events_records_id = queued_events_records_id, modified_by = emp_id }, ELR_db);
 
-                return new ResponseDTO(true, "Event reassigned successfully");
+                    return new ResponseDTO(true, "Event reassigned successfully");
+                }
+
+                return new ResponseDTO(false, "Event is already completed or not in progress.");
             }
             catch (Exception ex)
             {
@@ -665,17 +673,18 @@ namespace elr_API.Service.Home_manager
 
                 query = CurrentStripDTO.get_current_pateint_strip();
 
-                var data = await _db.QuerySingleOrDefault<CurrentStripDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db);
+                var data = (await _db.SelectQuery<CurrentStripDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).FirstOrDefault();
 
                 if (data == null)
                     return new ResponseDTO(false, "No current strip found");
 
-                if (data != null)
-                {
-                    query = SubStripEventDTO.get_sub_strip();
 
-                    data.sub_strip = (await _db.SelectQuery<SubStripEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
-                }
+                query = SubStripEventDTO.get_sub_strip();
+
+                data.sub_strip = (await _db.SelectQuery<SubStripEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+
+                query = FindingDTO.get_finding_list();
+                data.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
 
                 return new ResponseDTO(data);
             }
@@ -762,7 +771,15 @@ namespace elr_API.Service.Home_manager
                 query = SubStripReqDTO.get_sub_strip_report(obj);
 
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, SubStripEventResDTO>(query, obj, ELR_db);
-                if (data == null) return new ResponseDTO(false, "No Data");
+
+                if (data == null || !data.Any()) return new ResponseDTO(false, "No Data");
+
+                foreach (var item in data)
+                {
+                    query = FindingDTO.get_sub_strip_report_finding_list();
+                    item.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { item.queued_events_records_id, item.sub_strip_event_id }, ELR_db)).ToList();
+                }
+
                 var response = new
                 {
                     totalCount = totalCount,
@@ -874,7 +891,7 @@ namespace elr_API.Service.Home_manager
 
                 query = PushToQCDTO.get_by_detection_id();
 
-                long? detectionById = (await _db.SelectQuery<long?>(query, new { queued_events_records_id = obj.queued_events_records_id, sub_strip_event_id = obj.sub_strip_event_id }, ELR_db)).FirstOrDefault();
+                long? detectionById = (await _db.SelectQuery<long?>(query, new { detection_id = obj.detection_id }, ELR_db)).FirstOrDefault();
 
                 if (detectionById == null || detectionById == 0)
                 {
@@ -887,7 +904,8 @@ namespace elr_API.Service.Home_manager
                             obj.sub_strip_event_id,
                             obj.queued_events_records_id,
                             detection_status = detectionStatus,
-                            created_by = obj.created_by
+                            created_by = obj.created_by,
+                            event_assign_id = obj.event_assign_id
                         },
                         ELR_db);
 
@@ -903,17 +921,54 @@ namespace elr_API.Service.Home_manager
                               item.event_finding_id,
                               item.value1,
                               item.value2,
-                              created_by = obj.created_by
+                              created_by = obj.created_by,
+                              event_assign_id = obj.event_assign_id
                           }, ELR_db);
                     }
-                    string status = obj.is_experienced_user ? "completed" : "partial-completed";
 
-                    obj.modified_by = obj.created_by;
-                    query = QueuedAnomalyDTO.update_event_status();
-                    await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by, event_status = status }, ELR_db);
 
-                    query = EventAssignDTO.update_work_status();
-                    await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by, work_status = status }, ELR_db);
+                    query = PushToQCDTO.get_total_active_sub_strips();
+                    long totalStrips = (await _db.SelectQuery<long>(query, new { obj.event_assign_id }, ELR_db)).FirstOrDefault();
+
+                    query = PushToQCDTO.get_completed_sub_strips();
+                    long completedStrips = (await _db.SelectQuery<long>(
+                        query,
+                        new { obj.event_assign_id },
+                        ELR_db)).FirstOrDefault();
+
+                    string workStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "inprogress";
+
+                    string eventStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "processing";
+
+                    query = EventAssignDTO.update_work_status_by_event_assign();
+
+                    await _db.Execute(query,
+                        new
+                        {
+                            event_assign_id = obj.event_assign_id,
+                            work_status = workStatus,
+                            modified_by = obj.created_by
+                        },
+                        ELR_db);
+
+                    query = QueuedAnomalyDTO.update_event_status_by_queue();
+
+                    await _db.Execute(query,
+                        new
+                        {
+                            queued_events_records_id = obj.queued_events_records_id,
+                            completed_by = obj.created_by,
+                            event_status = eventStatus
+                        },
+                        ELR_db);
+
+                    //string status = obj.is_experienced_user ? "completed" : "partial-completed";
+
+                    //query = QueuedAnomalyDTO.update_event_status();
+                    //await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, completed_by = obj.created_by, event_status = status }, ELR_db);
+
+                    //query = EventAssignDTO.update_work_status();
+                    //await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by, work_status = status }, ELR_db);
 
                     return new ResponseDTO(true, ResponseMessage.Success, detection_id);
                 }
@@ -939,36 +994,71 @@ namespace elr_API.Service.Home_manager
                                 item.event_finding_id,
                                 item.value1,
                                 item.value2,
-                                created_by = obj.created_by
+                                created_by = obj.created_by,
+                                event_assign_id = obj.event_assign_id
                             },
                             ELR_db);
                     }
 
-                    string status = obj.is_experienced_user ? "completed" : "partial-completed";
+                    query = PushToQCDTO.get_total_active_sub_strips();
+                    long totalStrips = (await _db.SelectQuery<long>(query, new { obj.event_assign_id }, ELR_db)).FirstOrDefault();
 
-                    obj.modified_by = obj.created_by;
+                    query = PushToQCDTO.get_completed_sub_strips();
+                    long completedStrips = (await _db.SelectQuery<long>(
+                        query,
+                        new { obj.event_assign_id },
+                        ELR_db)).FirstOrDefault();
 
-                    query = QueuedAnomalyDTO.update_event_status();
+                    string workStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "inprogress";
 
-                    await _db.Execute(query,
-                                new
-                                {
-                                    obj.queued_events_records_id,
-                                    modified_by = obj.modified_by,
-                                    event_status = status
-                                },
-                                ELR_db);
+                    string eventStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "processing";
 
-                    query = EventAssignDTO.update_work_status();
+                    query = EventAssignDTO.update_work_status_by_event_assign();
 
                     await _db.Execute(query,
                         new
                         {
-                            obj.queued_events_records_id,
-                            modified_by = obj.modified_by,
-                            work_status = status
+                            event_assign_id = obj.event_assign_id,
+                            work_status = workStatus,
+                            modified_by = obj.created_by
                         },
                         ELR_db);
+
+                    query = QueuedAnomalyDTO.update_event_status_by_queue();
+
+                    await _db.Execute(query,
+                        new
+                        {
+                            queued_events_records_id = obj.queued_events_records_id,
+                            completed_by = obj.created_by,
+                            event_status = eventStatus
+                        },
+                        ELR_db);
+                    //string status = obj.is_experienced_user ? "completed" : "partial-completed";
+
+                    //obj.modified_by = obj.created_by;
+
+                    //query = QueuedAnomalyDTO.update_event_status();
+
+                    //await _db.Execute(query,
+                    //            new
+                    //            {
+                    //                obj.queued_events_records_id,
+                    //                completed_by = obj.modified_by,
+                    //                event_status = status
+                    //            },
+                    //            ELR_db);
+
+                    //query = EventAssignDTO.update_work_status();
+
+                    //await _db.Execute(query,
+                    //    new
+                    //    {
+                    //        obj.queued_events_records_id,
+                    //        modified_by = obj.modified_by,
+                    //        work_status = status
+                    //    },
+                    //    ELR_db);
 
                     return new ResponseDTO(true, ResponseMessage.Updated_Successfully);
                 }
@@ -1090,7 +1180,7 @@ namespace elr_API.Service.Home_manager
                     new
                     {
                         queued_events_records_id = obj.queued_events_records_id,
-                        modified_by = obj.created_by,
+                        completed_by = obj.created_by,
                         event_status = "completed"
                     },
                     ELR_db);
@@ -1102,7 +1192,7 @@ namespace elr_API.Service.Home_manager
                     new
                     {
                         queued_events_records_id = obj.queued_events_records_id,
-                        modified_by = obj.created_by,
+                        completed_by = obj.created_by,
                         work_status = "completed"
                     },
                     ELR_db);

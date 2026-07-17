@@ -356,17 +356,33 @@ namespace elr_API.DTO.ReqDTO
             return $@"
                     UPDATE {Tbl.enrollment_raw_data}
                     SET
-                        auto_check_status='waiting',
-                        checking_datetime=NULL
-                    WHERE enrollment_raw_data_id=@enrollment_raw_data_id";
+                        auto_check_status = 'waiting',
+                        completed_datetime = NULL, 
+                        remarks = @remarks,
+                        retry_count = retry_count + 1
+                    WHERE enrollment_raw_data_id = @enrollment_raw_data_id";
         }
 
         internal static string update_completed_status()
         {
-            return $@"UPDATE {Tbl.enrollment_raw_data}
-                      SET auto_check_status = 'completed',
+            return $@"
+                    UPDATE {Tbl.enrollment_raw_data}
+                    SET
+                        auto_check_status = 'completed',
                         completed_datetime = GETDATE()
                     WHERE enrollment_raw_data_id = @enrollment_raw_data_id";
+        }
+
+        internal static string reset_stuck_checking_records()
+        {
+            return $@"
+                    UPDATE {Tbl.enrollment_raw_data}
+                    SET
+                        auto_check_status = 'waiting',
+                        checking_datetime = NULL,
+                        remarks = 'Processing timeout'
+                    WHERE auto_check_status = 'checking'
+                      AND checking_datetime < DATEADD(MINUTE, -5, GETDATE());";
         }
 
         #endregion

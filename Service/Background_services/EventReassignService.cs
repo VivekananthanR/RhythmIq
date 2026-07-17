@@ -18,26 +18,40 @@ namespace elr_API.Service.Background_services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-
-            try
+            using (var scop = _serviceScopeFactory.CreateScope())
             {
-                using var scope = _serviceScopeFactory.CreateScope();
-
-                var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
-
-                await db.Execute(EventAssignDTO.reassign_expired_events(), null, ELR_db);
-                await db.Execute(EventAssignDTO.reset_reassigned_events(), null, ELR_db);
-
-                var service = scope.ServiceProvider.GetRequiredService<IEnrollment>();
-
-                await service.ElrPhythonProcessEnrollmentRawData();
-            }
-            catch (Exception ex)
-            {
-                CommonFunctions.ILogging("BackgroundService", ex.ToString());
+                var db = scop.ServiceProvider.GetRequiredService<IDapperSqlService>();
+                await db.Execute(EnrollmentRawDataDTO.reset_stuck_checking_records(), null, ELR_db);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    using var scope = _serviceScopeFactory.CreateScope();
+
+                    var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
+
+                    var eventAssignIds = await db.SelectQuery<long>(EventAssignDTO.reassign_expired_events(), null, ELR_db);
+
+                    foreach (var eventAssignId in eventAssignIds)
+                    {
+                        await db.Execute(EventAssignDTO.inactive_reassigned_event_data(), new { event_assign_id = eventAssignId }, ELR_db);
+
+                        await db.Execute(EventAssignDTO.reset_reassigned_events(), new { event_assign_id = eventAssignId }, ELR_db);
+                    }
+
+                    var service = scope.ServiceProvider.GetRequiredService<IEnrollment>();
+                    await service.ElrPhythonProcessEnrollmentRawData();
+                }
+                catch (Exception ex)
+                {
+                    CommonFunctions.ILogging("BackgroundService", ex.ToString());
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+            }
         }
     }
 }

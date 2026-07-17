@@ -743,12 +743,32 @@ namespace elr_API.DTO.ReqDTO
 
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
-        public DateTime? processing_datetime { get; set; }
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
 
         #region Query
+
+        public static string update_event_status_by_queue()
+        {
+            return @"
+                    UPDATE tbl_queued_events_records
+                    SET
+                        event_status = @event_status,
+                        completed_by =
+                            CASE
+                                WHEN @event_status='completed'
+                                THEN @completed_by
+                                ELSE completed_by
+                            END,
+                        completed_datetime =
+                            CASE
+                                WHEN @event_status='completed'
+                                THEN GETDATE()
+                                ELSE completed_datetime
+                            END
+                    WHERE queued_events_records_id=@queued_events_records_id";
+        }
         internal static string insert_queued_event()
         {
             return $@"INSERT INTO {Tbl.queued_events_records}
@@ -761,15 +781,18 @@ namespace elr_API.DTO.ReqDTO
                     UPDATE {Tbl.queued_events_records}
                     SET
                         event_status = 'pending',
-                        modified_datetime = GETDATE()
-                    WHERE queued_events_records_id = @queued_events_records_id";
+                        modified_by = @modified_by,
+                        modified_datetime = GETDATE(),
+                        remarks = 'No activity for 3 minutes'
+                    WHERE queued_events_records_id = @queued_events_records_id
+                    AND event_status = 'processing'";
         }
         internal static string update_event_processing()
         {
             return @$"
                     UPDATE {Tbl.queued_events_records}
                     SET event_status = 'processing',
-                        processing_datetime = GETDATE()
+                        modified_datetime = GETDATE()
                     WHERE queued_events_records_id = @queued_events_records_id ";
         }
 
@@ -778,8 +801,8 @@ namespace elr_API.DTO.ReqDTO
             return @$"
                     UPDATE {Tbl.queued_events_records}
                     SET event_status = @event_status,
-                        modified_by = @modified_by,
-                        last_assigned_datetime = GETDATE()
+                        completed_by = @completed_by,
+                        completed_datetime = GETDATE()
                     WHERE queued_events_records_id = @queued_events_records_id";
         }
         #endregion
@@ -797,8 +820,9 @@ namespace elr_API.DTO.ReqDTO
         public string event_status { get; set; }
         public string event_file_path { get; set; }
         public long created_by { get; set; }
+        public long modified_by { get; set; }
         public DateTime? created_datetime { get; set; }
-        public DateTime? processing_datetime { get; set; }
+        public DateTime? modified_datetime { get; set; }
         public List<FetchHistoryDTO>? fetch_history { get; set; }
 
 
@@ -849,7 +873,8 @@ namespace elr_API.DTO.ReqDTO
                 UPDATE q
                 SET
                     q.event_status = 'processing',
-                    q.processing_datetime = GETDATE()
+                    q.modified_by = @emp_id ,
+                    q.modified_datetime = GETDATE()
                 OUTPUT INSERTED.queued_events_records_id
                 FROM {Tbl.queued_events_records} q
                 INNER JOIN cte
@@ -870,7 +895,7 @@ namespace elr_API.DTO.ReqDTO
                         q.event_file_path,
                         q.created_by,
                         q.created_datetime,
-                        q.processing_datetime,
+                        q.modified_datetime,
                         p.patient_id,
                         p.patient_name,
                         d.device_id,
@@ -983,7 +1008,6 @@ namespace elr_API.DTO.ReqDTO
         public long patient_enrollment_id { get; set; }
         public long queued_events_records_id { get; set; }
         public long assigned_by { get; set; }
-        public DateTime? assigned_datetime { get; set; }
         public DateTime? analysis_start_datetime { get; set; }
         public DateTime? last_activity_datetime { get; set; }
         public string work_status { get; set; }
@@ -994,52 +1018,132 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+
+
         #region Query
+
+
+        public static string update_work_status_by_event_assign()
+        {
+            return @"
+                    UPDATE tbl_event_assign
+                    SET
+                        work_status = @work_status,
+                        analysis_end_datetime =
+                            CASE
+                                WHEN @work_status = 'completed'
+                                THEN GETDATE()
+                                ELSE analysis_end_datetime
+                            END,
+                        modified_by = @modified_by,
+                        modified_datetime = GETDATE()
+                    WHERE event_assign_id = @event_assign_id";
+        }
         internal static string event_assign_insert()
         {
-            return $@" insert into {Tbl.event_assign}(patient_enrollment_id,queued_events_records_id,assigned_by,assigned_datetime,analysis_start_datetime,work_status,created_by)
-                        values(@patient_enrollment_id, @queued_events_records_id, @assigned_by, getdate(),@analysis_start_datetime, @work_status, @created_by)";
+            return $@" insert into {Tbl.event_assign}(patient_enrollment_id,queued_events_records_id,assigned_by,analysis_start_datetime,work_status,created_by)
+                        values(@patient_enrollment_id, @queued_events_records_id, @assigned_by,@analysis_start_datetime, @work_status, @created_by)";
         }
+        //internal static string reassign_expired_events()
+        //{
+        //    return $@"
+        //            UPDATE {Tbl.event_assign}
+        //            SET
+        //                work_status = 'reassigned',
+        //                modified_by = assigned_by,
+        //                modified_datetime = GETDATE(),
+        //                last_activity_datetime = getdate(),
+        //                remarks = '10 Minutes Reached'
+        //            WHERE work_status = 'inprogress'
+        //            AND DATEDIFF(MINUTE,
+        //                         analysis_start_datetime,
+        //                         GETDATE()) >= 1";
+        //}
         internal static string reassign_expired_events()
         {
             return $@"
-                    UPDATE {Tbl.event_assign}
-                    SET
-                        work_status = 'reassigned',
-                        modified_by = assigned_by,
-                        modified_datetime = GETDATE(),
-                        last_activity_datetime = getdate(),
-                        remarks = '10 Minutes Reached'
-                    WHERE work_status = 'inprogress'
-                    AND DATEDIFF(MINUTE,
-                                 analysis_start_datetime,
-                                 GETDATE()) >= 10";
+                UPDATE {Tbl.event_assign}
+                SET
+                    work_status = 'reassigned',
+                    modified_by = assigned_by,
+                    modified_datetime = GETDATE(),
+                    last_activity_datetime = GETDATE(),
+                    remarks = '10 Minutes Reached'
+                OUTPUT INSERTED.event_assign_id
+                WHERE work_status = 'inprogress'
+                  AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 5;";
         }
 
-
+        //internal static string reset_reassigned_events()
+        //{
+        //    return $@"
+        //            UPDATE q
+        //            SET
+        //                q.event_status = 'pending',
+        //                q.modified_by = q.created_by,
+        //                q.modified_datetime = GETDATE()
+        //            FROM {Tbl.queued_events_records} q
+        //            WHERE EXISTS
+        //            (
+        //                SELECT 1
+        //                FROM {Tbl.event_assign} ea
+        //                WHERE ea.queued_events_records_id = q.queued_events_records_id
+        //                  AND ea.work_status = 'reassigned'
+        //            )
+        //            AND NOT EXISTS
+        //            (
+        //                SELECT 1
+        //                FROM {Tbl.event_assign} ea
+        //                WHERE ea.queued_events_records_id = q.queued_events_records_id
+        //                  AND ea.work_status = 'partial-completed'
+        //            )
+        //            AND q.event_status = 'processing';";
+        //}
         internal static string reset_reassigned_events()
         {
             return $@"
                     UPDATE q
                     SET
                         q.event_status = 'pending',
-                        q.modified_datetime = GETDATE()
+                        q.modified_by = ea.created_by,
+                        q.modified_datetime = GETDATE(),
+                        q.remarks = '10 Minutes Reached'
                     FROM {Tbl.queued_events_records} q
-                    WHERE EXISTS
-                    (
-                        SELECT 1
-                        FROM {Tbl.event_assign} ea
-                        WHERE ea.queued_events_records_id = q.queued_events_records_id
-                          AND ea.work_status = 'reassigned'
-                    )
-                    AND NOT EXISTS
-                    (
-                        SELECT 1
-                        FROM {Tbl.event_assign} ea
-                        WHERE ea.queued_events_records_id = q.queued_events_records_id
-                          AND ea.work_status = 'partial-completed'
-                    )
+                    INNER JOIN {Tbl.event_assign} ea
+                    ON ea.queued_events_records_id = q.queued_events_records_id
+                    WHERE ea.event_assign_id = @event_assign_id
                     AND q.event_status = 'processing';";
+        }
+        internal static string inactive_reassigned_event_data()
+        {
+            return $@"
+
+                UPDATE {Tbl.sub_strip_event}
+                SET
+                    is_active = 0,
+                    modified_by = created_by,
+                    modified_datetime = GETDATE(),
+                    remarks = 'Auto Inactive - Timeout'
+                WHERE event_assign_id = @event_assign_id
+                AND is_active = 1;
+
+                UPDATE {Tbl.sub_strip_event_finding}
+                SET
+                    is_active = 0,
+                    modified_by = created_by,
+                    modified_datetime = GETDATE(),
+                    remarks = 'Auto Inactive - Timeout'
+                WHERE event_assign_id = @event_assign_id
+                AND is_active = 1;
+
+                UPDATE {Tbl.detection}
+                SET
+                    is_active = 0,
+                    modified_by = created_by,
+                    modified_datetime = GETDATE(),
+                    remarks = 'Auto Inactive - Timeout'
+                WHERE event_assign_id = @event_assign_id
+                AND is_active = 1;";
         }
 
         internal static string time_out_reassign_event()
@@ -1053,8 +1157,10 @@ namespace elr_API.DTO.ReqDTO
                         modified_datetime = GETDATE(),
                         last_activity_datetime = GETDATE()
                     WHERE queued_events_records_id = @queued_events_records_id
-                    AND work_status = 'inprogress'";
+                    AND work_status = 'inprogress'; ";
         }
+
+
         internal static string get_active_event()
         {
             return $@"
@@ -1115,6 +1221,8 @@ namespace elr_API.DTO.ReqDTO
         public long queued_events_records_id { get; set; }
 
         public List<SubStripEventResDTO> sub_strip { get; set; }
+
+        public List<FindingDTO> finding_list { get; set; }
 
         #region Query
         internal static string get_current_pateint_strip()
@@ -1253,6 +1361,8 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+        public List<FindingDTO> finding_list { get; set; }
+
 
         #region Query
         internal static string sub_strip_files_select()
@@ -1274,6 +1384,18 @@ namespace elr_API.DTO.ReqDTO
                 FROM {Tbl.sub_strip_event}
                 WHERE queued_events_records_id = @queued_events_records_id 
                 AND is_active = 1";
+        }
+
+        internal static string time_out_substrip()
+        {
+            return $@"  
+                    update {Tbl.sub_strip_event} 
+                    set 
+                        is_active = 0,
+                        modified_by = @modified_by,
+                        modified_datetime = getdate(),
+                        remarks = 'No activity for 3 minutes'
+                        where queued_events_records_id = @queued_events_records_id and is_active = 1";
         }
         #endregion
 
@@ -1316,7 +1438,7 @@ namespace elr_API.DTO.ReqDTO
                         is_active
                     FROM {Tbl.event_finding_mast}
                     WHERE is_active = 1
-                      AND parent_finding_id IS NULL";
+                      AND parent_finding_id IS NULL order by priority asc";
         }
         internal static string get_finding_parent_id()
         {
@@ -1370,6 +1492,7 @@ namespace elr_API.DTO.ReqDTO
     public class PushToQCDTO
     {
         public long? detection_id { get; set; }
+        public long event_assign_id { get; set; }
         public long? sub_strip_event_id { get; set; }
         public long? queued_events_records_id { get; set; }
 
@@ -1379,6 +1502,8 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? created_datetime { get; set; }
         public long? modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
+        public long? completed_by { get; set; }
+        public DateTime? completed_datetime { get; set; }
         public bool is_active { get; set; }
 
         public string remarks { get; set; }
@@ -1390,9 +1515,26 @@ namespace elr_API.DTO.ReqDTO
 
 
 
+        public static string get_completed_sub_strips()
+        {
+            return $@"
+                    SELECT COUNT(DISTINCT sub_strip_event_id)
+                    FROM {Tbl.detection}
+                    WHERE event_assign_id = @event_assign_id
+                      AND is_active = 1";
+        }
+        public static string get_total_active_sub_strips()
+        {
+            return @"
+                    SELECT COUNT(*)
+                    FROM tbl_sub_strip_event
+                    WHERE event_assign_id = @event_assign_id
+                      AND is_active = 1";
+        }
+
         internal static string get_by_detection_id()
         {
-            return $@" select top (1) detection_id from {Tbl.detection} where queued_events_records_id =@queued_events_records_id and sub_strip_event_id = @sub_strip_event_id and is_active = 1";
+            return $@" select top(1) detection_id from {Tbl.detection} where detection_id = @detection_id and is_active = 1";
         }
 
         internal static string insert_sub_strip_finding()
@@ -1404,6 +1546,7 @@ namespace elr_API.DTO.ReqDTO
                         queued_events_records_id,
                         sub_strip_event_id,
                         event_finding_id,
+                        event_assign_id,
                         value1,
                         value2,
                         created_by
@@ -1414,6 +1557,7 @@ namespace elr_API.DTO.ReqDTO
                         @queued_events_records_id,
                         @sub_strip_event_id,
                         @event_finding_id,
+                        @event_assign_id,
                         @value1,
                         @value2,
                         @created_by
@@ -1426,6 +1570,7 @@ namespace elr_API.DTO.ReqDTO
                     INSERT INTO {Tbl.detection}
                     (
                         sub_strip_event_id,
+                        event_assign_id,
                         queued_events_records_id,
                         detection_status,
                         created_by
@@ -1433,6 +1578,7 @@ namespace elr_API.DTO.ReqDTO
                     VALUES
                     (
                         @sub_strip_event_id,
+                        @event_assign_id,
                         @queued_events_records_id,
                         @detection_status,
                         @created_by
@@ -1441,7 +1587,7 @@ namespace elr_API.DTO.ReqDTO
         internal static string update_detection()
         {
             return $@"Update {Tbl.detection}
-                        Set detection_status =@detection_status, modified_datetime = getdate(), modified_by = @modified_by
+                        Set  modified_datetime = getdate(), modified_by = @modified_by
                         Where detection_id = @detection_id";
         }
 
@@ -1461,6 +1607,7 @@ namespace elr_API.DTO.ReqDTO
 
     public class FindingDTO
     {
+        public long? sub_strip_event_id { get; set; }
         public long event_finding_id { get; set; }
         public string? finding_name { get; set; }
         public int? value1 { get; set; }
@@ -1482,9 +1629,42 @@ namespace elr_API.DTO.ReqDTO
         WHERE ssf.detection_id = @detection_id and ssf.is_active = 1
         ORDER BY ssf.sub_strip_event_finding_id";
         }
+
+        internal static string get_finding_list()
+        {
+            return $@"
+                    SELECT
+                        sef.sub_strip_event_id,
+                        sef.event_finding_id,
+                        efm.finding_name,
+                        sef.value1,
+                        sef.value2
+                    FROM {Tbl.sub_strip_event_finding} sef
+                    INNER JOIN {Tbl.event_finding_mast} efm
+                        ON sef.event_finding_id = efm.event_finding_id
+                    WHERE sef.queued_events_records_id = @queued_events_records_id
+                      AND sef.is_active = 1";
+        }
+
+        internal static string get_sub_strip_report_finding_list()
+        {
+            return $@"
+                    SELECT
+                        sef.event_finding_id,
+                        efm.finding_name,
+                        sef.value1,
+                        sef.value2
+                    FROM {Tbl.sub_strip_event_finding} sef
+                    INNER JOIN {Tbl.event_finding_mast} efm
+                        ON sef.event_finding_id = efm.event_finding_id
+                    WHERE sef.sub_strip_event_id = @sub_strip_event_id
+                      AND sef.queued_events_records_id = @queued_events_records_id
+                      AND sef.is_active = 1";
+        }
+
+
         #endregion
     }
-
 
     public class CompletedFindingListReqDTO
     {
@@ -1526,7 +1706,7 @@ namespace elr_API.DTO.ReqDTO
 
                     qu.queued_events_records_id,
                     qu.trigger_type,
-                    qu.last_assigned_datetime,
+                    qu.completed_datetime,
                     qu.event_status,
                     qu.modified_by,
 
@@ -1578,7 +1758,7 @@ namespace elr_API.DTO.ReqDTO
         public DateTime created_datetime { get; set; }
 
         public string trigger_type { get; set; }
-        public DateTime last_assigned_datetime { get; set; }
+        public DateTime completed_datetime { get; set; }
         public string event_status { get; set; }
 
         public long user_id { get; set; }
@@ -1599,7 +1779,7 @@ namespace elr_API.DTO.ReqDTO
         public string event_status { get; set; }
         public string event_file_path { get; set; }
         public DateTime? created_datetime { get; set; }
-        public DateTime? last_assigned_datetime { get; set; }
+        public DateTime? completed_datetime { get; set; }
         public List<FetchHistoryDTO>? fetch_history { get; set; }
 
         public List<SymptomDTO> symptoms { get; set; }
@@ -1643,7 +1823,7 @@ namespace elr_API.DTO.ReqDTO
                     qr.bpm,
                     qr.event_status,
                     qr.event_file_path,
-                    qr.last_assigned_datetime,
+                    qr.completed_datetime,
 
                     p.patient_id,
                     p.patient_name,
@@ -1711,7 +1891,7 @@ namespace elr_API.DTO.ReqDTO
                         qr.bpm,
                         qr.event_status,
                         qr.event_file_path,
-                        qr.last_assigned_datetime,
+                        qr.completed_datetime,
                         p.patient_id,
                         p.patient_name,
                         dc.device_id,

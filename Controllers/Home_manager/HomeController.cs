@@ -228,6 +228,7 @@ namespace elr_API.Controllers.Home_manager
         public async Task<ActionResult<ResponseDTO>> ElrGetNextEvent([FromHeader] string authorization)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+
             return await _homeService.ElrGetNextEvent(tokenClaims.id);
         }
         #endregion

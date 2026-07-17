@@ -444,16 +444,13 @@ namespace elr_API.Service.Enrolment
 
                     string physicalPath = Path.Combine(Directory.GetCurrentDirectory(), item.file_path);
 
-                    CommonFunctions.ILogging(item, $"File not found : {physicalPath}");
 
                     if (!File.Exists(physicalPath))
                     {
 
-                        CommonFunctions.ILogging(item, $"File not found : {physicalPath}");
-
                         query = EnrollmentRawDataDTO.update_waiting_status();
 
-                        await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+                        await _db.Execute(query, new { remarks = $"File not found : {physicalPath}", enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
 
                         continue;
                     }
@@ -494,12 +491,11 @@ namespace elr_API.Service.Enrolment
                     else
                     {
                         query = EnrollmentRawDataDTO.update_waiting_status();
-                        await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
-
-                        CommonFunctions.ILogging(item,
-                        $@"EnrollmentRawDataId : {item.enrollment_raw_data_id}
-                        PatientEnrollmentId : {item.patient_enrollment_id}
-                        Response : {result}");
+                        await _db.Execute(query, new
+                        {
+                            remarks = string.IsNullOrWhiteSpace(result) ? "Python API request failed." : result,
+                            enrollment_raw_data_id = item.enrollment_raw_data_id
+                        }, ELR_db);
                     }
                 }
                 catch (Exception ex)
@@ -508,7 +504,8 @@ namespace elr_API.Service.Enrolment
                         EnrollmentRawDataDTO.update_waiting_status(),
                         new
                         {
-                            enrollment_raw_data_id = item.enrollment_raw_data_id
+                            enrollment_raw_data_id = item.enrollment_raw_data_id,
+                            remarks = ex.Message.Length > 200 ? ex.Message.Substring(0, 200) : ex.Message
                         },
                         ELR_db);
 
