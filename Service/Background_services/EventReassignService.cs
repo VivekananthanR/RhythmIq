@@ -37,8 +37,12 @@ namespace elr_API.Service.Background_services
 
                     foreach (var eventAssignId in eventAssignIds)
                     {
+                        // Log
+                        await db.Execute(EventAssignDTO.insert_reassigned_log(), new { event_assign_id = eventAssignId }, ELR_db);
+                        // Inactive
                         await db.Execute(EventAssignDTO.inactive_reassigned_event_data(), new { event_assign_id = eventAssignId }, ELR_db);
 
+                        // Queue Pending
                         await db.Execute(EventAssignDTO.reset_reassigned_events(), new { event_assign_id = eventAssignId }, ELR_db);
                     }
 

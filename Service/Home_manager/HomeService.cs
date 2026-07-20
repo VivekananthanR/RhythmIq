@@ -521,21 +521,21 @@ namespace elr_API.Service.Home_manager
             var data = (await _db.SelectQuery<SymptomDTO>(query, obj, ELR_db)).ToList();
             return data;
         }
+
+        public async Task<List<GetNextEventResDTO>> GetNext_Queue_Evnet_Details(long queued_events_records_id)
+        {
+            string query = GetNextEventResDTO.get_event_details();
+            var data = (await _db.SelectQuery<GetNextEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+            return data;
+        }
         public async Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                query = EventAssignDTO.get_active_event();
 
-                var active = await _db.QuerySingle<int>(query, new { emp_id }, ELR_db);
-
-                if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
-
-                query = GetNextEventResDTO.get_event_details();
-
-                var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db);
+                var data = (await GetNext_Queue_Evnet_Details(queued_events_records_id)).FirstOrDefault();
 
                 data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
 
@@ -549,7 +549,7 @@ namespace elr_API.Service.Home_manager
                 {
 
                     query = EventAssignDTO.event_assign_insert();
-                    await _db.Execute(query, new
+                    data.event_assign_id = await _db.ExecuteAndGetId(query, new
                     {
                         patient_enrollment_id = data.patient_enrollment_id,
                         queued_events_records_id = data.queued_events_records_id,
@@ -590,7 +590,7 @@ namespace elr_API.Service.Home_manager
 
                 query = EventAssignDTO.get_active_event();
 
-                var active = await _db.QuerySingle<int>(query, new { emp_id = emp_id }, ELR_db);
+                long active = (await _db.SelectQuery<long>(query, new { emp_id }, ELR_db)).FirstOrDefault();
 
                 if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
 
@@ -613,7 +613,7 @@ namespace elr_API.Service.Home_manager
                 if (data == null) return new ResponseDTO(false, "No pending events");
 
                 query = EventAssignDTO.event_assign_insert();
-                await _db.Execute(query, new
+                data.event_assign_id = await _db.ExecuteAndGetId(query, new
                 {
                     patient_enrollment_id = data.patient_enrollment_id,
                     queued_events_records_id = data.queued_events_records_id,
@@ -634,26 +634,19 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrTimeOutEvent(long queued_events_records_id, long emp_id)
+        public async Task<ResponseDTO> ElrTimeOutEvent(long event_assign_id, long emp_id)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                query = EventAssignDTO.time_out_reassign_event();
-                int row = await _db.Execute(query, new { queued_events_records_id = queued_events_records_id, modified_by = emp_id }, ELR_db);
-                if (row > 0)
+                query = EventAssignDTO.three_minute_timeout();
+                var affectedRows = await _db.Execute(query, new { event_assign_id = event_assign_id, modified_by = emp_id }, ELR_db);
+                if (affectedRows <= 0)
                 {
-                    query = SubStripEventResDTO.time_out_substrip();
-                    await _db.Execute(query, new { queued_events_records_id = queued_events_records_id, modified_by = emp_id }, ELR_db);
-
-                    query = QueuedAnomalyDTO.reset_event_status();
-                    await _db.Execute(query, new { queued_events_records_id = queued_events_records_id, modified_by = emp_id }, ELR_db);
-
-                    return new ResponseDTO(true, "Event reassigned successfully");
+                    return new ResponseDTO(false, "Event not found or already reassigned.");
                 }
-
-                return new ResponseDTO(false, "Event is already completed or not in progress.");
+                return new ResponseDTO(true, "Event reassigned successfully.");
             }
             catch (Exception ex)
             {
@@ -663,28 +656,29 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrPatientCurrentStrip(long queued_events_records_id)
+        public async Task<ResponseDTO> ElrPatientCurrentStrip(long event_assign_id)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                if (queued_events_records_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (event_assign_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = CurrentStripDTO.get_current_pateint_strip();
 
-                var data = (await _db.SelectQuery<CurrentStripDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).FirstOrDefault();
+                var data = (await _db.SelectQuery<CurrentStripDTO>(query, new { event_assign_id = event_assign_id }, ELR_db)).FirstOrDefault();
 
                 if (data == null)
-                    return new ResponseDTO(false, "No current strip found");
-
+                {
+                    return new ResponseDTO(false, $"No record found for event_assign_id = {event_assign_id}");
+                }
 
                 query = SubStripEventDTO.get_sub_strip();
 
-                data.sub_strip = (await _db.SelectQuery<SubStripEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+                data.sub_strip = (await _db.SelectQuery<SubStripEventResDTO>(query, new { event_assign_id = event_assign_id }, ELR_db)).ToList();
 
                 query = FindingDTO.get_finding_list();
-                data.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+                data.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = event_assign_id }, ELR_db)).ToList();
 
                 return new ResponseDTO(data);
             }
@@ -889,9 +883,21 @@ namespace elr_API.Service.Home_manager
 
                 string detectionStatus = obj.is_experienced_user ? "submit" : "push-to-qc";
 
-                query = PushToQCDTO.get_by_detection_id();
+                query = PushToQCDTO.get_detection();
 
-                long? detectionById = (await _db.SelectQuery<long?>(query, new { detection_id = obj.detection_id }, ELR_db)).FirstOrDefault();
+                long? detectionById = (await _db.SelectQuery<long?>(query,
+                    new
+                    {
+                        obj.queued_events_records_id,
+                        obj.sub_strip_event_id,
+                        obj.event_assign_id
+                    },
+                    ELR_db)).FirstOrDefault();
+
+                if (detectionById != null && detectionById > 0)
+                {
+                    return new ResponseDTO(false, "Finding has already been submitted for this strip.");
+                }
 
                 if (detectionById == null || detectionById == 0)
                 {
@@ -926,49 +932,7 @@ namespace elr_API.Service.Home_manager
                           }, ELR_db);
                     }
 
-
-                    query = PushToQCDTO.get_total_active_sub_strips();
-                    long totalStrips = (await _db.SelectQuery<long>(query, new { obj.event_assign_id }, ELR_db)).FirstOrDefault();
-
-                    query = PushToQCDTO.get_completed_sub_strips();
-                    long completedStrips = (await _db.SelectQuery<long>(
-                        query,
-                        new { obj.event_assign_id },
-                        ELR_db)).FirstOrDefault();
-
-                    string workStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "inprogress";
-
-                    string eventStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "processing";
-
-                    query = EventAssignDTO.update_work_status_by_event_assign();
-
-                    await _db.Execute(query,
-                        new
-                        {
-                            event_assign_id = obj.event_assign_id,
-                            work_status = workStatus,
-                            modified_by = obj.created_by
-                        },
-                        ELR_db);
-
-                    query = QueuedAnomalyDTO.update_event_status_by_queue();
-
-                    await _db.Execute(query,
-                        new
-                        {
-                            queued_events_records_id = obj.queued_events_records_id,
-                            completed_by = obj.created_by,
-                            event_status = eventStatus
-                        },
-                        ELR_db);
-
-                    //string status = obj.is_experienced_user ? "completed" : "partial-completed";
-
-                    //query = QueuedAnomalyDTO.update_event_status();
-                    //await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, completed_by = obj.created_by, event_status = status }, ELR_db);
-
-                    //query = EventAssignDTO.update_work_status();
-                    //await _db.Execute(query, new { queued_events_records_id = obj.queued_events_records_id, modified_by = obj.modified_by, work_status = status }, ELR_db);
+                    await UpdateEventStatus(obj);
 
                     return new ResponseDTO(true, ResponseMessage.Success, detection_id);
                 }
@@ -1000,65 +964,7 @@ namespace elr_API.Service.Home_manager
                             ELR_db);
                     }
 
-                    query = PushToQCDTO.get_total_active_sub_strips();
-                    long totalStrips = (await _db.SelectQuery<long>(query, new { obj.event_assign_id }, ELR_db)).FirstOrDefault();
-
-                    query = PushToQCDTO.get_completed_sub_strips();
-                    long completedStrips = (await _db.SelectQuery<long>(
-                        query,
-                        new { obj.event_assign_id },
-                        ELR_db)).FirstOrDefault();
-
-                    string workStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "inprogress";
-
-                    string eventStatus = (totalStrips > 0 && totalStrips == completedStrips) ? "completed" : "processing";
-
-                    query = EventAssignDTO.update_work_status_by_event_assign();
-
-                    await _db.Execute(query,
-                        new
-                        {
-                            event_assign_id = obj.event_assign_id,
-                            work_status = workStatus,
-                            modified_by = obj.created_by
-                        },
-                        ELR_db);
-
-                    query = QueuedAnomalyDTO.update_event_status_by_queue();
-
-                    await _db.Execute(query,
-                        new
-                        {
-                            queued_events_records_id = obj.queued_events_records_id,
-                            completed_by = obj.created_by,
-                            event_status = eventStatus
-                        },
-                        ELR_db);
-                    //string status = obj.is_experienced_user ? "completed" : "partial-completed";
-
-                    //obj.modified_by = obj.created_by;
-
-                    //query = QueuedAnomalyDTO.update_event_status();
-
-                    //await _db.Execute(query,
-                    //            new
-                    //            {
-                    //                obj.queued_events_records_id,
-                    //                completed_by = obj.modified_by,
-                    //                event_status = status
-                    //            },
-                    //            ELR_db);
-
-                    //query = EventAssignDTO.update_work_status();
-
-                    //await _db.Execute(query,
-                    //    new
-                    //    {
-                    //        obj.queued_events_records_id,
-                    //        modified_by = obj.modified_by,
-                    //        work_status = status
-                    //    },
-                    //    ELR_db);
+                    await UpdateEventStatus(obj);
 
                     return new ResponseDTO(true, ResponseMessage.Updated_Successfully);
                 }
@@ -1070,7 +976,66 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        private async Task UpdateEventStatus(PushToQCDTO obj)
+        {
+            string query;
 
+            long totalStrips = 0;
+            long completedStrips = 0;
+
+            if (obj.sub_strip_event_id != null && obj.sub_strip_event_id != 0)
+            {
+                query = PushToQCDTO.get_total_active_sub_strips();
+
+                totalStrips = (await _db.SelectQuery<long>(query, new { event_assign_id = obj.event_assign_id }, ELR_db)).FirstOrDefault();
+
+                query = PushToQCDTO.get_completed_sub_strips();
+
+                completedStrips = (await _db.SelectQuery<long>(query, new { event_assign_id = obj.event_assign_id }, ELR_db)).FirstOrDefault();
+            }
+
+            string workStatus;
+            string eventStatus;
+
+
+            if (obj.sub_strip_event_id == null || obj.sub_strip_event_id == 0)
+            {
+                workStatus = "completed";
+                eventStatus = "completed";
+            }
+            else if (totalStrips > 0 && totalStrips == completedStrips)
+            {
+                workStatus = "completed";
+                eventStatus = "completed";
+            }
+            else
+            {
+                workStatus = "inprogress";
+                eventStatus = "processing";
+            }
+
+            query = EventAssignDTO.update_work_status_by_event_assign();
+
+            await _db.Execute(query,
+                new
+                {
+                    event_assign_id = obj.event_assign_id,
+                    work_status = workStatus,
+                    modified_by = obj.created_by
+                },
+                ELR_db);
+
+            query = QueuedAnomalyDTO.update_event_status_by_queue();
+
+            await _db.Execute(query,
+                new
+                {
+                    queued_events_records_id = obj.queued_events_records_id,
+                    completed_by = obj.created_by,
+                    event_status = eventStatus
+                },
+                ELR_db);
+        }
         public async Task<ResponseDTO> ElrCompletedFindingList(CompletedFindingListReqDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -1303,8 +1268,9 @@ namespace elr_API.Service.Home_manager
 
             try
             {
-                query = $@"select queued_events_records_id from {Tbl.event_assign} where work_status = 'inprogress' and assigned_by = @assigned_by";
-                var data = (await _db.SelectQuery<long>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+                query = GetByIdEventAssignResDTO.select_by_event_assign_id();
+                var data = (await _db.SelectQuery<GetByIdEventAssignResDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+                if (data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
                 return new ResponseDTO(data);
             }
             catch (Exception ex)

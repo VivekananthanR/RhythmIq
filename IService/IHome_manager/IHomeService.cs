@@ -52,10 +52,11 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id);
 
         Task<List<SymptomDTO>> ElrSymptomList(SymptomDTO obj);
+        Task<List<GetNextEventResDTO>> GetNext_Queue_Evnet_Details(long queued_events_records_id);
 
         Task<ResponseDTO> ElrGetNextEvent(long emp_id);
-        Task<ResponseDTO> ElrTimeOutEvent(long queued_events_records_id, long emp_id);
-        Task<ResponseDTO> ElrPatientCurrentStrip(long queued_events_records_id);
+        Task<ResponseDTO> ElrTimeOutEvent(long event_assign_id, long emp_id);
+        Task<ResponseDTO> ElrPatientCurrentStrip(long event_assign_id);
 
         Task<ResponseDTO> ElrSubStripEvent(SubStripEventDTO obj);
         Task<ResponseDTO> ElrInActiveSubStrip(long sub_strip_event_id, long emp_id);

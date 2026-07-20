@@ -27,6 +27,7 @@
         public static readonly string queued_events_records = "tbl_queued_events_records";
         public static readonly string patient_base_line = "tbl_patient_base_line";
         public static readonly string event_assign = "tbl_event_assign";
+        public static readonly string event_assign_log = "tbl_event_assign_log";
         public static readonly string sub_strip_event = "tbl_sub_strip_event";
         public static readonly string event_finding_mast = "tbl_event_finding_mast";
         public static readonly string sub_strip_event_finding = "tbl_sub_strip_event_finding";

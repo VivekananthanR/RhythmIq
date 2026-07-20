@@ -234,20 +234,20 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
 
-        #region HttpGet= api/Home/ElrTimeOutEvent?queued_events_records_id=
+        #region HttpGet= api/Home/ElrTimeOutEvent?event_assign_id=
         [HttpGet("ElrTimeOutEvent"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrTimeOutEvent([FromHeader] string authorization, long queued_events_records_id)
+        public async Task<ActionResult<ResponseDTO>> ElrTimeOutEvent([FromHeader] string authorization, long event_assign_id)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            return await _homeService.ElrTimeOutEvent(queued_events_records_id, tokenClaims.id);
+            return await _homeService.ElrTimeOutEvent(event_assign_id, tokenClaims.id);
         }
         #endregion
 
-        #region HttpGet= api/Home/ElrPatientCurrentStrip?queued_events_records_id=
+        #region HttpGet= api/Home/ElrPatientCurrentStrip?event_assign_id=
         [HttpGet("ElrPatientCurrentStrip"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrPatientCurrentStrip(long queued_events_records_id)
+        public async Task<ActionResult<ResponseDTO>> ElrPatientCurrentStrip(long event_assign_id)
         {
-            return await _homeService.ElrPatientCurrentStrip(queued_events_records_id);
+            return await _homeService.ElrPatientCurrentStrip(event_assign_id);
         }
         #endregion
 
