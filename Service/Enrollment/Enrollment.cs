@@ -341,7 +341,7 @@ namespace elr_API.Service.Enrolment
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
-                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
+                    var fileName = $"{obj.file_name}{extention}";
 
                     var folderName = CommonFunctions.FolderPath($"EnrollmentFiles\\{obj.patient_enrollment_id}");
 

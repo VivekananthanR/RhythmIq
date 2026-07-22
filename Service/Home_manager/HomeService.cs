@@ -422,7 +422,7 @@ namespace elr_API.Service.Home_manager
                     var extention = Path.GetExtension(obj.event_processed_file.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
-                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
+                    var fileName = $"{obj.patient_enrollment_id}-{obj.event_processed_file}{extention}";
 
                     var folderName = CommonFunctions.FolderPath($"ECG-ProcessedData\\{obj.patient_enrollment_id}");
 
@@ -490,7 +490,7 @@ namespace elr_API.Service.Home_manager
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
-                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:yyyyMMddHHmmssfff}{extention}";
+                    var fileName = $"{obj.patient_enrollment_id}-{obj.file_name}{extention}";
 
                     var folderName = CommonFunctions.FolderPath($"ECG-AnomalyData\\{obj.patient_enrollment_id}");
 
@@ -534,6 +534,12 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
+
+                query = EventAssignDTO.get_active_event();
+
+                long active = (await _db.SelectQuery<long>(query, new { emp_id }, ELR_db)).FirstOrDefault();
+
+                if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
 
                 var data = (await GetNext_Queue_Evnet_Details(queued_events_records_id)).FirstOrDefault();
 
@@ -677,9 +683,34 @@ namespace elr_API.Service.Home_manager
 
                 data.sub_strip = (await _db.SelectQuery<SubStripEventResDTO>(query, new { event_assign_id = event_assign_id }, ELR_db)).ToList();
 
-                query = FindingDTO.get_finding_list();
-                data.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = event_assign_id }, ELR_db)).ToList();
+                if (data.parent_detection_id > 0)
+                {
+                    query = FindingDTO.get_parent_finding_by_detection();
 
+                    data.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { detection_id = data.parent_detection_id }, ELR_db)).ToList();
+                }
+                else
+                {
+                    query = FindingDTO.get_parent_finding();
+
+                    data.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id }, ELR_db)).ToList();
+                }
+
+                foreach (var strip in data.sub_strip)
+                {
+                    if (strip.detection_id > 0)
+                    {
+                        query = FindingDTO.get_sub_strip_finding_by_detection();
+
+                        strip.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { detection_id = strip.detection_id, sub_strip_event_id = strip.sub_strip_event_id }, ELR_db)).ToList();
+                    }
+                    else
+                    {
+                        query = FindingDTO.get_sub_strip_finding();
+
+                        strip.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id, sub_strip_event_id = strip.sub_strip_event_id }, ELR_db)).ToList();
+                    }
+                }
                 return new ResponseDTO(data);
             }
             catch (Exception ex)
@@ -723,6 +754,7 @@ namespace elr_API.Service.Home_manager
 
                 query = SubStripEventDTO.insert_sub_strip();
                 var subStripId = await _db.ExecuteAndGetId(query, obj, ELR_db);
+
                 return new ResponseDTO(subStripId > 0, subStripId > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
 
             }
@@ -743,6 +775,18 @@ namespace elr_API.Service.Home_manager
 
                 query = SubStripEventDTO.in_active_sub_strip();
                 int rows = await _db.Execute(query, new { sub_strip_event_id = sub_strip_event_id, modified_by = emp_id }, ELR_db);
+
+                if (rows > 0)
+                {
+                    await _db.Execute(
+                        SubStripEventDTO.inactive_sub_strip_log(),
+                        new
+                        {
+                            sub_strip_event_id,
+                            modified_by = emp_id
+                        },
+                        ELR_db);
+                }
                 return new ResponseDTO(rows > 0, rows > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
 
             }
@@ -770,8 +814,18 @@ namespace elr_API.Service.Home_manager
 
                 foreach (var item in data)
                 {
-                    query = FindingDTO.get_sub_strip_report_finding_list();
-                    item.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { item.queued_events_records_id, item.sub_strip_event_id }, ELR_db)).ToList();
+                    if (item.detection_id > 0)
+                    {
+                        query = FindingDTO.get_sub_strip_finding_by_detection();
+
+                        item.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { detection_id = item.detection_id, sub_strip_event_id = item.sub_strip_event_id }, ELR_db)).ToList();
+                    }
+                    else
+                    {
+                        query = FindingDTO.get_sub_strip_finding();
+
+                        item.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { item.event_assign_id, item.sub_strip_event_id }, ELR_db)).ToList();
+                    }
                 }
 
                 var response = new
@@ -894,11 +948,6 @@ namespace elr_API.Service.Home_manager
                     },
                     ELR_db)).FirstOrDefault();
 
-                if (detectionById != null && detectionById > 0)
-                {
-                    return new ResponseDTO(false, "Finding has already been submitted for this strip.");
-                }
-
                 if (detectionById == null || detectionById == 0)
                 {
 
@@ -915,21 +964,24 @@ namespace elr_API.Service.Home_manager
                         },
                         ELR_db);
 
+
                     query = PushToQCDTO.insert_sub_strip_finding();
+
                     foreach (var item in obj.finding_list)
                     {
-                        await _db.Execute(query,
-                          new
-                          {
-                              detection_id = detection_id,
-                              obj.queued_events_records_id,
-                              obj.sub_strip_event_id,
-                              item.event_finding_id,
-                              item.value1,
-                              item.value2,
-                              created_by = obj.created_by,
-                              event_assign_id = obj.event_assign_id
-                          }, ELR_db);
+                        long findingId = await _db.ExecuteAndGetId(query,
+                                          new
+                                          {
+                                              detection_id = detection_id,
+                                              obj.queued_events_records_id,
+                                              obj.sub_strip_event_id,
+                                              item.event_finding_id,
+                                              item.value1,
+                                              item.value2,
+                                              created_by = obj.created_by,
+                                              event_assign_id = obj.event_assign_id
+                                          }, ELR_db);
+
                     }
 
                     await UpdateEventStatus(obj);
@@ -941,14 +993,29 @@ namespace elr_API.Service.Home_manager
                     query = PushToQCDTO.update_detection();
                     await _db.Execute(query, new { detection_id = detectionById, modified_by = obj.created_by }, ELR_db);
 
+                    // Log
+                    query = PushToQCDTO.update_detection_log();
+                    await _db.Execute(query, new
+                    {
+                        detection_id = detectionById,
+                        modified_by = obj.created_by
+                    }, ELR_db);
+
                     query = PushToQCDTO.inactive_sub_strip_finding();
                     await _db.Execute(query, new { detection_id = detectionById, modified_by = obj.created_by }, ELR_db);
+                    // Log
+                    query = PushToQCDTO.inactive_sub_strip_finding_log();
+                    await _db.Execute(query, new
+                    {
+                        detection_id = detectionById,
+                        modified_by = obj.created_by
+                    }, ELR_db);
 
                     query = PushToQCDTO.insert_sub_strip_finding();
 
                     foreach (var item in obj.finding_list)
                     {
-                        await _db.Execute(
+                        long sub_strip_event_finding_id = await _db.ExecuteAndGetId(
                             query,
                             new
                             {
@@ -962,6 +1029,8 @@ namespace elr_API.Service.Home_manager
                                 event_assign_id = obj.event_assign_id
                             },
                             ELR_db);
+
+
                     }
 
                     await UpdateEventStatus(obj);
@@ -1242,8 +1311,17 @@ namespace elr_API.Service.Home_manager
 
                 foreach (var item in data)
                 {
+                    query = FindingDTO.get_parent_finding_list();
+                    item.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = item.event_assign_id }, ELR_db)).ToList();
+
                     query = SubStripEventResDTO.sub_strip_files_select();
-                    item.sub_strip_files = (await _db.SelectQuery<SubStripEventResDTO>(query, new { queued_events_records_id = item.queued_events_records_id }, ELR_db)).ToList();
+                    item.sub_strip_files = (await _db.SelectQuery<SubStripEventResDTO>(query, new { event_assign_id = item.event_assign_id }, ELR_db)).ToList();
+
+                    foreach (var strip in item.sub_strip_files)
+                    {
+                        query = FindingDTO.get_sub_strip_finding_list();
+                        strip.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = strip.event_assign_id, sub_strip_event_id = strip.sub_strip_event_id }, ELR_db)).ToList();
+                    }
                 }
 
                 var response = new
@@ -1251,6 +1329,7 @@ namespace elr_API.Service.Home_manager
                     totalCount = totalCount,
                     items = data,
                 };
+
                 return new ResponseDTO(response);
             }
             catch (Exception ex)
@@ -1412,7 +1491,8 @@ namespace elr_API.Service.Home_manager
                         parent_queued_events_records_id = obj.queued_events_records_id,
                         event_source = obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase) ? "fetch_before" : "fetch_after",
                         fetch_duration_minutes = obj.minutes,
-                        created_by = obj.created_by,
+                        modified_by = obj.created_by,
+                        modified_datetime = DateTime.Now,
                         event_status = "pending"
                     },
                     ELR_db);
