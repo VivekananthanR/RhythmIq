@@ -341,7 +341,7 @@ namespace elr_API.Service.Enrolment
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
-                    var fileName = $"{obj.file_name}{extention}";
+                    var fileName = $"{obj.file_name.FileName}";
 
                     var folderName = CommonFunctions.FolderPath($"EnrollmentFiles\\{obj.patient_enrollment_id}");
 
@@ -360,55 +360,6 @@ namespace elr_API.Service.Enrolment
                     long enrollmentRawDataId = await _db.ExecuteAndGetId(query, obj, ELR_db);
 
                     if (enrollmentRawDataId <= 0) return new ResponseDTO(false, ResponseMessage.Failed);
-
-                    #region
-                    //try
-                    //{
-
-                    //    string physicalPath = Path.Combine(Directory.GetCurrentDirectory(), obj.file_path);
-
-                    //    using var formData = new MultipartFormDataContent();
-
-                    //    using var fileStream = File.OpenRead(physicalPath);
-
-                    //    var fileContent = new StreamContent(fileStream);
-
-                    //    fileContent.Headers.ContentType =
-                    //        new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-
-                    //    formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
-                    //    formData.Add(new StringContent(obj.patient_enrollment_id.ToString()), "patient_enrollment_id");
-                    //    formData.Add(new StringContent(enrollmentRawDataId.ToString()), "enrollment_raw_data_id");
-
-                    //    using var scope = _scopeFactory.CreateScope();
-
-                    //    var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
-
-                    //    using var client = _httpClientFactory.CreateClient();
-
-                    //    var response = await client.PostAsync("http://192.168.97.140:5006/api/process", formData);
-
-                    //    string result = await response.Content.ReadAsStringAsync();
-
-
-                    //    if (response.IsSuccessStatusCode)
-                    //    {
-
-                    //        query = PatientEnrollmentDTO.monitoring_hookup_status(obj.patient_enrollment_id);
-
-                    //        await db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
-
-                    //    }
-                    //    else
-                    //    {
-                    //        CommonFunctions.ILogging(obj, $"ECG Engine Error : {result}");
-                    //    }
-                    //}
-                    //catch (Exception ex)
-                    //{
-                    //    CommonFunctions.ILogging(obj, ex.ToString());
-                    //}
-                    #endregion
 
                     return new ResponseDTO(true, ResponseMessage.Saved_Successfully);
                 }
@@ -461,8 +412,7 @@ namespace elr_API.Service.Enrolment
 
                     var fileContent = new StreamContent(fileStream);
 
-                    fileContent.Headers.ContentType =
-                        new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
                     formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
                     formData.Add(new StringContent(item.patient_enrollment_id.ToString()), "patient_enrollment_id");

@@ -422,7 +422,7 @@ namespace elr_API.Service.Home_manager
                     var extention = Path.GetExtension(obj.event_processed_file.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
-                    var fileName = $"{obj.patient_enrollment_id}-{obj.event_processed_file}{extention}";
+                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:ddMMyyyyHHmmssfff}{extention}";
 
                     var folderName = CommonFunctions.FolderPath($"ECG-ProcessedData\\{obj.patient_enrollment_id}");
 
@@ -461,7 +461,7 @@ namespace elr_API.Service.Home_manager
             {
                 query = QueuedAnomalyReqDTO.queue_anomaly_list(obj);
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, QueuedAnomalyDTO>(query, obj, ELR_db);
-                if (data == null) return new ResponseDTO(false, "No Data");
+                if (data == null) return new ResponseDTO(false, "No Anomaly Data");
                 var response = new
                 {
                     totalCount = totalCount,
@@ -490,7 +490,7 @@ namespace elr_API.Service.Home_manager
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
                     if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
-                    var fileName = $"{obj.patient_enrollment_id}-{obj.file_name}{extention}";
+                    var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:ddMMyyyyHHmmssfff}{extention}";
 
                     var folderName = CommonFunctions.FolderPath($"ECG-AnomalyData\\{obj.patient_enrollment_id}");
 
@@ -515,41 +515,54 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<List<SymptomDTO>> ElrSymptomList(SymptomDTO obj)
+        public async Task<List<SymptomDTO>> ElrSymptomList(long queued_events_records_id)
         {
             string query = SymptomDTO.get_event_symptoms();
-            var data = (await _db.SelectQuery<SymptomDTO>(query, obj, ELR_db)).ToList();
+
+            var data = (await _db.SelectQuery<SymptomDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+
             return data;
+        }
+        public async Task<bool> IsProcessingEvent(long emp_id)
+        {
+            string query = EventAssignDTO.get_active_event();
+
+            var result = (await _db.SelectQuery<int>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+
+            return result > 0;
         }
 
-        public async Task<List<GetNextEventResDTO>> GetNext_Queue_Evnet_Details(long queued_events_records_id)
+        public async Task<GetNextEventResDTO?> GetNext_Queue_Event_Details(long queued_events_records_id)
         {
             string query = GetNextEventResDTO.get_event_details();
-            var data = (await _db.SelectQuery<GetNextEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
-            return data;
+
+            return (await _db.SelectQuery<GetNextEventResDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).FirstOrDefault();
+
         }
+        public async Task<List<FetchHistoryDTO>> GetQueueFetchHistory(long queued_events_records_id)
+        {
+            string query = FetchHistoryDTO.get_fetch_history();
+            return (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+
+        }
+
         public async Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
+                bool active = await IsProcessingEvent(emp_id);
 
-                query = EventAssignDTO.get_active_event();
+                if (active) return new ResponseDTO(false, "Current event must be completed before taking next event");
 
-                long active = (await _db.SelectQuery<long>(query, new { emp_id }, ELR_db)).FirstOrDefault();
+                var data = await GetNext_Queue_Event_Details(queued_events_records_id);
 
-                if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
+                if (data == null) return new ResponseDTO(false, "Event is already taken");
 
-                var data = (await GetNext_Queue_Evnet_Details(queued_events_records_id)).FirstOrDefault();
+                data.symptoms = await ElrSymptomList(queued_events_records_id);
 
-                data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
-
-                query = FetchHistoryDTO.get_fetch_history();
-
-                data.fetch_history = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = @queued_events_records_id }, ELR_db)).ToList();
-
-                if (data == null) return new ResponseDTO(false, "No pending events");
+                data.fetch_history = await GetQueueFetchHistory(data.queued_events_records_id);
 
                 try
                 {
@@ -572,7 +585,7 @@ namespace elr_API.Service.Home_manager
                 catch
                 {
                     query = QueuedAnomalyDTO.reset_event_status();
-                    await _db.Execute(query, new { data.queued_events_records_id }, ELR_db);
+                    await _db.Execute(query, new { data.queued_events_records_id, data.modified_by }, ELR_db);
                     return new ResponseDTO(false, "Already Assigined Event");
                 }
 
@@ -593,42 +606,36 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
+                bool active = await IsProcessingEvent(emp_id);
 
-                query = EventAssignDTO.get_active_event();
-
-                long active = (await _db.SelectQuery<long>(query, new { emp_id }, ELR_db)).FirstOrDefault();
-
-                if (active > 0) return new ResponseDTO(false, "Current event must be completed before taking next event");
+                if (active) return new ResponseDTO(false, "Current event must be completed before taking next event");
 
                 query = GetNextEventResDTO.get_next_event();
 
-                long? queuedId = await _db.QuerySingleOrDefault<long?>(query, new { emp_id = emp_id }, ELR_db);
+                var queuedEventId = (await _db.SelectQuery<long>(query, new { modified_by = emp_id }, ELR_db)).FirstOrDefault();
 
-                if (!queuedId.HasValue) return new ResponseDTO(false, "No pending events");
+                if (queuedEventId <= 0) return new ResponseDTO(false, "No Pending Events");
 
-                query = GetNextEventResDTO.get_event_details();
+                var data = await GetNext_Queue_Event_Details(queuedEventId);
 
-                var data = await _db.QuerySingle<GetNextEventResDTO>(query, new { queued_events_records_id = queuedId.Value }, ELR_db);
+                if (data == null) return new ResponseDTO(false, "Event is already taken");
 
-                data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
+                data.symptoms = await ElrSymptomList(data.queued_events_records_id);
 
-                query = FetchHistoryDTO.get_fetch_history();
-
-                data.fetch_history = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db)).ToList();
-
-                if (data == null) return new ResponseDTO(false, "No pending events");
+                data.fetch_history = await GetQueueFetchHistory(data.queued_events_records_id);
 
                 query = EventAssignDTO.event_assign_insert();
-                data.event_assign_id = await _db.ExecuteAndGetId(query, new
-                {
-                    patient_enrollment_id = data.patient_enrollment_id,
-                    queued_events_records_id = data.queued_events_records_id,
-                    assigned_by = emp_id,
-                    created_by = emp_id,
-                    work_status = "inprogress",
-                    analysis_start_datetime = DateTime.Now,
-                    last_activity_datetime = DateTime.Now
-                }, ELR_db);
+                data.event_assign_id = await _db.ExecuteAndGetId(query,
+                    new
+                    {
+                        patient_enrollment_id = data.patient_enrollment_id,
+                        queued_events_records_id = data.queued_events_records_id,
+                        assigned_by = emp_id,
+                        created_by = emp_id,
+                        work_status = "inprogress",
+                        analysis_start_datetime = DateTime.Now,
+                        last_activity_datetime = DateTime.Now
+                    }, ELR_db);
 
                 return new ResponseDTO(data);
             }
@@ -710,6 +717,24 @@ namespace elr_API.Service.Home_manager
 
                         strip.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id, sub_strip_event_id = strip.sub_strip_event_id }, ELR_db)).ToList();
                     }
+                }
+
+                bool parentCompleted = data.finding_list.Any();
+
+                bool subStripCompleted = true;
+
+                if (data.sub_strip.Any())
+                {
+                    subStripCompleted = data.sub_strip.All(x => x.finding_list.Any());
+                }
+
+                if (parentCompleted && subStripCompleted)
+                {
+                    data.event_status = "completed";
+                }
+                else
+                {
+                    data.event_status = "processing";
                 }
                 return new ResponseDTO(data);
             }
@@ -916,7 +941,7 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
                 query = ParentStripDTO.select_parent_strip();
-                var data = await _db.QuerySingle<ParentStripDTO>(query, new { sub_strip_event_id = obj.sub_strip_event_id }, ELR_db);
+                var data = (await _db.SelectQuery<ParentStripDTO>(query, new { sub_strip_event_id = obj.sub_strip_event_id }, ELR_db)).FirstOrDefault();
                 return new ResponseDTO(data);
             }
             catch (Exception ex)
@@ -1069,12 +1094,12 @@ namespace elr_API.Service.Home_manager
 
             if (obj.sub_strip_event_id == null || obj.sub_strip_event_id == 0)
             {
-                workStatus = "completed";
+                workStatus = obj.is_experienced_user ? "completed" : "partial-completed";
                 eventStatus = "completed";
             }
             else if (totalStrips > 0 && totalStrips == completedStrips)
             {
-                workStatus = "completed";
+                workStatus = obj.is_experienced_user ? "completed" : "partial-completed";
                 eventStatus = "completed";
             }
             else
@@ -1112,14 +1137,7 @@ namespace elr_API.Service.Home_manager
 
             try
             {
-                obj.shortColumn = obj.shortColumn?.ToLower() switch
-                {
-                    "detection_id" => "d.detection_id",
-                    "created_datetime" => "d.created_datetime",
-                    _ => "d.created_datetime"
-                };
-
-                obj.orderBy = obj.orderBy?.ToUpper() == "ASC" ? "ASC" : "DESC";
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = CompletedFindingListReqDTO.get_completed_findings(obj);
 
@@ -1150,9 +1168,11 @@ namespace elr_API.Service.Home_manager
                 if (detection_id < 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = CompletedFindingListResDTO.select_complete_qc_report();
-                var data = await _db.QuerySingle<CompletedFindingListResDTO>(query, new { detection_id = detection_id }, ELR_db);
+                var data = (await _db.SelectQuery<CompletedFindingListResDTO>(query, new { detection_id = detection_id }, ELR_db)).FirstOrDefault();
 
-                data.symptoms = await ElrSymptomList(new SymptomDTO { queued_events_records_id = data.queued_events_records_id });
+                if (data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                data.symptoms = await ElrSymptomList(data.queued_events_records_id);
 
                 query = FetchHistoryDTO.get_fetch_history();
                 data.fetch_history = (await _db.SelectQuery<FetchHistoryDTO>(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db)).ToList();
@@ -1513,7 +1533,7 @@ namespace elr_API.Service.Home_manager
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging(obj, ex.ToString());
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
             return new ResponseDTO(false, ErrorMessage);
@@ -1634,7 +1654,7 @@ namespace elr_API.Service.Home_manager
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging("", ex.ToString());
+                CommonFunctions.ILogging("", ex.Message.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
             return new ResponseDTO(false, ErrorMessage);
@@ -1649,7 +1669,7 @@ namespace elr_API.Service.Home_manager
                 query = MyProgressDTO.get_progress_summary(type);
                 var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
 
-                summary ??= new MyProgressDTO();
+                if (summary == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
                 query = MyProgressDTO.get_progress_chart(type);
                 summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
@@ -1658,40 +1678,13 @@ namespace elr_API.Service.Home_manager
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
-                return new ResponseDTO(false, ex.Message);
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+
             }
+            return new ResponseDTO(false, ErrorMessage);
         }
 
 
-        //public async Task<ResponseDTO> ElrMyProgress(MyProgressReqDTO obj)
-        //{
-        //    ErrorMessage = string.Empty;
-        //    string query = string.Empty;
-        //    try
-        //    {
-        //        string work_status = obj.isExperienced ? "completed" : "partial-completed";
-
-        //        var param = new
-        //        {
-        //            assigned_by = obj.created_by,
-        //            work_status = work_status,
-        //            type = obj.type
-        //        };
-
-        //        query = MyProgressDTO.get_progress_summary();
-        //        var summary = (await _db.SelectQuery<MyProgressDTO>(query, param, ELR_db)).FirstOrDefault();
-
-        //        query = MyProgressDTO.get_progress_chart();
-        //        summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, param, ELR_db)).ToList();
-
-        //        return new ResponseDTO(summary);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ErrorMessage = ex.Message;
-        //        return new ResponseDTO(false, ex.Message);
-        //    }
-        //}
     }
 }

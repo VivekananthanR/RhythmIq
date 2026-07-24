@@ -838,50 +838,94 @@ namespace elr_API.DTO.ReqDTO
 
         public long event_assign_id { get; set; }
 
+        #region Query
         internal static string get_next_event()
         {
             return $@"
-                ;WITH cte AS
-                (
-                    SELECT TOP 1
-                        q.queued_events_records_id
+                    UPDATE q
+                    SET
+                        q.event_status = 'processing',
+                        q.modified_by = @modified_by,
+                        q.modified_datetime = GETDATE()
+                    OUTPUT INSERTED.queued_events_records_id
                     FROM {Tbl.queued_events_records} q
-                        WITH (UPDLOCK, READPAST, ROWLOCK)
-                    WHERE q.event_status = 'pending'
-                    AND NOT EXISTS
+                    WHERE q.queued_events_records_id =
                     (
-                        SELECT 1
-                        FROM {Tbl.event_assign} ea
-                        WHERE ea.queued_events_records_id = q.queued_events_records_id
-                        AND ea.work_status = 'inprogress'
-                    )
-                    ORDER BY
-                        CASE q.priority_level
-                            WHEN 'high' THEN 1
-                            WHEN 'medium' THEN 2
-                            WHEN 'low' THEN 3
-                            ELSE 4
-                        END,
-                        CASE q.trigger_type
-                            WHEN 'AF' THEN 1
-                            WHEN 'VT' THEN 2
-                            WHEN 'Pause' THEN 3
-                            WHEN 'Brady' THEN 4
-                            WHEN 'Tachy' THEN 5
-                            ELSE 6
-                        END,
-                        q.created_datetime ASC
-                )
-                UPDATE q
-                SET
-                    q.event_status = 'processing',
-                    q.modified_by = @emp_id ,
-                    q.modified_datetime = GETDATE()
-                OUTPUT INSERTED.queued_events_records_id
-                FROM {Tbl.queued_events_records} q
-                INNER JOIN cte
-                    ON cte.queued_events_records_id = q.queued_events_records_id;";
+                        SELECT TOP 1 q1.queued_events_records_id
+                        FROM {Tbl.queued_events_records} q1
+                        WITH (UPDLOCK, READPAST, ROWLOCK)
+                        WHERE q1.event_status = 'pending'
+                          AND q1.is_active = 1
+                          AND NOT EXISTS
+                          (
+                              SELECT 1
+                              FROM {Tbl.event_assign} ea
+                              WHERE ea.queued_events_records_id = q1.queued_events_records_id
+                                AND ea.work_status = 'inprogress'
+                          )
+                        ORDER BY
+                            CASE q1.priority_level
+                                WHEN 'high' THEN 1
+                                WHEN 'medium' THEN 2
+                                WHEN 'low' THEN 3
+                                ELSE 4
+                            END,
+                            CASE q1.trigger_type
+                                WHEN 'AF' THEN 1
+                                WHEN 'VT' THEN 2
+                                WHEN 'Pause' THEN 3
+                                WHEN 'Brady' THEN 4
+                                WHEN 'Tachy' THEN 5
+                                ELSE 6
+                            END,
+                            q1.created_datetime ASC
+                    );";
         }
+
+        //internal static string get_next_event()
+        //{
+        //    return $@"
+        //        ;WITH cte AS
+        //        (
+        //            SELECT TOP 1
+        //                q.queued_events_records_id
+        //            FROM {Tbl.queued_events_records} q
+        //                WITH (UPDLOCK, READPAST, ROWLOCK)
+        //            WHERE q.event_status = 'pending'
+        //            AND NOT EXISTS
+        //            (
+        //                SELECT 1
+        //                FROM {Tbl.event_assign} ea
+        //                WHERE ea.queued_events_records_id = q.queued_events_records_id
+        //                AND ea.work_status = 'inprogress'
+        //            )
+        //            ORDER BY
+        //                CASE q.priority_level
+        //                    WHEN 'high' THEN 1
+        //                    WHEN 'medium' THEN 2
+        //                    WHEN 'low' THEN 3
+        //                    ELSE 4
+        //                END,
+        //                CASE q.trigger_type
+        //                    WHEN 'AF' THEN 1
+        //                    WHEN 'VT' THEN 2
+        //                    WHEN 'Pause' THEN 3
+        //                    WHEN 'Brady' THEN 4
+        //                    WHEN 'Tachy' THEN 5
+        //                    ELSE 6
+        //                END,
+        //                q.created_datetime ASC
+        //        )
+        //        UPDATE q
+        //        SET
+        //            q.event_status = 'processing',
+        //            q.modified_by = @emp_id ,
+        //            q.modified_datetime = GETDATE()
+        //        OUTPUT INSERTED.queued_events_records_id
+        //        FROM {Tbl.queued_events_records} q
+        //        INNER JOIN cte
+        //            ON cte.queued_events_records_id = q.queued_events_records_id;";
+        //}
 
         internal static string get_event_details()
         {
@@ -896,6 +940,7 @@ namespace elr_API.DTO.ReqDTO
                         q.event_status,
                         q.event_file_path,
                         q.created_by,
+                        q.modified_by,
                         q.created_datetime,
                         q.modified_datetime,
                         p.patient_id,
@@ -910,8 +955,9 @@ namespace elr_API.DTO.ReqDTO
                         ON p.patient_id = pe.patient_id
                     LEFT JOIN {Tbl.device_mast} d
                         ON d.device_id = pe.device_id
-                    WHERE q.queued_events_records_id = @queued_events_records_id";
+                    WHERE q.queued_events_records_id = @queued_events_records_id AND q.is_active = 1;";
         }
+        #endregion
 
     }
 
@@ -949,17 +995,36 @@ namespace elr_API.DTO.ReqDTO
                         LEFT JOIN {Tbl.symptoms_type} st
                             ON st.symptoms_type_id = s.symptoms_type_id
                         WHERE q.queued_events_records_id = @queued_events_records_id
-                          AND s.is_active = 1
-                          AND (
-                                q.event_start_datetime BETWEEN s.symptom_start_datetime AND s.symptom_end_datetime
-                             OR q.event_end_datetime BETWEEN s.symptom_start_datetime AND s.symptom_end_datetime
-                             OR (
-                                    q.event_start_datetime <= s.symptom_start_datetime
-                                AND q.event_end_datetime >= s.symptom_end_datetime
-                             )
-                          )
-                        ORDER BY s.symptom_start_datetime asc ;";
+                          AND s.is_active = 1";
         }
+        //internal static string get_event_symptoms()
+        //{
+        //    return $@" SELECT
+        //                    s.symptoms_id,
+        //                    s.patient_enrollment_id,
+        //                    s.symptom_notes,
+        //                    s.custom_symptom_text,
+        //                    s.symptom_start_datetime,
+        //                    s.symptom_end_datetime,
+        //                    s.symptoms_type_id,
+        //                    st.symptoms_type
+        //                FROM {Tbl.queued_events_records} q
+        //                INNER JOIN {Tbl.symptoms} s
+        //                    ON s.patient_enrollment_id = q.patient_enrollment_id
+        //                LEFT JOIN {Tbl.symptoms_type} st
+        //                    ON st.symptoms_type_id = s.symptoms_type_id
+        //                WHERE q.queued_events_records_id = @queued_events_records_id
+        //                  AND s.is_active = 1
+        //                  AND (
+        //                        q.event_start_datetime BETWEEN s.symptom_start_datetime AND s.symptom_end_datetime
+        //                     OR q.event_end_datetime BETWEEN s.symptom_start_datetime AND s.symptom_end_datetime
+        //                     OR (
+        //                            q.event_start_datetime <= s.symptom_start_datetime
+        //                        AND q.event_end_datetime >= s.symptom_end_datetime
+        //                     )
+        //                  )
+        //                ORDER BY s.symptom_start_datetime asc ;";
+        //}
         #endregion
 
     }
@@ -1023,17 +1088,21 @@ namespace elr_API.DTO.ReqDTO
 
 
         #region Query
-
-
-        public static string update_work_status_by_event_assign()
+        internal static string update_work_status_by_event_assign()
         {
             return $@"
                     UPDATE {Tbl.event_assign}
                     SET
                         work_status = @work_status,
+                        is_final_completed =
+                            CASE
+                                WHEN @work_status IN ('completed','partial-completed')
+                                THEN 0
+                                ELSE is_final_completed
+                            END,
                         analysis_end_datetime =
                             CASE
-                                WHEN @work_status = 'completed'
+                                WHEN @work_status IN ('completed','partial-completed')
                                 THEN GETDATE()
                                 ELSE analysis_end_datetime
                             END,
@@ -1051,16 +1120,16 @@ namespace elr_API.DTO.ReqDTO
         internal static string reassign_expired_events()
         {
             return $@"
-                UPDATE {Tbl.event_assign}
-                SET
-                    work_status = 'reassigned',
-                    modified_by = assigned_by,
-                    modified_datetime = GETDATE(),
-                    last_activity_datetime = GETDATE(),
-                    remarks = '10 Minutes Reached'
-                OUTPUT INSERTED.event_assign_id
-                WHERE work_status = 'inprogress'
-                  AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10;";
+                    UPDATE {Tbl.event_assign}
+                    SET
+                        work_status = 'reassigned',
+                        modified_by = assigned_by,
+                        modified_datetime = GETDATE(),
+                        last_activity_datetime = GETDATE(),
+                        remarks = '10 Minutes Reached'
+                    OUTPUT INSERTED.event_assign_id
+                    WHERE work_status = 'inprogress'
+                      AND DATEDIFF(MINUTE, last_activity_datetime, GETDATE()) >= 10;";
         }
         internal static string insert_reassigned_log()
         {
@@ -1139,12 +1208,14 @@ namespace elr_API.DTO.ReqDTO
                         q.event_status = 'pending',
                         q.modified_by = ea.created_by,
                         q.modified_datetime = GETDATE(),
+                        q.completed_by = NULL,
+                        q.completed_datetime = NULL,
                         q.remarks = '10 Minutes Reached'
                     FROM {Tbl.queued_events_records} q
                     INNER JOIN {Tbl.event_assign} ea
-                    ON ea.queued_events_records_id = q.queued_events_records_id
+                        ON ea.queued_events_records_id = q.queued_events_records_id
                     WHERE ea.event_assign_id = @event_assign_id
-                    AND q.event_status = 'processing';";
+                      AND q.event_status = 'processing';";
         }
         #endregion
 
@@ -1163,7 +1234,7 @@ namespace elr_API.DTO.ReqDTO
                         ea.remarks = 'No activity for 3 minutes'
                     FROM {Tbl.event_assign} ea
                     WHERE ea.event_assign_id = @event_assign_id
-                      AND ea.work_status = 'inprogress';
+                      AND ea.work_status in ('inprogress', 'completed' );
 
                     -- Queue
 
@@ -1172,12 +1243,14 @@ namespace elr_API.DTO.ReqDTO
                         q.event_status = 'pending',
                         q.modified_by = @modified_by,
                         q.modified_datetime = GETDATE(),
+                        q.completed_by = null,
+                        q.completed_datetime = null,
                         q.remarks = 'Released after 3 minutes inactivity'
                     FROM {Tbl.queued_events_records} q
                     INNER JOIN {Tbl.event_assign} ea
                         ON ea.queued_events_records_id = q.queued_events_records_id
                     WHERE ea.event_assign_id = @event_assign_id
-                      AND q.event_status = 'processing';
+                      AND q.event_status in( 'processing', 'completed');
 
                     -- Sub Strip Event
 
@@ -1253,8 +1326,8 @@ namespace elr_API.DTO.ReqDTO
             return $@"
                     SELECT COUNT(1)
                     FROM {Tbl.event_assign}
-                    WHERE assigned_by = @emp_id
-                    AND work_status = 'inprogress'";
+                    WHERE assigned_by = @assigned_by
+                    AND work_status = 'inprogress' ";
         }
         internal static string update_work_status()
         {
@@ -1319,9 +1392,10 @@ namespace elr_API.DTO.ReqDTO
         public string trigger_type { get; set; }
         public int bpm { get; set; }
         public long event_assign_id { get; set; }
+        public bool is_final_completed { get; set; }
         public long queued_events_records_id { get; set; }
         public long? parent_detection_id { get; set; }
-
+        public string event_status { get; set; }
         public List<SubStripEventResDTO> sub_strip { get; set; }
 
         public List<FindingDTO> finding_list { get; set; }
@@ -1337,6 +1411,7 @@ namespace elr_API.DTO.ReqDTO
                         qer.event_file_path,
                         ea.event_assign_id,
                         qer.queued_events_records_id,
+                        qer.event_status,
                         d.detection_id AS parent_detection_id
                     FROM {Tbl.event_assign} ea
                     INNER JOIN {Tbl.queued_events_records} qer
@@ -1346,7 +1421,6 @@ namespace elr_API.DTO.ReqDTO
                        AND d.sub_strip_event_id IS NULL
                        AND d.is_active = 1
                     WHERE ea.event_assign_id = @event_assign_id
-                      AND ea.work_status IN ('inprogress','completed')
                       AND ea.is_active = 1
                       AND qer.is_active = 1;";
         }
@@ -1712,7 +1786,7 @@ namespace elr_API.DTO.ReqDTO
 
         #region Query
 
-        public static string get_total_active_sub_strips()
+        internal static string get_total_active_sub_strips()
         {
             return $@"
                     SELECT COUNT(*)
@@ -1721,7 +1795,7 @@ namespace elr_API.DTO.ReqDTO
                       AND is_active = 1";
         }
 
-        public static string get_completed_sub_strips()
+        internal static string get_completed_sub_strips()
         {
             return $@"
                     SELECT COUNT(DISTINCT sub_strip_event_id)
@@ -1991,8 +2065,8 @@ namespace elr_API.DTO.ReqDTO
         public long? sub_strip_event_id { get; set; }
         public long event_finding_id { get; set; }
         public string? finding_name { get; set; }
-        public int? value1 { get; set; }
-        public int? value2 { get; set; }
+        public decimal? value1 { get; set; }
+        public decimal? value2 { get; set; }
         public long? detection_id { get; set; }
 
         #region Query
@@ -2134,68 +2208,72 @@ namespace elr_API.DTO.ReqDTO
         internal static string get_completed_findings(CompletedFindingListReqDTO obj)
         {
             return $@"
-                SELECT COUNT(1)
-                FROM {Tbl.detection} d
-                LEFT JOIN {Tbl.queued_events_records} qu
-                    ON d.queued_events_records_id = qu.queued_events_records_id
-                LEFT JOIN {Tbl.patient_enrollment} p
-                    ON qu.patient_enrollment_id = p.patient_enrollment_id
-                LEFT JOIN {Tbl.patient} pt
-                    ON pt.patient_id = p.patient_id
-                LEFT JOIN {Tbl.user_master} u
-                    ON u.user_id = d.created_by
-                WHERE qu.event_status = 'partial-completed'
-                  AND (
-                        ISNULL(@search, '') = ''
-                        OR pt.patient_name LIKE '%' + @search + '%'
-                        OR u.user_name LIKE '%' + @search + '%'
-                      );
+                    SELECT COUNT(1)
+                    FROM {Tbl.detection} d
+                    LEFT JOIN {Tbl.queued_events_records} qu
+                        ON d.queued_events_records_id = qu.queued_events_records_id
+                    LEFT JOIN {Tbl.event_assign} ea
+                        ON ea.event_assign_id = d.event_assign_id
+                    LEFT JOIN {Tbl.patient_enrollment} p
+                        ON qu.patient_enrollment_id = p.patient_enrollment_id
+                    LEFT JOIN {Tbl.patient} pt
+                        ON pt.patient_id = p.patient_id
+                    LEFT JOIN {Tbl.user_master} u
+                        ON u.user_id = d.created_by
+                    WHERE ea.work_status = 'partial-completed'
+                      AND d.is_active = 1
+                      AND (
+                            ISNULL(@search, '') = ''
+                            OR pt.patient_name LIKE '%' + @search + '%'
+                            OR u.user_name LIKE '%' + @search + '%'
+                          );
 
-                SELECT 
-                    d.detection_id,
-                    d.sub_strip_event_id,
-                    d.queued_events_records_id,
-                    d.detection_status,
-                    d.created_by,
-                    d.created_datetime,
+                    SELECT
+                        d.detection_id,
+                        d.sub_strip_event_id,
+                        d.queued_events_records_id,
+                        d.detection_status,
+                        d.created_by,
+                        d.created_datetime,
 
-                    qu.queued_events_records_id,
-                    qu.trigger_type,
-                    qu.completed_datetime,
-                    qu.event_status,
-                    qu.modified_by,
+                        qu.queued_events_records_id,
+                        qu.trigger_type,
+                        qu.completed_datetime,
+                        qu.event_status,
+                        qu.modified_by,
 
-                    u.user_id,
-                    u.user_name,
+                        ea.event_assign_id,
+                        ea.work_status,
 
-                    pt.patient_id,
-                    pt.patient_name
+                        u.user_id,
+                        u.user_name,
 
-                FROM {Tbl.detection} d
-                LEFT JOIN {Tbl.queued_events_records} qu
-                    ON d.queued_events_records_id = qu.queued_events_records_id
+                        pt.patient_id,
+                        pt.patient_name
 
-                LEFT JOIN {Tbl.patient_enrollment} p
-                    ON qu.patient_enrollment_id = p.patient_enrollment_id
+                    FROM {Tbl.detection} d
+                    LEFT JOIN {Tbl.queued_events_records} qu
+                        ON d.queued_events_records_id = qu.queued_events_records_id
+                    LEFT JOIN {Tbl.event_assign} ea
+                        ON ea.event_assign_id = d.event_assign_id
+                    LEFT JOIN {Tbl.patient_enrollment} p
+                        ON qu.patient_enrollment_id = p.patient_enrollment_id
+                    LEFT JOIN {Tbl.patient} pt
+                        ON pt.patient_id = p.patient_id
+                    LEFT JOIN {Tbl.user_master} u
+                        ON u.user_id = d.created_by
 
-                LEFT JOIN {Tbl.patient} pt
-                    ON pt.patient_id = p.patient_id
+                    WHERE ea.work_status = 'partial-completed'
+                      AND d.is_active = 1
+                      AND (
+                            ISNULL(@search, '') = ''
+                            OR pt.patient_name LIKE '%' + @search + '%'
+                            OR u.user_name LIKE '%' + @search + '%'
+                          )
 
-                LEFT JOIN {Tbl.user_master} u
-                    ON u.user_id = d.created_by
-
-
-                WHERE qu.event_status = 'partial-completed' and d.is_active = 1
-                  AND (
-                        ISNULL(@search, '') = ''
-                        OR pt.patient_name LIKE '%' + @search + '%'
-                        OR u.user_name LIKE '%' + @search + '%'
-                      )
-
-                ORDER BY {obj.shortColumn} {obj.orderBy}
-                OFFSET @offSet ROWS
-                FETCH NEXT @pageSize ROWS ONLY;
-                ";
+                    ORDER BY {obj.shortColumn} {obj.orderBy}
+                    OFFSET @offSet ROWS
+                    FETCH NEXT @pageSize ROWS ONLY;";
         }
         #endregion
     }
@@ -2206,6 +2284,7 @@ namespace elr_API.DTO.ReqDTO
         public long detection_id { get; set; }
         public long sub_strip_event_id { get; set; }
         public long queued_events_records_id { get; set; }
+        public long event_assign_id { get; set; }
 
         public string detection_status { get; set; }
 
@@ -2226,6 +2305,7 @@ namespace elr_API.DTO.ReqDTO
     public class CompletedFindingListResDTO
     {
         public long queued_events_records_id { get; set; }
+        public long event_assign_id { get; set; }
         public long patient_enrollment_id { get; set; }
         public long enrollment_raw_data_id { get; set; }
         public string priority_level { get; set; }
@@ -2266,6 +2346,7 @@ namespace elr_API.DTO.ReqDTO
             return $@"
                     SELECT
                     d.detection_id,
+                    d.event_assign_id,
                     d.sub_strip_event_id,
                     d.queued_events_records_id,
                     d.detection_status,
@@ -2335,6 +2416,7 @@ namespace elr_API.DTO.ReqDTO
 
                    GROUP BY
                         d.detection_id,
+                        d.event_assign_id,
                         d.sub_strip_event_id,
                         d.queued_events_records_id,
                         d.detection_status,
@@ -2552,7 +2634,7 @@ namespace elr_API.DTO.ReqDTO
                             AND sd.detection_status IN ('submit','confirm-submit')
                       )
                     GROUP BY d.event_assign_id
-                    ORDER BY MAX(d.created_datetime) DESC
+                    ORDER BY {obj.shortColumn} {obj.orderBy}
                     OFFSET @offSet ROWS
                     FETCH NEXT @pageSize ROWS ONLY;";
         }
@@ -2641,9 +2723,9 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"insert into {Tbl.queued_events_records}
                       ( patient_enrollment_id, enrollment_raw_data_id, priority_level, trigger_type, bpm, event_start_datetime, event_end_datetime,
-                                               event_status, event_file_path, parent_queued_events_records_id, event_source,fetch_duration_minutes, created_by)
+                                               event_status, event_file_path, parent_queued_events_records_id, event_source,fetch_duration_minutes, modified_by)
                         values(@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @bpm, @event_start_datetime, @event_end_datetime,
-                                                @event_status, @event_file_path, @parent_queued_events_records_id, @event_source, @fetch_duration_minutes, @created_by);";
+                                                @event_status, @event_file_path, @parent_queued_events_records_id, @event_source, @fetch_duration_minutes, @modified_by);";
         }
 
 
@@ -2730,30 +2812,36 @@ namespace elr_API.DTO.ReqDTO
             switch (type.ToLower())
             {
                 case "week":
-                    productivity = "CAST(COUNT(DISTINCT queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
+                    productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
                     unit = "'events/day'";
                     break;
 
                 case "month":
-                    productivity = "CAST(COUNT(DISTINCT queued_events_records_id) / 28.0 AS DECIMAL(10,2))";
+                    productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 28.0 AS DECIMAL(10,2))";
                     unit = "'events/day'";
                     break;
 
                 default:
-                    productivity = "CAST(COUNT(DISTINCT queued_events_records_id) AS DECIMAL(10,2))";
+                    productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) AS DECIMAL(10,2))";
                     unit = "'events/day'";
                     break;
             }
 
             return $@"
-                SELECT
-                    COUNT(DISTINCT queued_events_records_id) AS EventsSubmitted,
-                    {productivity} AS Productivity,
-                    {unit} AS ProductivityUnit
-                FROM {Tbl.event_assign}
-                WHERE assigned_by = @assigned_by
-                  AND work_status = 'completed'
-                  AND {get_date_filter(type)}";
+                    SELECT
+                        COUNT(DISTINCT d.queued_events_records_id) AS EventsSubmitted,
+                        {productivity} AS Productivity,
+                        {unit} AS ProductivityUnit
+                    FROM {Tbl.detection} d
+                    INNER JOIN {Tbl.event_assign} ea
+                        ON ea.event_assign_id = d.event_assign_id
+                    INNER JOIN {Tbl.queued_events_records} q
+                        ON q.queued_events_records_id = d.queued_events_records_id
+                    WHERE ea.assigned_by = @assigned_by
+                      AND d.is_active = 1
+                      AND d.detection_status IN ('submit','push-to-qc')
+                      AND q.event_status = 'completed'
+                      AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}";
         }
         internal static string get_progress_chart(string type)
         {
@@ -2762,56 +2850,67 @@ namespace elr_API.DTO.ReqDTO
                 case "week":
 
                     return $@"
-                            SELECT
-                                DATENAME(WEEKDAY, analysis_end_datetime) AS Label,
-                                COUNT(DISTINCT queued_events_records_id) AS Events
-                            FROM {Tbl.event_assign}
-                            WHERE assigned_by = @assigned_by
-                              AND work_status = 'completed'
-                              AND {get_date_filter(type)}
-                            GROUP BY
-                                DATEPART(WEEKDAY, analysis_end_datetime),
-                                DATENAME(WEEKDAY, analysis_end_datetime)
-                            ORDER BY
-                                DATEPART(WEEKDAY, analysis_end_datetime)";
+                        SELECT
+                            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
+                            COUNT(DISTINCT d.queued_events_records_id) AS Events
+                        FROM {Tbl.detection} d
+                        INNER JOIN {Tbl.event_assign} ea
+                            ON ea.event_assign_id = d.event_assign_id
+                        INNER JOIN {Tbl.queued_events_records} q
+                            ON q.queued_events_records_id = d.queued_events_records_id
+                        WHERE ea.assigned_by = @assigned_by
+                          AND d.is_active = 1
+                          AND d.detection_status IN ('submit','push-to-qc')
+                          AND q.event_status = 'completed'
+                          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+                        GROUP BY
+                            DATEPART(WEEKDAY, ea.analysis_end_datetime),
+                            DATENAME(WEEKDAY, ea.analysis_end_datetime)
+                        ORDER BY
+                            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
 
                 case "month":
 
                     return $@"
-                            SELECT
-                                CONCAT(
-                                    'Week ',
-                                    DENSE_RANK() OVER (
-                                        ORDER BY YEAR(analysis_end_datetime),
-                                                 DATEPART(WEEK, analysis_end_datetime)
-                                    )
-                                ) AS Label,
-                                COUNT(DISTINCT queued_events_records_id) AS Events
-                            FROM {Tbl.event_assign}
-                            WHERE assigned_by = @assigned_by
-                              AND work_status = 'completed'
-                              AND {get_date_filter(type)}
-                            GROUP BY
-                                YEAR(analysis_end_datetime),
-                                DATEPART(WEEK, analysis_end_datetime)
-                            ORDER BY
-                                YEAR(analysis_end_datetime),
-                                DATEPART(WEEK, analysis_end_datetime)";
+                        SELECT
+                            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
+                            COUNT(DISTINCT d.queued_events_records_id) AS Events
+                        FROM {Tbl.detection} d
+                        INNER JOIN {Tbl.event_assign} ea
+                            ON ea.event_assign_id = d.event_assign_id
+                        INNER JOIN {Tbl.queued_events_records} q
+                            ON q.queued_events_records_id = d.queued_events_records_id
+                        WHERE ea.assigned_by = @assigned_by
+                          AND d.is_active = 1
+                          AND d.detection_status IN ('submit','push-to-qc')
+                          AND q.event_status = 'completed'
+                          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+                        GROUP BY
+                            DATEPART(WEEKDAY, ea.analysis_end_datetime),
+                            DATENAME(WEEKDAY, ea.analysis_end_datetime)
+                        ORDER BY
+                            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
 
                 default:
 
                     return $@"
-                            SELECT
-                                FORMAT(analysis_end_datetime, 'HH:00') AS Label,
-                                COUNT(DISTINCT queued_events_records_id) AS Events
-                            FROM {Tbl.event_assign}
-                            WHERE assigned_by = @assigned_by
-                              AND work_status = 'completed'
-                              AND {get_date_filter(type)}
-                            GROUP BY
-                                FORMAT(analysis_end_datetime, 'HH:00')
-                            ORDER BY
-                                Label";
+                        SELECT
+                            FORMAT(ea.analysis_end_datetime, 'HH:00') AS Label,
+                            COUNT(DISTINCT d.queued_events_records_id) AS Events
+                        FROM {Tbl.detection} d
+                        INNER JOIN {Tbl.event_assign} ea
+                            ON ea.event_assign_id = d.event_assign_id
+                        INNER JOIN {Tbl.queued_events_records} q
+                            ON q.queued_events_records_id = d.queued_events_records_id
+                        WHERE ea.assigned_by = @assigned_by
+                          AND d.is_active = 1
+                          AND d.detection_status IN ('submit','push-to-qc')
+                          AND q.event_status = 'completed'
+                          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+                        GROUP BY
+                            FORMAT(ea.analysis_end_datetime, 'HH:00')
+                        ORDER BY
+                            Label";
             }
         }
         #endregion

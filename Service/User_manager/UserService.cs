@@ -334,7 +334,7 @@ namespace elr_API.Service.User_manager
             {
                 if (patient_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
                 query = PatientVerifyLoginResDTO.patient_detatils();
-                var data = await _dp.QuerySingle<PatientVerifyLoginResDTO>(query, new { patient_id = patient_id }, Elr_db);
+                var data = (await _dp.SelectQuery<PatientVerifyLoginResDTO>(query, new { patient_id = patient_id }, Elr_db)).FirstOrDefault();
                 return new ResponseDTO(data);
             }
             catch (Exception ex)
