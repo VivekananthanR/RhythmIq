@@ -214,8 +214,18 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
+        #region  HttpPost = api/Home/ElrCloseEvent?eventAssignId=
+        [HttpPost("ElrCloseEvent"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrCloseEvent([FromHeader] string authorization, long eventAssignId)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+
+            return await _homeService.ElrCloseEvent(eventAssignId, tokenClaims.id);
+        }
+        #endregion
+
         #region HttpPost = api/Home/ElrQueueNextEvent?queued_events_records_id=
-        [HttpPost("ElrQueueNextEvent")]
+        [HttpPost("ElrQueueNextEvent"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrQueueNextEvent([FromHeader] string authorization, long queued_events_records_id)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);

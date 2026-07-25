@@ -1085,9 +1085,34 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+        public bool is_final_completed { get; set; }
 
 
         #region Query
+
+        internal static string select_is_final_assignId()
+        {
+            return $@"
+                    SELECT TOP 1 event_assign_id
+                    FROM {Tbl.event_assign}
+                    WHERE assigned_by = @assigned_by
+                      AND work_status IN('completed', 'partial-completed')
+                      AND is_final_completed = 0
+                    ORDER BY event_assign_id  DESC;";
+        }
+
+        internal static string update_is_final_completed()
+        {
+            return $@"
+                    UPDATE {Tbl.event_assign}
+                    SET
+                        is_final_completed = 1,
+                        modified_by = @assigned_by,
+                        modified_datetime = GETDATE()
+                    WHERE event_assign_id  = @event_assign_id 
+                      AND work_status IN ('completed', 'partial-completed')
+                      AND is_final_completed = 0";
+        }
         internal static string update_work_status_by_event_assign()
         {
             return $@"
@@ -1124,13 +1149,22 @@ namespace elr_API.DTO.ReqDTO
                     SET
                         work_status = 'reassigned',
                         modified_by = assigned_by,
-                        modified_datetime = GETDATE(),
                         last_activity_datetime = GETDATE(),
                         remarks = '10 Minutes Reached'
                     OUTPUT INSERTED.event_assign_id
-                    WHERE work_status = 'inprogress'
-                      AND DATEDIFF(MINUTE, last_activity_datetime, GETDATE()) >= 10;";
+                   WHERE
+                        (
+                            work_status = 'inprogress'
+                            AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10
+                        )
+                        OR
+                        (
+                            work_status IN ('completed','partial-completed')
+                            AND is_final_completed = 0
+                            AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10
+                        )";
         }
+
         internal static string insert_reassigned_log()
         {
             return $@"
@@ -1200,6 +1234,24 @@ namespace elr_API.DTO.ReqDTO
                 AND is_active = 1;";
         }
 
+        //internal static string reset_reassigned_events()
+        //{
+        //    return $@"
+        //            UPDATE q
+        //            SET
+        //                q.event_status = 'pending',
+        //                q.modified_by = ea.created_by,
+        //                q.modified_datetime = GETDATE(),
+        //                q.completed_by = NULL,
+        //                q.completed_datetime = NULL,
+        //                q.remarks = '10 Minutes Reached'
+        //            FROM {Tbl.queued_events_records} q
+        //            INNER JOIN {Tbl.event_assign} ea
+        //                ON ea.queued_events_records_id = q.queued_events_records_id
+        //            WHERE ea.event_assign_id = @event_assign_id
+        //              AND q.event_status = 'processing';";
+        //}
+
         internal static string reset_reassigned_events()
         {
             return $@"
@@ -1215,7 +1267,7 @@ namespace elr_API.DTO.ReqDTO
                     INNER JOIN {Tbl.event_assign} ea
                         ON ea.queued_events_records_id = q.queued_events_records_id
                     WHERE ea.event_assign_id = @event_assign_id
-                      AND q.event_status = 'processing';";
+                      AND q.event_status IN ('processing','completed');";
         }
         #endregion
 
@@ -1224,71 +1276,10 @@ namespace elr_API.DTO.ReqDTO
         internal static string three_minute_timeout()
         {
             return $@"
-                    -- Event Assign
 
-                    UPDATE ea
-                    SET
-                        ea.work_status = 'reassigned',
-                        ea.modified_by = @modified_by,
-                        ea.modified_datetime = GETDATE(),
-                        ea.remarks = 'No activity for 3 minutes'
-                    FROM {Tbl.event_assign} ea
-                    WHERE ea.event_assign_id = @event_assign_id
-                      AND ea.work_status in ('inprogress', 'completed' );
-
-                    -- Queue
-
-                    UPDATE q
-                    SET
-                        q.event_status = 'pending',
-                        q.modified_by = @modified_by,
-                        q.modified_datetime = GETDATE(),
-                        q.completed_by = null,
-                        q.completed_datetime = null,
-                        q.remarks = 'Released after 3 minutes inactivity'
-                    FROM {Tbl.queued_events_records} q
-                    INNER JOIN {Tbl.event_assign} ea
-                        ON ea.queued_events_records_id = q.queued_events_records_id
-                    WHERE ea.event_assign_id = @event_assign_id
-                      AND q.event_status in( 'processing', 'completed');
-
-                    -- Sub Strip Event
-
-                    UPDATE {Tbl.sub_strip_event}
-                    SET
-                        is_active = 0,
-                        modified_by = created_by,
-                        modified_datetime = GETDATE(),
-                        remarks = 'Auto inactive - 3 minutes timeout'
-                    WHERE event_assign_id = @event_assign_id
-                      AND is_active = 1;
-
-                    -- Sub Strip Finding
-
-                    UPDATE {Tbl.sub_strip_event_finding}
-                    SET
-                        is_active = 0,
-                        modified_by = created_by,
-                        modified_datetime = GETDATE(),
-                        remarks = 'Auto inactive - 3 minutes timeout'
-                    WHERE event_assign_id = @event_assign_id
-                      AND is_active = 1;
-
-                    -- Detection
-
-                    UPDATE {Tbl.detection}
-                    SET
-                        is_active = 0,
-                        modified_by = created_by,
-                        modified_datetime = GETDATE(),
-                        remarks = 'Auto inactive - 3 minutes timeout'
-                    WHERE event_assign_id = @event_assign_id
-                      AND is_active = 1;
-
-                    -- Log
-
+                    -- Log (Update BEFORE)
                     INSERT INTO {Tbl.event_assign_log}
-                    ( 
+                    (
                         event_assign_id,
                         patient_enrollment_id,
                         queued_events_records_id,
@@ -1307,18 +1298,81 @@ namespace elr_API.DTO.ReqDTO
                         event_assign_id,
                         patient_enrollment_id,
                         queued_events_records_id,
-                        'tbl_event_assign',               
-                        event_assign_id,                 
-                        'Timeout3Min',                     
-                        'inprogress',
+                        '{Tbl.event_assign}',
+                        event_assign_id,
+                        'Timeout3Min',
+                        work_status,
                         'reassigned',
-                        '{{""work_status"":""inprogress""}}',
+                        CONCAT('{{""work_status"":""', work_status, '""}}'),
                         '{{""work_status"":""reassigned""}}',
                         'No activity for 3 minutes. Event released automatically.',
                         @modified_by,
                         GETDATE()
                     FROM {Tbl.event_assign}
-                    WHERE event_assign_id = @event_assign_id;";
+                    WHERE event_assign_id = @event_assign_id
+                      AND work_status IN ('inprogress','completed','partial-completed');
+
+
+                    -- Event Assign
+                    UPDATE ea
+                    SET
+                        ea.work_status = 'reassigned',
+                        ea.modified_by = @modified_by,
+                        ea.modified_datetime = GETDATE(),
+                        ea.last_activity_datetime = GETDATE(),
+                        ea.remarks = 'No activity for 3 minutes'
+                    FROM {Tbl.event_assign} ea
+                    WHERE ea.event_assign_id = @event_assign_id
+                      AND ea.work_status IN ('inprogress','completed','partial-completed');
+
+
+                    -- Queue
+                    UPDATE q
+                    SET
+                        q.event_status = 'pending',
+                        q.modified_by = @modified_by,
+                        q.modified_datetime = GETDATE(),
+                        q.completed_by = NULL,
+                        q.completed_datetime = NULL,
+                        q.remarks = 'Released after 3 minutes inactivity'
+                    FROM {Tbl.queued_events_records} q
+                    INNER JOIN {Tbl.event_assign} ea
+                        ON ea.queued_events_records_id = q.queued_events_records_id
+                    WHERE ea.event_assign_id = @event_assign_id
+                      AND q.event_status IN ('processing','completed');
+
+
+                    -- Sub Strip Event
+                    UPDATE {Tbl.sub_strip_event}
+                    SET
+                        is_active = 0,
+                        modified_by = created_by,
+                        modified_datetime = GETDATE(),
+                        remarks = 'Auto inactive - 3 minutes timeout'
+                    WHERE event_assign_id = @event_assign_id
+                      AND is_active = 1;
+
+
+                    -- Sub Strip Finding
+                    UPDATE {Tbl.sub_strip_event_finding}
+                    SET
+                        is_active = 0,
+                        modified_by = created_by,
+                        modified_datetime = GETDATE(),
+                        remarks = 'Auto inactive - 3 minutes timeout'
+                    WHERE event_assign_id = @event_assign_id
+                      AND is_active = 1;
+
+
+                    -- Detection
+                    UPDATE {Tbl.detection}
+                    SET
+                        is_active = 0,
+                        modified_by = created_by,
+                        modified_datetime = GETDATE(),
+                        remarks = 'Auto inactive - 3 minutes timeout'
+                    WHERE event_assign_id = @event_assign_id
+                      AND is_active = 1;";
         }
 
         internal static string get_active_event()
@@ -2835,12 +2889,11 @@ namespace elr_API.DTO.ReqDTO
                     FROM {Tbl.detection} d
                     INNER JOIN {Tbl.event_assign} ea
                         ON ea.event_assign_id = d.event_assign_id
-                    INNER JOIN {Tbl.queued_events_records} q
-                        ON q.queued_events_records_id = d.queued_events_records_id
                     WHERE ea.assigned_by = @assigned_by
                       AND d.is_active = 1
                       AND d.detection_status IN ('submit','push-to-qc')
-                      AND q.event_status = 'completed'
+                      AND ea.work_status IN ('completed','partial-completed')
+                      AND ea.is_final_completed = 1
                       AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}";
         }
         internal static string get_progress_chart(string type)
@@ -2850,67 +2903,64 @@ namespace elr_API.DTO.ReqDTO
                 case "week":
 
                     return $@"
-                        SELECT
-                            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
-                            COUNT(DISTINCT d.queued_events_records_id) AS Events
-                        FROM {Tbl.detection} d
-                        INNER JOIN {Tbl.event_assign} ea
-                            ON ea.event_assign_id = d.event_assign_id
-                        INNER JOIN {Tbl.queued_events_records} q
-                            ON q.queued_events_records_id = d.queued_events_records_id
-                        WHERE ea.assigned_by = @assigned_by
-                          AND d.is_active = 1
-                          AND d.detection_status IN ('submit','push-to-qc')
-                          AND q.event_status = 'completed'
-                          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-                        GROUP BY
-                            DATEPART(WEEKDAY, ea.analysis_end_datetime),
-                            DATENAME(WEEKDAY, ea.analysis_end_datetime)
-                        ORDER BY
-                            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
+                SELECT
+                    DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
+                    COUNT(DISTINCT d.queued_events_records_id) AS Events
+                FROM {Tbl.detection} d
+                INNER JOIN {Tbl.event_assign} ea
+                    ON ea.event_assign_id = d.event_assign_id
+                WHERE ea.assigned_by = @assigned_by
+                  AND d.is_active = 1
+                  AND d.detection_status IN ('submit','push-to-qc')
+                  AND ea.work_status IN ('completed','partial-completed')
+                  AND ea.is_final_completed = 1
+                  AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+                GROUP BY
+                    DATEPART(WEEKDAY, ea.analysis_end_datetime),
+                    DATENAME(WEEKDAY, ea.analysis_end_datetime)
+                ORDER BY
+                    DATEPART(WEEKDAY, ea.analysis_end_datetime)";
 
                 case "month":
 
                     return $@"
-                        SELECT
-                            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
-                            COUNT(DISTINCT d.queued_events_records_id) AS Events
-                        FROM {Tbl.detection} d
-                        INNER JOIN {Tbl.event_assign} ea
-                            ON ea.event_assign_id = d.event_assign_id
-                        INNER JOIN {Tbl.queued_events_records} q
-                            ON q.queued_events_records_id = d.queued_events_records_id
-                        WHERE ea.assigned_by = @assigned_by
-                          AND d.is_active = 1
-                          AND d.detection_status IN ('submit','push-to-qc')
-                          AND q.event_status = 'completed'
-                          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-                        GROUP BY
-                            DATEPART(WEEKDAY, ea.analysis_end_datetime),
-                            DATENAME(WEEKDAY, ea.analysis_end_datetime)
-                        ORDER BY
-                            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
+                SELECT
+                    DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
+                    COUNT(DISTINCT d.queued_events_records_id) AS Events
+                FROM {Tbl.detection} d
+                INNER JOIN {Tbl.event_assign} ea
+                    ON ea.event_assign_id = d.event_assign_id
+                WHERE ea.assigned_by = @assigned_by
+                  AND d.is_active = 1
+                  AND d.detection_status IN ('submit','push-to-qc')
+                  AND ea.work_status IN ('completed','partial-completed')
+                  AND ea.is_final_completed = 1
+                  AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+                GROUP BY
+                    DATEPART(WEEKDAY, ea.analysis_end_datetime),
+                    DATENAME(WEEKDAY, ea.analysis_end_datetime)
+                ORDER BY
+                    DATEPART(WEEKDAY, ea.analysis_end_datetime)";
 
                 default:
 
                     return $@"
-                        SELECT
-                            FORMAT(ea.analysis_end_datetime, 'HH:00') AS Label,
-                            COUNT(DISTINCT d.queued_events_records_id) AS Events
-                        FROM {Tbl.detection} d
-                        INNER JOIN {Tbl.event_assign} ea
-                            ON ea.event_assign_id = d.event_assign_id
-                        INNER JOIN {Tbl.queued_events_records} q
-                            ON q.queued_events_records_id = d.queued_events_records_id
-                        WHERE ea.assigned_by = @assigned_by
-                          AND d.is_active = 1
-                          AND d.detection_status IN ('submit','push-to-qc')
-                          AND q.event_status = 'completed'
-                          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-                        GROUP BY
-                            FORMAT(ea.analysis_end_datetime, 'HH:00')
-                        ORDER BY
-                            Label";
+                SELECT
+                    FORMAT(ea.analysis_end_datetime, 'HH:00') AS Label,
+                    COUNT(DISTINCT d.queued_events_records_id) AS Events
+                FROM {Tbl.detection} d
+                INNER JOIN {Tbl.event_assign} ea
+                    ON ea.event_assign_id = d.event_assign_id
+                WHERE ea.assigned_by = @assigned_by
+                  AND d.is_active = 1
+                  AND d.detection_status IN ('submit','push-to-qc')
+                  AND ea.work_status IN ('completed','partial-completed')
+                  AND ea.is_final_completed = 1
+                  AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+                GROUP BY
+                    FORMAT(ea.analysis_end_datetime, 'HH:00')
+                ORDER BY
+                    Label";
             }
         }
         #endregion

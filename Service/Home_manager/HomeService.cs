@@ -586,10 +586,41 @@ namespace elr_API.Service.Home_manager
                 {
                     query = QueuedAnomalyDTO.reset_event_status();
                     await _db.Execute(query, new { data.queued_events_records_id, data.modified_by }, ELR_db);
-                    return new ResponseDTO(false, "Already Assigined Event");
+                    return new ResponseDTO(false, "Already assigined event to another employee.");
                 }
 
                 return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message);
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<long> ElrsSelectIsFinalAssignId(long emp_id)
+        {
+            string query = EventAssignDTO.select_is_final_assignId();
+            long eventAssignId = (await _db.SelectQuery<long>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+            return eventAssignId;
+        }
+
+
+        public async Task<int> ElrUpdateFinalCompleted(long eventAssignId, long empId)
+        {
+            string query = EventAssignDTO.update_is_final_completed();
+            return await _db.Execute(query, new { event_assign_id = eventAssignId, assigned_by = empId }, ELR_db);
+        }
+
+        public async Task<ResponseDTO> ElrCloseEvent(long eventAssignId, long empId)
+        {
+            ErrorMessage = string.Empty;
+            try
+            {
+                if (eventAssignId <= 0) return new ResponseDTO(false, "Event Assign Id Not Passing");
+                int count = await ElrUpdateFinalCompleted(eventAssignId, empId);
+                return new ResponseDTO(count > 0, count > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
             }
             catch (Exception ex)
             {
@@ -607,8 +638,16 @@ namespace elr_API.Service.Home_manager
             try
             {
                 bool active = await IsProcessingEvent(emp_id);
-
                 if (active) return new ResponseDTO(false, "Current event must be completed before taking next event");
+
+                long eventAssignId = await ElrsSelectIsFinalAssignId(emp_id);
+
+                if (eventAssignId > 0)
+                {
+                    await ElrUpdateFinalCompleted(eventAssignId, emp_id);
+                }
+
+                query = GetNextEventResDTO.get_next_event();
 
                 query = GetNextEventResDTO.get_next_event();
 
