@@ -26,21 +26,30 @@ namespace elr_API.Service.Common_manager
 
                 #region Whatsapp API calling
 
+                List<Parameter> bodyparameters = new List<Parameter>();
+                bodyparameters.Add(new Parameter { type = "text", text = obj.otp.Value.ToString() });
+
+
+                WhatsappBasicReqDTO whatsappBasicReqDTO = new WhatsappBasicReqDTO();
+                whatsappBasicReqDTO.phone_no = obj.phone_no;
+                whatsappBasicReqDTO.template_name = "otp_for_logging"; ;
+                whatsappBasicReqDTO.bodyParameters = bodyparameters;
+
+                await WhatsappMessageCallAPI(whatsappBasicReqDTO);
+
                 #endregion
+
 
                 #region SMS API Calling
 
-                SMSReqDTO sMSReqDTO = new SMSReqDTO()
-                {
-                    to = "91" + obj.phone_no,
-                    template_id = "1107174626427852375",
-                    message = $@"Hello from Healthwatch Telediagnostics! Your OTP for mobile validation is {obj.otp}"
-                };
-                await SMSMessageCallAPI(sMSReqDTO);
-                //await Task.Run(() =>
+                //SMSReqDTO sMSReqDTO = new SMSReqDTO()
                 //{
-                //    SMSMessageCallAPI(sMSReqDTO).Wait();
-                //});
+                //    to = "91" + obj.phone_no,
+                //    template_id = "1107174626427852375",
+                //    message = $@"Hello from Healthwatch Telediagnostics! Your OTP for mobile validation is {obj.otp}"
+                //};
+                //await SMSMessageCallAPI(sMSReqDTO);
+
                 #endregion
             }
             catch (Exception ex)
@@ -50,6 +59,81 @@ namespace elr_API.Service.Common_manager
             }
             return new ResponseDTO { Status = false, Message = ErrorMessage };
         }
+
+
+        #region Whatsapp API Method
+        public async Task<WhatsappResDTO> WhatsappMessageCallAPI(WhatsappBasicReqDTO obj)
+        {
+            string query = string.Empty;
+            try
+            {
+                List<Component> components = new List<Component>();
+
+                if (obj.headerParameters != null && obj.headerParameters.Count() > 0)
+                {
+                    components.Add(new Component { type = "header", parameters = obj.headerParameters });
+                }
+                if (obj.bodyParameters != null && obj.bodyParameters.Count() > 0)
+                {
+                    components.Add(new Component { type = "body", parameters = obj.bodyParameters });
+
+                }
+
+                Template template = new Template();
+                template.name = obj.template_name;
+                template.language = "en";
+                template.components = components;
+
+                WhatsappReqDTO whatsappReqDTO = new WhatsappReqDTO();
+
+                whatsappReqDTO.to_contact = "+91" + obj.phone_no;
+                whatsappReqDTO.type = "template";
+                whatsappReqDTO.template = template;
+
+
+
+
+                var client = _httpClientFactory.CreateClient();
+
+                var jsonRequestBody = JsonSerializer.Serialize(whatsappReqDTO);
+
+
+                var content = new StringContent(jsonRequestBody, Encoding.UTF8, "application/json");
+
+                client.DefaultRequestHeaders.Add("QIKCHAT-API-KEY", _configuration["Qikberrychat:QIKCHAT-API-KEY"]);
+
+
+                var apiUrl = "https://api.qikchat.in/v1/messages";
+                var response = await client.PostAsync(apiUrl, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseBody = await response.Content.ReadAsStringAsync();
+
+                    var tokenResponse = JsonSerializer.Deserialize<WhatsappResDTO>(responseBody);
+
+                    if (tokenResponse != null && tokenResponse.status && tokenResponse.data != null)
+                    {
+                        return new WhatsappResDTO(tokenResponse.data);
+                    }
+
+                    return new WhatsappResDTO(false, ResponseMessage.Failed);
+                }
+                else
+                {
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    return new WhatsappResDTO(false, "API call failed: " + errorResponse);
+                }
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ResponseMessage.Please_Try_Again;
+            }
+
+            return new WhatsappResDTO(false, ErrorMessage);
+        }
+        #endregion
 
         #region SMS API Calling
         public async Task<SMSResDTO> SMSMessageCallAPI(SMSReqDTO obj)
@@ -88,5 +172,8 @@ namespace elr_API.Service.Common_manager
         }
 
         #endregion
+
+
+
     }
 }

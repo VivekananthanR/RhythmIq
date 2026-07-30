@@ -1,6 +1,9 @@
-﻿using elr_API.DTO.ReqDTO;
+﻿using elr_API.Common;
+using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
+using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.IEntrolement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace elr_API.Controllers.Entrolement
@@ -24,19 +27,23 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpGet = api/Enrollment/ElrValidDeviceId?device_no =
-        [HttpGet("ElrValidDeviceId")]
-        public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId(string device_no)
+        #region HttpGet = api/Enrollment/ElrValidDeviceId
+        [HttpPost("ElrValidDeviceId"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId([FromHeader] string authorization, DeviceAssignmentReqDTO obj)
         {
-            return await _enrollment.ElrValidDeviceId(device_no);
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.emp_id = tokenClaims.id;
+            return await _enrollment.ElrValidDeviceId(obj);
         }
         #endregion
 
-        #region HttpGet = api/Enrollment/ElrValidPatchId?patch_no =
-        [HttpGet("ElrValidPatchId")]
-        public async Task<ActionResult<ResponseDTO>> ElrValidPatchId(string patch_no)
+        #region HttpPost = api/Enrollment/ElrValidPatchId
+        [HttpPost("ElrValidPatchId")]
+        public async Task<ActionResult<ResponseDTO>> ElrValidPatchId([FromHeader] string authorization, PatchAssignmentReqDTO obj)
         {
-            return await _enrollment.ElrValidPatchId(patch_no);
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.emp_id = tokenClaims.id;
+            return await _enrollment.ElrValidPatchId(obj);
         }
         #endregion
 
@@ -90,11 +97,11 @@ namespace elr_API.Controllers.Entrolement
         #endregion
 
 
-        #region HttpPost = api/Enrollment/GetPatientEnrollment
-        [HttpPost("GetPatientEnrollment")]
-        public async Task<ActionResult<ResponseDTO>> GetPatientEnrollment(PatientEnrollmentDTO obj)
+        #region HttpGet = api/Enrollment/ElrEnrollmentCreationList?patient_enrollment_id=
+        [HttpGet("ElrEnrollmentCreationList")]
+        public async Task<ActionResult<ResponseDTO>> ElrEnrollmentCreationList(long? patient_enrollment_id)
         {
-            return await _enrollment.GetPatientEnrollment(obj);
+            return await _enrollment.ElrEnrollmentCreationList(patient_enrollment_id);
         }
         #endregion
 

@@ -10,6 +10,9 @@ namespace elr_API.Common
         private static readonly string eniv = "1201240112242001";// 16-byte IV for AES
 
 
+        private const string ConnectKey = "12345678901234567890123456789012"; // 32-byte key for AES-256
+        private const string ConnectIV = "1234567890123456";  // 16-byte IV for AES
+
         public static object EncryptData(object plainData)
         {
             return Encrypt(plainData);
@@ -56,5 +59,26 @@ namespace elr_API.Common
             }
 
         }
+        public static string Decrypt(string cipherText)
+        {
+            using (Aes aesAlg = Aes.Create())
+            {
+                aesAlg.Key = Encoding.UTF8.GetBytes(ConnectKey);
+                aesAlg.IV = Encoding.UTF8.GetBytes(ConnectIV);
+
+                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+                byte[] cipherBytes = Convert.FromBase64String(cipherText);
+
+                using (MemoryStream ms = new MemoryStream(cipherBytes))
+                using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                using (StreamReader sr = new StreamReader(cs))
+                {
+                    return sr.ReadToEnd();
+                }
+            }
+        }
+
+
     }
 }

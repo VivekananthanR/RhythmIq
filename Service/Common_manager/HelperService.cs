@@ -1,4 +1,5 @@
-﻿using elr_API.IService.ICommon_manager;
+﻿using elr_API.Common;
+using elr_API.IService.ICommon_manager;
 using elr_API.Service.User_manager;
 using System.Text.Json;
 
@@ -10,6 +11,8 @@ namespace elr_API.Service.Common_manager
 
         private readonly string MeterboxApiBaseUrl = "http://api.chchealthcare.in/MobileAPI/api/MIS/GetEmployeeDetails?EmployeeId=";
         private readonly string ConnectApiBaseUrl = "http://192.168.97.68:2010/api/Dashboard/GetConnectPatientDetails?mobile_no=";
+
+
 
         public HelperService(IHttpClientFactory httpClientFactory)
         {
@@ -29,17 +32,37 @@ namespace elr_API.Service.Common_manager
             return employeeResponse.data.FirstOrDefault();
         }
 
-        public async Task<ConnectPatientDetails> GetConnectPatientDetails(string mobile_no)
+        public async Task<ConnectPatientDetails?> GetConnectPatientDetails(string mobile_no)
         {
             var client = _httpClientFactory.CreateClient();
             var apiUrl = $"{ConnectApiBaseUrl}{mobile_no}";
+
             var response = await client.GetAsync(apiUrl);
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
             var responseBody = await response.Content.ReadAsStringAsync();
-            var patientResponse = JsonSerializer.Deserialize<ConnectApiResponse>(responseBody, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-            return patientResponse.data.FirstOrDefault();
+
+            var patientResponse = JsonSerializer.Deserialize<ConnectApiResponse>(
+                responseBody,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            if (patientResponse == null || string.IsNullOrWhiteSpace(patientResponse.data)) return null;
+
+            string decryptedJson = ResponseEncrypt.Decrypt(patientResponse.data);
+
+            var patients = JsonSerializer.Deserialize<List<ConnectPatientDetails>>(
+                decryptedJson,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            return patients?.FirstOrDefault();
         }
     }
 }

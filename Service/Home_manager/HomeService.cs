@@ -18,6 +18,57 @@ namespace elr_API.Service.Home_manager
             _db = db;
         }
 
+        public async Task<ResponseDTO> ElrAddUpdateDevice(DeviceResDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.device_id == 0) query = DeviceResDTO.insert_device();
+
+                obj.modified_by = obj.created_by;
+                query = DeviceResDTO.update_device();
+
+                int row = await _db.Execute(query, obj, ELR_db);
+
+                return new ResponseDTO(row > 0, row > 0 ? (obj.device_id == 0) ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully : ResponseMessage.Failed);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
+        public async Task<ResponseDTO> ElrAddUpdatePatch(PatchResDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.patch_id == 0) PatchResDTO.insert_patch();
+                obj.modified_by = obj.created_by;
+                query = PatchResDTO.update_patch();
+
+                int row = await _db.Execute(query, obj, ELR_db);
+
+                return new ResponseDTO(row > 0, row > 0 ? (obj.patch_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
         public async Task<ResponseDTO> GetMenu()
         {
             ErrorMessage = string.Empty;
@@ -161,8 +212,11 @@ namespace elr_API.Service.Home_manager
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 if (obj.user_type_id == 0) query = UserTypeDTO.insert_user_type();
-                else query = UserTypeDTO.update_user_type();
-
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = UserTypeDTO.update_user_type();
+                }
                 var changed = await _db.Execute(query, obj, ELR_db);
                 return new ResponseDTO(changed > 0, changed > 0 ? (obj.user_type_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
             }
@@ -649,8 +703,6 @@ namespace elr_API.Service.Home_manager
 
                 query = GetNextEventResDTO.get_next_event();
 
-                query = GetNextEventResDTO.get_next_event();
-
                 var queuedEventId = (await _db.SelectQuery<long>(query, new { modified_by = emp_id }, ELR_db)).FirstOrDefault();
 
                 if (queuedEventId <= 0) return new ResponseDTO(false, "No Pending Events");
@@ -696,7 +748,7 @@ namespace elr_API.Service.Home_manager
                 var affectedRows = await _db.Execute(query, new { event_assign_id = event_assign_id, modified_by = emp_id }, ELR_db);
                 if (affectedRows <= 0)
                 {
-                    return new ResponseDTO(false, "Event not found or already reassigned.");
+                    return new ResponseDTO(false, "Event not found.");
                 }
                 return new ResponseDTO(true, "Event reassigned successfully.");
             }
@@ -1705,15 +1757,35 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
-                query = MyProgressDTO.get_progress_summary(type);
+                #region
+                //query = MyProgressDTO.get_progress_summary(type);
+                //var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+
+                //if (summary == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                //query = MyProgressDTO.get_progress_chart(type);
+                //summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
+
+                //return new ResponseDTO(summary);
+                #endregion
+
+                query = MyProgressDTO.GetProgressSummary(type);
                 var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
 
-                if (summary == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
-
-                query = MyProgressDTO.get_progress_chart(type);
+                if (summary == null)
+                {
+                    summary = new MyProgressDTO
+                    {
+                        EventsSubmitted = 0,
+                        Productivity = 0,
+                        Chart = new List<MyProgressChartDTO>()
+                    };
+                }
+                query = MyProgressDTO.GetProgressChart(type);
                 summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
 
                 return new ResponseDTO(summary);
+
             }
             catch (Exception ex)
             {

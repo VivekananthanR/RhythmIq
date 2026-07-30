@@ -5,6 +5,12 @@ namespace elr_API.IService.IHome_manager
 {
     public interface IHomeService
     {
+        Task<ResponseDTO> ElrAddUpdateDevice(DeviceResDTO obj);
+
+        Task<ResponseDTO> ElrAddUpdatePatch(PatchResDTO obj);
+
+
+
         Task<ResponseDTO> GetMenu();
         Task<ResponseDTO> AddUpdateMenu(MenuDTO obj);
 

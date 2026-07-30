@@ -19,6 +19,29 @@ namespace elr_API.Controllers.Home_manager
             _homeService = homeService;
         }
 
+        #region HttpPost = api/Home/ElrAddUpdateDevice
+        [HttpPost("ElrAddUpdateDevice"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateDevice([FromHeader] string authorization, DeviceResDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdateDevice(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrAddUpdatePatch
+        [HttpPost("ElrAddUpdatePatch"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatch([FromHeader] string authorization, PatchResDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdatePatch(obj);
+        }
+        #endregion
+
+
+
+
         #region HttpGet = api/Home/GetMenu
         [HttpGet("GetMenu")]
         public async Task<ActionResult<ResponseDTO>> GetMenu()
@@ -44,7 +67,7 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/AddUpdateCountry
-        [HttpPost("AddUpdateCountry")]
+        [HttpPost("AddUpdateCountry"), Authorize]
         public async Task<ActionResult<ResponseDTO>> AddUpdateCountry(CountryDTO obj)
         {
             return await _homeService.AddUpdateCountry(obj);
@@ -60,7 +83,7 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/AddUpdateState
-        [HttpPost("AddUpdateState")]
+        [HttpPost("AddUpdateState"), Authorize]
         public async Task<ActionResult<ResponseDTO>> AddUpdateState(StateDTO obj)
         {
             return await _homeService.AddUpdateState(obj);
@@ -76,7 +99,7 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/AddUpdateDistrict
-        [HttpPost("AddUpdateDistrict")]
+        [HttpPost("AddUpdateDistrict"), Authorize]
         public async Task<ActionResult<ResponseDTO>> AddUpdateDistrict(DistrictDTO obj)
         {
             return await _homeService.AddUpdateDistrict(obj);
@@ -92,9 +115,11 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/AddUpdateUserType
-        [HttpPost("AddUpdateUserType")]
-        public async Task<ActionResult<ResponseDTO>> AddUpdateUserType(UserTypeDTO obj)
+        [HttpPost("AddUpdateUserType"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> AddUpdateUserType([FromHeader] string authorization, UserTypeDTO obj)
         {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _homeService.AddUpdateUserType(obj);
         }
         #endregion
@@ -116,9 +141,11 @@ namespace elr_API.Controllers.Home_manager
         //#endregion
 
         #region HttpPost = api/Home/AddUpdateHospital
-        [HttpPost("AddUpdateHospital")]
-        public async Task<ActionResult<ResponseDTO>> AddUpdateHospital(AddUpdateHospitalReqDTO obj)
+        [HttpPost("AddUpdateHospital"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> AddUpdateHospital([FromHeader] string authorization, AddUpdateHospitalReqDTO obj)
         {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _homeService.AddUpdateHospital(obj);
         }
         #endregion
@@ -183,9 +210,12 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/AddUpdateLocation
-        [HttpPost("AddUpdateLocation")]
-        public async Task<ActionResult<ResponseDTO>> AddUpdateLocation(LocationDTO obj)
+        [HttpPost("AddUpdateLocation"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> AddUpdateLocation([FromHeader] string authorization, LocationDTO obj)
         {
+
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _homeService.AddUpdateLocation(obj);
         }
         #endregion

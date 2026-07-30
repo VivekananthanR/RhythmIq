@@ -11,7 +11,10 @@
         public static readonly string hospital_mast = "tbl_hospital_mast";
         public static readonly string location_mast = "tbl_location_mast";
         public static readonly string patch_mast = "tbl_patch_mast";
+        public static readonly string patch_assignment = "tbl_patch_assignment";
+
         public static readonly string device_mast = "tbl_device_mast";
+        public static readonly string device_assignment = "tbl_device_assignment";
 
         public static readonly string user_master = "tbl_user_mast";
         public static readonly string patient = "tbl_patient";

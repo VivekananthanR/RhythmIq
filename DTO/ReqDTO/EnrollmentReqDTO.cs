@@ -20,9 +20,6 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? schedule_removal { get; set; }
         public DateTime? actual_hookup { get; set; }
         public DateTime? actual_removal { get; set; }
-        public int? hr_min { get; set; }
-        public int? hr_max { get; set; }
-        public int? hr_avg { get; set; }
         public long estimated_test_prices_id { get; set; }
 
         public double actual_amount { get; set; }
@@ -38,13 +35,20 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+        public bool is_pacemaker { get; set; }
 
         #region Query
 
-        internal static string chack_valid_enrollment_id()
+        internal static string check_enrollment_exists()
         {
-            return $@" select * from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id and is_active = 1 ";
+            return $@" select count(1) from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id and is_active = 1 ";
         }
+        internal static string check_completed_enrollment()
+        {
+            return $@" select count(1) from {Tbl.patient_enrollment}
+                        where  patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'completed' and is_active =1";
+        }
+
         #endregion
     }
 
@@ -73,9 +77,6 @@ namespace elr_API.DTO.ReqDTO
         public IFormFile? hookup_start_device_file { get; set; }
         public string? hookup_end_device_img { get; set; }
         public IFormFile? hookup_end_device_file { get; set; }
-        public int hr_min { get; set; }
-        public int hr_max { get; set; }
-        public int hr_avg { get; set; }
 
         public long estimated_test_prices_id { get; set; }
         public decimal actual_amount { get; set; }
@@ -94,34 +95,50 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+        public bool is_pacemaker { get; set; }
 
-        // Join fields (select-ல் மட்டும்)
-        public string patient_name { get; set; }
-        public string patient_dob { get; set; }
-        public int patient_age { get; set; }
-        public string patient_gender { get; set; }
-        public string patient_city { get; set; }
-        public string patient_state { get; set; }
-        public string patient_pincode { get; set; }
-        public string patient_phone { get; set; }
-        public string patient_email { get; set; }
-        public string test_name { get; set; }
-        public decimal test_price { get; set; }
-        public string physician_name { get; set; }
-        public string hospital_name { get; set; }
-        public string technician_name { get; set; }
 
         #region Query
 
         internal static string insert_enrollment()
         {
-            return $@"INSERT INTO tbl_patient_enrollment
-                    (user_id, patient_id,referred_physician_id, actual_technician_id, hospital_id,
-                     schedule_hookup,estimated_test_prices_id, actual_amount,total_payed_amount, payment_status,payment_datetime)
-                  VALUES
-                    (@user_id, @patient_id, 
-                     @referred_physician_id, @actual_technician_id, @hospital_id,
-                     @schedule_hookup, @estimated_test_prices_id, @actual_amount,@total_payed_amount,@payment_status,@payment_datetime)";
+            return $@"
+                    INSERT INTO tbl_patient_enrollment
+                    (
+                        user_id,
+                        patient_id,
+                        referred_physician_id,
+                        actual_technician_id,
+                        hospital_id,
+                        schedule_hookup,
+                        schedule_removal,
+                        estimated_test_prices_id,
+                        actual_amount,
+                        total_payed_amount,
+                        payment_status,
+                        payment_datetime,
+                        enrollment_status,
+                        is_pacemaker
+                    )
+                    SELECT
+                        @user_id,
+                        @patient_id,
+                        @referred_physician_id,
+                        @actual_technician_id,
+                        @hospital_id,
+                        @schedule_hookup,
+                        DATEADD(DAY, tm.duration_in_day, @schedule_hookup),
+                        @estimated_test_prices_id,
+                        @actual_amount,
+                        @total_payed_amount,
+                        @payment_status,
+                        @payment_datetime,
+                        @enrollment_status,
+                        @is_pacemaker
+                    FROM {Tbl.test_prices} tp
+                    INNER JOIN {Tbl.test_mast} tm
+                        ON tp.test_id = tm.test_id
+                    WHERE tp.test_prices_id = @estimated_test_prices_id;";
         }
 
         internal static string update_enrollment()
@@ -138,9 +155,6 @@ namespace elr_API.DTO.ReqDTO
                     schedule_removal         = @schedule_removal,
                     actual_hookup            = @actual_hookup,
                     actual_removal           = @actual_removal,
-                    hr_min                   = @hr_min,
-                    hr_max                   = @hr_max,
-                    hr_avg                   = @hr_avg,
                     estimated_test_prices_id = @estimated_test_prices_id,
                     actual_amount            = @actual_amount,
                     total_payed_amount       = @total_payed_amount,
@@ -153,79 +167,6 @@ namespace elr_API.DTO.ReqDTO
                     modified_datetime        = GETDATE(),
                     is_active                = @is_active
                   WHERE patient_enrollment_id = @patient_enrollment_id";
-        }
-
-        internal static string select_enrollment()
-        {
-            return $@"SELECT
-                    pe.patient_enrollment_id,
-                    pe.gu_id,
-                    pe.user_id,
-                    pe.patient_id,
-                    pe.device_id,
-                    pe.patch_id,
-                    pe.referred_physician,
-                    pe.actual_technician_id,
-                    pe.hospital_id,
-                    pe.schedule_hookup,
-                    pe.schedule_removal,
-                    pe.actual_hookup,
-                    pe.actual_removal,
-                    pe.hr_min,
-                    pe.hr_max,
-                    pe.hr_avg,
-                    pe.estimated_test_prices_id,
-                    pe.actual_amount,
-                    pe.total_payed_amount,
-                    pe.enrollment_status,
-                    pe.payment_datetime,
-                    pe.payment_status,
-                    pe.remarks,
-                    pe.sign_patient_img,
-                    pe.clinical_user_id,
-                    pe.created_by,
-                    pe.created_datetime,
-                    pe.is_active,
-                    pe.hookup_start_device_img,
-                    pe.hookup_end_device_img,
-                    pe.is_active,
-
-                    -- Patient Info
-                    p.full_name          AS patient_name,
-                    p.dob                AS patient_dob,
-                    p.age                AS patient_age,
-                    p.gender             AS patient_gender,
-                    p.city               AS patient_city,
-                    p.state_name         AS patient_state,
-                    p.pincode            AS patient_pincode,
-                    p.phone_no           AS patient_phone,
-                    p.email_id           AS patient_email,
-
-                    -- Test Info
-                    tm.test_name         AS test_name,
-                    tp.test_price        AS test_price,
-
-                    -- Physician
-                    phy.full_name        AS physician_name,
-
-                    -- Hospital
-                    h.hospital_name      AS hospital_name,
-
-                    -- Technician
-                    tech.full_name       AS technician_name
-
-                  FROM tbl_patient_enrollment pe
-                  LEFT JOIN tbl_patient         p    ON p.patient_id       = pe.patient_id
-                  LEFT JOIN tbl_test_prices     tp   ON tp.test_prices_id  = pe.estimated_test_prices_id
-                  LEFT JOIN tbl_test_mast       tm   ON tm.test_id         = tp.test_id
-                  LEFT JOIN tbl_user_mast       phy  ON phy.user_id        = pe.referred_physician
-                  LEFT JOIN tbl_hospital_mast   h    ON h.hospital_id      = pe.hospital_id
-                  LEFT JOIN tbl_user_mast       tech ON tech.user_id       = pe.actual_technician_id
-                  WHERE pe.is_active = 1
-                  AND (@patient_enrollment_id = 0 OR pe.patient_enrollment_id = @patient_enrollment_id)
-                  AND (@patient_id            = 0 OR pe.patient_id            = @patient_id)
-                  AND (@user_id               = 0 OR pe.user_id               = @user_id)
-                  AND (@enrollment_status IS NULL OR pe.enrollment_status     = @enrollment_status)";
         }
         internal static string update_signature()
         {
@@ -265,6 +206,100 @@ namespace elr_API.DTO.ReqDTO
             return $@"UPDATE {Tbl.patient_enrollment}
               SET enrollment_status = 'monitoring'
               WHERE patient_enrollment_id = @patient_enrollment_id";
+        }
+
+
+
+        #endregion
+    }
+    public class RequestPatientEnrollmentResDTO
+    {
+        public long patient_enrollment_id { get; set; }
+        public string enrollment_status { get; set; }
+        public decimal actual_amount { get; set; }
+        public DateTime? schedule_hookup { get; set; }
+        public string actual_technician_name { get; set; }
+
+        public long device_id { get; set; }
+        public string device_no { get; set; }
+
+        public long patient_id { get; set; }
+        public string patient_name { get; set; }
+        public string patient_dob { get; set; }
+        public int patient_age { get; set; }
+        public string patient_gender { get; set; }
+        public string patient_city { get; set; }
+        public string patient_state { get; set; }
+        public string patient_pincode { get; set; }
+        public string patient_phone { get; set; }
+        public string emergency_phone_no { get; set; }
+        public string patient_email { get; set; }
+        public string test_name { get; set; }
+        public string hospital_name { get; set; }
+        public string referred_physician_name { get; set; }
+
+        #region Query 
+        internal static string select_request_patient_enrollment()
+        {
+            return $@"
+            SELECT
+                a.patient_enrollment_id,
+                a.enrollment_status,
+                a.actual_amount,
+                a.schedule_hookup,
+                tech.user_name AS actual_technician_name,
+                phy.user_name AS referred_physician_name,
+                l.device_id,
+                l.device_no,
+                b.patient_id,
+                b.patient_name,
+                b.dob AS patient_dob,
+                b.age AS patient_age,
+                b.phone_no AS patient_phone,
+                b.emergency_phone_no,
+                b.email_id AS patient_email,
+                b.gender AS patient_gender,
+                b.city AS patient_city,
+                b.pincode AS patient_pincode,
+                g.district_name,
+                h.state_name AS patient_state,
+                i.country_name,
+                k.test_name,
+                e.hospital_name
+
+            FROM {Tbl.patient_enrollment} a
+
+            LEFT JOIN {Tbl.patient} b
+                ON b.patient_id = a.patient_id
+
+            LEFT JOIN {Tbl.user_master} tech
+                ON tech.user_id = a.actual_technician_id
+
+            LEFT JOIN {Tbl.user_master} phy
+                ON phy.user_id = a.referred_physician_id
+
+            LEFT JOIN {Tbl.hospital_mast} e
+                ON e.hospital_id = a.hospital_id
+
+            LEFT JOIN {Tbl.district} g
+                ON g.district_id = b.district_id
+
+            LEFT JOIN {Tbl.state} h
+                ON h.state_id = b.state_id
+
+            LEFT JOIN {Tbl.country} i
+                ON i.country_id = h.country_id
+
+            LEFT JOIN {Tbl.test_prices} j
+                ON j.test_prices_id = a.estimated_test_prices_id
+
+            LEFT JOIN {Tbl.test_mast} k
+                ON j.test_id = k.test_id
+
+            LEFT JOIN {Tbl.device_mast} l
+                ON l.device_id = a.device_id
+
+            WHERE a.enrollment_status = 'requested' and  (a.patient_enrollment_id = @patient_enrollment_id or @patient_enrollment_id = 0 or @patient_enrollment_id is null)";
         }
         #endregion
     }

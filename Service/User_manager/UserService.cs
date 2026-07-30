@@ -25,19 +25,24 @@ namespace elr_API.Service.User_manager
             _helperService = helperService;
             _iqberrychatService = qikberrychatService;
         }
-        //Fetch Connect App Get Pateint 
         public async Task<ResponseDTO> ElrGetPatient(string phone_no)
         {
             ErrorMessage = string.Empty;
+
             try
             {
-                return new ResponseDTO(await _helperService.GetConnectPatientDetails(phone_no));
+                var patient = await _helperService.GetConnectPatientDetails(phone_no);
+
+                if (patient == null) return new ResponseDTO(false, "Patient not found.");
+
+                return new ResponseDTO(patient);
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging("", ex.ToString());
-                ErrorMessage = ex.Message.ToString();
+                CommonFunctions.ILogging(phone_no, ex.ToString());
+                ErrorMessage = ex.Message;
             }
+
             return new ResponseDTO(ErrorMessage);
         }
 
@@ -71,7 +76,7 @@ namespace elr_API.Service.User_manager
             try
             {
                 if (obj == null || string.IsNullOrEmpty(obj.phone_no) || !Validation.IsValidPhoneNumber(obj.phone_no))
-                    return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                    return new ResponseDTO(false, "Invalid phone number.");
 
 
                 query = PatientVerifyLoginReqDTO.existing_select_patient(obj);
@@ -110,12 +115,13 @@ namespace elr_API.Service.User_manager
                 {
                     if (obj.otp == 0)
                     {
+
                         existPatient.otp = CommonFunctions.GenerateOTP(6);
 
-                        //For the Playstore console Demo Login purpuse we use common number
                         if (obj.phone_no == "8056661324") obj.otp = 123456;
 
                         #region send Otp to sms and email
+
                         if (obj.phone_no != "8056661324")
                         {
                             OtpForLoggingReqDTO otpForLoggingReqDTO = new OtpForLoggingReqDTO
@@ -158,7 +164,6 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(ErrorMessage);
         }
 
-        //Total Emp Name List 
         public async Task<ResponseDTO> ElrGetEmployeeNameList(string user_name)
         {
             ErrorMessage = string.Empty;
@@ -176,7 +181,7 @@ namespace elr_API.Service.User_manager
             }
             return new ResponseDTO(ErrorMessage);
         }
-        //Fetch MeterBox Employee
+
         public async Task<ResponseDTO> ElrGetEmployee(string emp_code)
         {
             ErrorMessage = string.Empty;
@@ -191,7 +196,7 @@ namespace elr_API.Service.User_manager
             }
             return new ResponseDTO(ErrorMessage);
         }
-        //Add Update Employee 
+
         public async Task<ResponseDTO> ElrAddUpdateEmployeeDetails(AddUpdateEmployeeDetailsReqDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -397,6 +402,6 @@ namespace elr_API.Service.User_manager
     {
         public bool status { get; set; }
         public string errorCode { get; set; }
-        public List<ConnectPatientDetails> data { get; set; }
+        public string data { get; set; }
     }
 }

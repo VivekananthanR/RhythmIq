@@ -604,38 +604,233 @@ namespace elr_API.DTO.ReqDTO
         #endregion
     }
 
-
-
-    public class DeviceDTO
+    public class DeviceReqDTO
     {
         public long device_id { get; set; }
         public string device_no { get; set; }
         public string device_name { get; set; }
+        public long current_location_id { get; set; }
+        public long current_emp_id { get; set; }
+        public string device_status { get; set; }
 
+    }
+
+
+
+    public class DeviceResDTO
+    {
+        public long device_id { get; set; }
+        public string device_no { get; set; }
+        public string device_name { get; set; }
+        public string manufacturer_name { get; set; }
+        public string model_no { get; set; }
+        public string serial_no { get; set; }
+        public long current_location_id { get; set; }
+        public long current_emp_id { get; set; }
+        public string device_status { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
 
         #region Query
+        internal static string insert_device()
+        {
+            return $@"insert into {Tbl.device_mast} (device_no,device_name,manufacturer_name,model_no,serial_no,current_emp_id,current_location_id,device_status,created_by)
+                        values (@device_no, @device_name, @manufacturer_name, @model_no, @serial_no, @current_emp_id, @current_location_id, @device_status, @created_by  )";
+        }
+        internal static string update_device()
+        {
+            return $@"Update {Tbl.device_mast}
+                        set device_no = @device_no ,
+                        device_name = @device_name,
+                        manufacturer_name = @manufacturer_name,
+                        model_no = @model_no,
+                        serial_no = @serial_no,
+                        current_emp_id =@current_emp_id,
+                        current_location_id= @current_location_id,
+                        device_status = @device_status,
+                        modified_by = @modified_by,
+                        modified_datetime = getdate(),
+                        is_active = @is_active
+                        where device_id = @device_id";
+        }
+        internal static string update_device_status()
+        {
+            return $@"Update {Tbl.device_mast}
+                        set device_status='engaged',
+                            current_emp_id=@emp_id,
+                            modified_by=@created_by,
+                            modified_datetime=GETDATE()
+                        WHERE device_id=@device_id ;";
+        }
+
 
         internal static string check_valid_device()
         {
-            return $@"select * from {Tbl.device_mast} where device_no =@device_no and is_active = 1";
+            return $@"
+                    SELECT
+                        device_id,
+                        device_no,
+                        device_name,
+                        device_status
+                    FROM {Tbl.device_mast}
+                    WHERE device_no = @device_no
+                    AND is_active = 1";
+        }
+
+        #endregion
+    }
+    public class DeviceAssignmentReqDTO
+    {
+        public string device_no { get; set; }
+        public long emp_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+    }
+    public class DeviceAssignmentResDTO
+    {
+        public long device_assignment_id { get; set; }
+        public long device_id { get; set; }
+        public long emp_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public string assignment_status { get; set; }
+        public string remarks { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        #region Query
+        internal static string check_device_assignment()
+        {
+            return $@"
+                    SELECT TOP 1 *
+                    FROM {Tbl.device_assignment}
+                    WHERE device_id = @device_id
+                    AND assignment_status = 'assigned'
+                    AND is_active = 1;";
+        }
+        public static string insert_device_assignment()
+        {
+            return $@"
+                    INSERT INTO {Tbl.device_assignment}
+                    (
+                        device_id,
+                        emp_id,
+                        patient_enrollment_id,
+                        assignment_status,
+                        created_by
+                    )
+                    VALUES
+                    (
+                        @device_id,
+                        @emp_id,
+                        @patient_enrollment_id,
+                        @assignment_status,
+                        @created_by
+                    );";
         }
         #endregion
     }
-
-    public class PatchDTO
+    public class PatchReqDTO
     {
         public long patch_id { get; set; }
         public string patch_no { get; set; }
+        public long current_location_id { get; set; }
+        public long current_emp_id { get; set; }
+    }
+    public class PatchResDTO
+    {
+        public long patch_id { get; set; }
+        public string patch_no { get; set; }
+        public long current_location_id { get; set; }
+        public long current_emp_id { get; set; }
+        public string patch_status { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
 
 
         #region Query
+        internal static string insert_patch()
+        {
+            return $@"insert into {Tbl.patch_mast} (patch_no,patch_status,current_emp_id,current_location_id,created_by)
+                        values (@patch_no,@patch_status,@current_emp_id,@current_location_id,@created_by)";
+        }
 
+
+        internal static string update_patch()
+        {
+            return $@"update {Tbl.patch_mast}
+                        set patch_no = @patch_no,
+                            patch_status = @patch_status,
+                            current_emp_id =@current_emp_id,
+                            current_location_id = @current_location_id,
+                            modified_by = @modified_by,
+                            modified_datetime = getdate(),
+                            is_active = @is_active
+                            where patch_id = @patch_id";
+        }
         internal static string check_valid_patch()
         {
-            return $@"select * from {Tbl.patch_mast} where patch_no =@patch_no and is_active = 1";
+            return $@"select * from {Tbl.patch_mast} where patch_no =@patch_no and  is_active = 1";
         }
+
+
+        internal static string update_patch_status()
+        {
+            return $@"update {Tbl.patch_mast}
+                        set patch_status = @patch_status,
+                            modified_by = @modified_by,
+                            current_emp_id = @current_emp_id,
+                            modified_datetime = getdate()
+                            where patch_id = @patch_id";
+        }
+
         #endregion
     }
+    public class PatchAssignmentReqDTO
+    {
+        public string patch_no { get; set; }
+        public long emp_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+    }
+    public class PatchAssignmentResDTO
+    {
+        public long patch_assignment_id { get; set; }
+        public long patch_id { get; set; }
+        public long emp_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public string assignment_status { get; set; }
+        public string remarks { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        #region Query
+        internal static string check_patch_assignment()
+        {
+            return $@"select top 1 *
+                        from {Tbl.patch_assignment}
+                            where patch_id = @patch_id and assignment_status = 'assigned' and is_active = 1";
+        }
+
+        internal static string insert_patch_assignment()
+        {
+            return $@"insert into {Tbl.patch_assignment} (patch_id,emp_id,patient_enrollment_id,assignment_status,created_by)
+                        values (@patch_id,@emp_id,@patient_enrollment_id,@assignment_status,@created_by)";
+        }
+
+        #endregion
+
+    }
+
 
     public class QueuedAnomalyReqDTO
     {
@@ -2837,132 +3032,308 @@ namespace elr_API.DTO.ReqDTO
 
         public decimal Productivity { get; set; }
 
-        public string ProductivityUnit { get; set; }
+        //public string ProductivityUnit { get; set; }
 
         public List<MyProgressChartDTO> Chart { get; set; }
 
         #region Query
-
-        internal static string get_date_filter(string type)
+        internal static string GetProgressSummary(string type)
         {
-            switch (type.ToLower())
-            {
-                case "week":
-                    return "analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE))";
-
-                case "month":
-                    return "analysis_end_datetime >= DATEADD(WEEK,-4,CAST(GETDATE() AS DATE))";
-
-                default:
-                    return "CAST(analysis_end_datetime AS DATE)=CAST(GETDATE() AS DATE)";
-            }
-        }
-
-        internal static string get_progress_summary(string type)
-        {
-            string productivity;
-            string unit;
-
-            switch (type.ToLower())
-            {
-                case "week":
-                    productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
-                    unit = "'events/day'";
-                    break;
-
-                case "month":
-                    productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 28.0 AS DECIMAL(10,2))";
-                    unit = "'events/day'";
-                    break;
-
-                default:
-                    productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) AS DECIMAL(10,2))";
-                    unit = "'events/day'";
-                    break;
-            }
-
             return $@"
-                    SELECT
-                        COUNT(DISTINCT d.queued_events_records_id) AS EventsSubmitted,
-                        {productivity} AS Productivity,
-                        {unit} AS ProductivityUnit
-                    FROM {Tbl.detection} d
-                    INNER JOIN {Tbl.event_assign} ea
-                        ON ea.event_assign_id = d.event_assign_id
-                    WHERE ea.assigned_by = @assigned_by
-                      AND d.is_active = 1
-                      AND d.detection_status IN ('submit','push-to-qc')
-                      AND ea.work_status IN ('completed','partial-completed')
-                      AND ea.is_final_completed = 1
-                      AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}";
+                SELECT
+                    COUNT(*) EventsSubmitted,
+                    {GetProductivity(type)} Productivity
+                FROM {Tbl.queued_events_records} q
+                INNER JOIN {Tbl.event_assign} ea
+                    ON ea.queued_events_records_id=q.queued_events_records_id
+                WHERE
+                    q.completed_by=@assigned_by
+                    AND q.completed_datetime IS NOT NULL
+                    AND ea.is_final_completed=1
+                    AND {GetDateFilter(type)}";
         }
-        internal static string get_progress_chart(string type)
+
+        internal static string GetDateFilter(string type)
+        {
+            switch (type.ToLower())
+            {
+                default:
+                    return @"
+                CAST(q.completed_datetime AS DATE) = CAST(GETDATE() AS DATE)";
+
+                case "week":
+                    return @"
+                q.completed_datetime >= DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7, CAST(GETDATE() AS DATE))
+                AND q.completed_datetime < DATEADD(DAY, 7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7), CAST(GETDATE() AS DATE))";
+
+                case "month":
+                    return @"
+                q.completed_datetime >= DATEADD(WEEK, -3,DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7, CAST(GETDATE() AS DATE)))
+                AND q.completed_datetime < DATEADD(DAY, 7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7), CAST(GETDATE() AS DATE))";
+            }
+        }
+        internal static string GetProductivity(string type)
+        {
+            switch (type.ToLower())
+            {
+                case "week":
+                    return "CAST(COUNT(*)/7.0 AS DECIMAL(10,2))";
+
+                case "month":
+                    return "CAST(COUNT(*)/28.0 AS DECIMAL(10,2))";
+
+                default:
+                    return "CAST(COUNT(*) AS DECIMAL(10,2))";
+            }
+        }
+
+        internal static string GetProgressChart(string type)
         {
             switch (type.ToLower())
             {
                 case "week":
 
                     return $@"
+                WITH Days AS
+                (
+                    SELECT 1 DayNo,'Monday' Label
+                    UNION ALL SELECT 2,'Tuesday'
+                    UNION ALL SELECT 3,'Wednesday'
+                    UNION ALL SELECT 4,'Thursday'
+                    UNION ALL SELECT 5,'Friday'
+                    UNION ALL SELECT 6,'Saturday'
+                    UNION ALL SELECT 7,'Sunday'
+                )
+
                 SELECT
-                    DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
-                    COUNT(DISTINCT d.queued_events_records_id) AS Events
-                FROM {Tbl.detection} d
-                INNER JOIN {Tbl.event_assign} ea
-                    ON ea.event_assign_id = d.event_assign_id
-                WHERE ea.assigned_by = @assigned_by
-                  AND d.is_active = 1
-                  AND d.detection_status IN ('submit','push-to-qc')
-                  AND ea.work_status IN ('completed','partial-completed')
-                  AND ea.is_final_completed = 1
-                  AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-                GROUP BY
-                    DATEPART(WEEKDAY, ea.analysis_end_datetime),
-                    DATENAME(WEEKDAY, ea.analysis_end_datetime)
-                ORDER BY
-                    DATEPART(WEEKDAY, ea.analysis_end_datetime)";
+                    d.Label,
+                    ISNULL(COUNT(q.queued_events_records_id),0) Events
+                FROM Days d
+
+                LEFT JOIN {Tbl.queued_events_records} q
+                    ON
+                    (
+                        CASE DATEPART(WEEKDAY,q.completed_datetime)
+                            WHEN 2 THEN 1
+                            WHEN 3 THEN 2
+                            WHEN 4 THEN 3
+                            WHEN 5 THEN 4
+                            WHEN 6 THEN 5
+                            WHEN 7 THEN 6
+                            WHEN 1 THEN 7
+                        END
+                    )=d.DayNo
+                    AND q.completed_by=@assigned_by
+                    AND q.completed_datetime IS NOT NULL
+                    AND {GetDateFilter(type)}
+
+                LEFT JOIN {Tbl.event_assign} ea
+                    ON ea.queued_events_records_id=q.queued_events_records_id
+                    AND ea.is_final_completed=1
+
+                GROUP BY d.DayNo,d.Label
+                ORDER BY d.DayNo";
 
                 case "month":
 
                     return $@"
+                WITH Weeks AS
+                (
+                    SELECT 1 WeekNo,'Week 1' Label
+                    UNION ALL SELECT 2,'Week 2'
+                    UNION ALL SELECT 3,'Week 3'
+                    UNION ALL SELECT 4,'Week 4'
+                )
+
                 SELECT
-                    DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
-                    COUNT(DISTINCT d.queued_events_records_id) AS Events
-                FROM {Tbl.detection} d
-                INNER JOIN {Tbl.event_assign} ea
-                    ON ea.event_assign_id = d.event_assign_id
-                WHERE ea.assigned_by = @assigned_by
-                  AND d.is_active = 1
-                  AND d.detection_status IN ('submit','push-to-qc')
-                  AND ea.work_status IN ('completed','partial-completed')
-                  AND ea.is_final_completed = 1
-                  AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-                GROUP BY
-                    DATEPART(WEEKDAY, ea.analysis_end_datetime),
-                    DATENAME(WEEKDAY, ea.analysis_end_datetime)
-                ORDER BY
-                    DATEPART(WEEKDAY, ea.analysis_end_datetime)";
+                    w.Label,
+                    ISNULL(COUNT(q.queued_events_records_id),0) Events
+                FROM Weeks w
+
+                LEFT JOIN {Tbl.queued_events_records} q
+                    ON
+                    (
+                        DATEDIFF
+                        (
+                            WEEK,
+                            DATEADD
+                            (
+                                WEEK,-3,
+                                DATEADD(DAY,
+                                1-DATEPART(WEEKDAY,GETDATE()),
+                                CAST(GETDATE() AS DATE))
+                            ),
+                            q.completed_datetime
+                        )+1
+                    )=w.WeekNo
+                    AND q.completed_by=@assigned_by
+                    AND q.completed_datetime IS NOT NULL
+                    AND {GetDateFilter(type)}
+
+                LEFT JOIN {Tbl.event_assign} ea
+                    ON ea.queued_events_records_id=q.queued_events_records_id
+                    AND ea.is_final_completed=1
+
+                GROUP BY w.WeekNo,w.Label
+                ORDER BY w.WeekNo";
 
                 default:
 
                     return $@"
+                WITH Hours AS
+                (
+                    SELECT 0 Hr
+                    UNION ALL
+                    SELECT Hr+1
+                    FROM Hours
+                    WHERE Hr<23
+                )
+
                 SELECT
-                    FORMAT(ea.analysis_end_datetime, 'HH:00') AS Label,
-                    COUNT(DISTINCT d.queued_events_records_id) AS Events
-                FROM {Tbl.detection} d
-                INNER JOIN {Tbl.event_assign} ea
-                    ON ea.event_assign_id = d.event_assign_id
-                WHERE ea.assigned_by = @assigned_by
-                  AND d.is_active = 1
-                  AND d.detection_status IN ('submit','push-to-qc')
-                  AND ea.work_status IN ('completed','partial-completed')
-                  AND ea.is_final_completed = 1
-                  AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-                GROUP BY
-                    FORMAT(ea.analysis_end_datetime, 'HH:00')
-                ORDER BY
-                    Label";
+                    RIGHT('00'+CAST(h.Hr AS VARCHAR),2)+':00' Label,
+                    ISNULL(COUNT(q.queued_events_records_id),0) Events
+                FROM Hours h
+
+                LEFT JOIN {Tbl.queued_events_records} q
+                    ON DATEPART(HOUR,q.completed_datetime)=h.Hr
+                    AND q.completed_by=@assigned_by
+                    AND q.completed_datetime IS NOT NULL
+                    AND {GetDateFilter(type)}
+
+                LEFT JOIN {Tbl.event_assign} ea
+                    ON ea.queued_events_records_id=q.queued_events_records_id
+                    AND ea.is_final_completed=1
+
+                GROUP BY h.Hr
+                ORDER BY h.Hr
+                OPTION(MAXRECURSION 24)";
             }
         }
+
+        #endregion
+
+        #region Query
+
+        //internal static string get_date_filter(string type)
+        //{
+        //    switch (type.ToLower())
+        //    {
+        //        case "week":
+        //            return "analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE))";
+
+        //        case "month":
+        //            return "analysis_end_datetime >= DATEADD(WEEK,-4,CAST(GETDATE() AS DATE))";
+
+        //        default:
+        //            return "CAST(analysis_end_datetime AS DATE)=CAST(GETDATE() AS DATE)";
+        //    }
+        //}
+
+        //internal static string get_progress_summary(string type)
+        //{
+        //    string productivity;
+        //    string unit;
+
+        //    switch (type.ToLower())
+        //    {
+        //        case "week":
+        //            productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
+        //            unit = "'events/day'";
+        //            break;
+
+        //        case "month":
+        //            productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 28.0 AS DECIMAL(10,2))";
+        //            unit = "'events/day'";
+        //            break;
+
+        //        default:
+        //            productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) AS DECIMAL(10,2))";
+        //            unit = "'events/day'";
+        //            break;
+        //    }
+
+        //    return $@"
+        //            SELECT
+        //                COUNT(DISTINCT d.queued_events_records_id) AS EventsSubmitted,
+        //                {productivity} AS Productivity,
+        //                {unit} AS ProductivityUnit
+        //            FROM {Tbl.detection} d
+        //            INNER JOIN {Tbl.event_assign} ea
+        //                ON ea.event_assign_id = d.event_assign_id
+        //            WHERE ea.assigned_by = @assigned_by
+        //              AND d.is_active = 1
+        //              AND d.detection_status IN ('submit','push-to-qc')
+        //              AND ea.work_status IN ('completed','partial-completed')
+        //              AND ea.is_final_completed = 1
+        //              AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}";
+        //}
+        //internal static string get_progress_chart(string type)
+        //{
+        //    switch (type.ToLower())
+        //    {
+        //        case "week":
+
+        //            return $@"
+        //        SELECT
+        //            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
+        //            COUNT(DISTINCT d.queued_events_records_id) AS Events
+        //        FROM {Tbl.detection} d
+        //        INNER JOIN {Tbl.event_assign} ea
+        //            ON ea.event_assign_id = d.event_assign_id
+        //        WHERE ea.assigned_by = @assigned_by
+        //          AND d.is_active = 1
+        //          AND d.detection_status IN ('submit','push-to-qc')
+        //          AND ea.work_status IN ('completed','partial-completed')
+        //          AND ea.is_final_completed = 1
+        //          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+        //        GROUP BY
+        //            DATEPART(WEEKDAY, ea.analysis_end_datetime),
+        //            DATENAME(WEEKDAY, ea.analysis_end_datetime)
+        //        ORDER BY
+        //            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
+
+        //        case "month":
+
+        //            return $@"
+        //        SELECT
+        //            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
+        //            COUNT(DISTINCT d.queued_events_records_id) AS Events
+        //        FROM {Tbl.detection} d
+        //        INNER JOIN {Tbl.event_assign} ea
+        //            ON ea.event_assign_id = d.event_assign_id
+        //        WHERE ea.assigned_by = @assigned_by
+        //          AND d.is_active = 1
+        //          AND d.detection_status IN ('submit','push-to-qc')
+        //          AND ea.work_status IN ('completed','partial-completed')
+        //          AND ea.is_final_completed = 1
+        //          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+        //        GROUP BY
+        //            DATEPART(WEEKDAY, ea.analysis_end_datetime),
+        //            DATENAME(WEEKDAY, ea.analysis_end_datetime)
+        //        ORDER BY
+        //            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
+
+        //        default:
+
+        //            return $@"
+        //        SELECT
+        //            FORMAT(ea.analysis_end_datetime, 'HH:00') AS Label,
+        //            COUNT(DISTINCT d.queued_events_records_id) AS Events
+        //        FROM {Tbl.detection} d
+        //        INNER JOIN {Tbl.event_assign} ea
+        //            ON ea.event_assign_id = d.event_assign_id
+        //        WHERE ea.assigned_by = @assigned_by
+        //          AND d.is_active = 1
+        //          AND d.detection_status IN ('submit','push-to-qc')
+        //          AND ea.work_status IN ('completed','partial-completed')
+        //          AND ea.is_final_completed = 1
+        //          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
+        //        GROUP BY
+        //            FORMAT(ea.analysis_end_datetime, 'HH:00')
+        //        ORDER BY
+        //            Label";
+        //    }
+        //}
         #endregion
     }
 

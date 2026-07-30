@@ -63,9 +63,11 @@ namespace elr_API.Controllers.User_manager
         #endregion
 
         #region HttpPost = api/User/ElrAddUpdateEmployeeDetails
-        [HttpPost("ElrAddUpdateEmployeeDetails")]
-        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateEmployeeDetails(AddUpdateEmployeeDetailsReqDTO obj)
+        [HttpPost("ElrAddUpdateEmployeeDetails"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateEmployeeDetails([FromHeader] string authorization, AddUpdateEmployeeDetailsReqDTO obj)
         {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _userService.ElrAddUpdateEmployeeDetails(obj);
         }
         #endregion
