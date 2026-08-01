@@ -159,9 +159,11 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/AddUpdateTest
-        [HttpPost("AddUpdateTest")]
-        public async Task<ActionResult<ResponseDTO>> AddUpdateTest(AddUpdateTestDTO obj)
+        [HttpPost("AddUpdateTest"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> AddUpdateTest([FromHeader] string authorization, AddUpdateTestDTO obj)
         {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _homeService.AddUpdateTest(obj);
         }
         #endregion
@@ -184,10 +186,22 @@ namespace elr_API.Controllers.Home_manager
 
 
         #region HttpPost = api/Home/AddUpdateTestPrices
-        [HttpPost("AddUpdateTestPrices")]
-        public async Task<ActionResult<ResponseDTO>> AddUpdateTestPrices(AddUpdateTestPricesDTO obj)
+        [HttpPost("AddUpdateTestPrices"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> AddUpdateTestPrices([FromHeader] string authorization, AddUpdateTestPricesDTO obj)
         {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _homeService.AddUpdateTestPrices(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrAddUpdateSymtomType
+        [HttpPost("ElrAddUpdateSymtomType"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateSymtomType([FromHeader] string authorization, SymtomTypeDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdateSymtomType(obj);
         }
         #endregion
 

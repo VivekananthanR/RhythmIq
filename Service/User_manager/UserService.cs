@@ -54,9 +54,14 @@ namespace elr_API.Service.User_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                if (obj.patient_id == 0) query = PatientVerifyLoginResDTO.insert_patient_details();
-                query = PatientVerifyLoginResDTO.update_patient_details();
+                if (obj.patient_id == 0)
+                    query = PatientVerifyLoginResDTO.insert_patient_details();
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = PatientVerifyLoginResDTO.update_patient_details();
 
+                }
                 var result = await _dp.Execute(query, obj, Elr_db);
                 return new ResponseDTO(result > 0, result > 0 ? (obj.patient_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
 
@@ -218,7 +223,11 @@ namespace elr_API.Service.User_manager
                 }
                 if (obj.user_id == 0) query = AddUpdateEmployeeDetailsReqDTO.employee_details_insert();
 
-                else query = AddUpdateEmployeeDetailsReqDTO.employee_details_update();
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = AddUpdateEmployeeDetailsReqDTO.employee_details_update();
+                }
 
                 int changed = await _dp.Execute(query, obj, Elr_db);
                 return new ResponseDTO(changed > 0, changed > 0 ? (obj.user_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);

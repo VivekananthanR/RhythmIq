@@ -1223,7 +1223,27 @@ namespace elr_API.DTO.ReqDTO
         #endregion
 
     }
-
+    public class SymtomTypeDTO
+    {
+        public long symptoms_type_id { get; set; }
+        public string symptoms_type { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+        #region Query
+        internal static string insert_symptoms_type()
+        {
+            return $@"insert into {Tbl.symptoms_type} (symptoms_type,created_by)
+                        values (@symptoms_type,@created_by)";
+        }
+        internal static string update_symptoms_type()
+        {
+            return $@"update {Tbl.symptoms_type} set symptoms_type = @symptoms_type, modified_by = @modified_by, modified_datetime = GETDATE() ,is_active = @is_active where symptoms_type_id = @symptoms_type_id";
+        }
+        #endregion
+    }
 
     public class FetchHistoryDTO
     {

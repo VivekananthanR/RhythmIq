@@ -14,7 +14,7 @@ namespace elr_API.Common
         public static bool DataOnLive()
         {
             return false;// If its Local
-            //return true//If its Live
+            //return true//If its Live      
         }
 
         #endregion
@@ -24,20 +24,20 @@ namespace elr_API.Common
         {
             if (DataOnLive())
             {
-                if (db == "elr_db")
+                if (db == "elr_db_test")
                 {
-                    return "Data Source=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                    return "Data Source=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_test; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
                 }
                 else return "";
             }
             else
             {
-                if (db == "elr_db")
-                {
-                    return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
-                    //return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_18july; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
-                }
-                else return "";
+                //if (db == "elr_db_test")
+                //{
+                //return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_test; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                //}
+                //else return "";
             }
         }
         #endregion

@@ -57,6 +57,7 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrUploadQueueAnomaly(QueuedAnomalyDTO obj);
 
         Task<List<SymptomDTO>> ElrSymptomList(long queued_events_records_id);
+        Task<ResponseDTO> ElrAddUpdateSymtomType(SymtomTypeDTO obj);
 
 
         //Next event & Next qc event

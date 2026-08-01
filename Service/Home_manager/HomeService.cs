@@ -27,9 +27,12 @@ namespace elr_API.Service.Home_manager
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 if (obj.device_id == 0) query = DeviceResDTO.insert_device();
+                else
+                {
 
-                obj.modified_by = obj.created_by;
-                query = DeviceResDTO.update_device();
+                    obj.modified_by = obj.created_by;
+                    query = DeviceResDTO.update_device();
+                }
 
                 int row = await _db.Execute(query, obj, ELR_db);
 
@@ -52,9 +55,12 @@ namespace elr_API.Service.Home_manager
             try
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
-                if (obj.patch_id == 0) PatchResDTO.insert_patch();
-                obj.modified_by = obj.created_by;
-                query = PatchResDTO.update_patch();
+                if (obj.patch_id == 0) query = PatchResDTO.insert_patch();
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = PatchResDTO.update_patch();
+                }
 
                 int row = await _db.Execute(query, obj, ELR_db);
 
@@ -319,8 +325,11 @@ namespace elr_API.Service.Home_manager
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 if (obj.test_id == 0) query = AddUpdateTestDTO.insert_test();
-                else query = AddUpdateTestDTO.update_test();
-
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = AddUpdateTestDTO.update_test();
+                }
                 var changed = await _db.Execute(query, obj, ELR_db);
                 return new ResponseDTO(changed > 0, changed > 0 ? (obj.test_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
             }
@@ -393,8 +402,11 @@ namespace elr_API.Service.Home_manager
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 if (obj.test_prices_id == 0) query = AddUpdateTestPricesDTO.insert_test_prices();
-                else query = AddUpdateTestPricesDTO.update_test_prices();
-
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = AddUpdateTestPricesDTO.update_test_prices();
+                }
                 var changed = await _db.Execute(query, obj, ELR_db);
                 return new ResponseDTO(changed > 0, changed > 0 ? (obj.test_prices_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
             }
@@ -683,7 +695,31 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<ResponseDTO> ElrAddUpdateSymtomType(SymtomTypeDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.symptoms_type_id == 0) query = SymtomTypeDTO.insert_symptoms_type();
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = SymtomTypeDTO.update_symptoms_type();
+                }
+                var changed = await _db.Execute(query, obj, ELR_db);
 
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.symptoms_type_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
         public async Task<ResponseDTO> ElrGetNextEvent(long emp_id)
         {

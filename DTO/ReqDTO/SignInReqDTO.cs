@@ -66,15 +66,16 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string insert_patient_details()
         {
-            return $@"Insert Into{Tbl.patient}(patient_name,dob,age,phone_no,emergency_phone_no,email_id,gender,state_id,country_id,district_id,city,pincode,created_by)
+            return $@"Insert Into {Tbl.patient} (patient_name,dob,age,phone_no,emergency_phone_no,email_id,gender,state_id,country_id,district_id,city,pincode,created_by)
                         Values (@patient_name, @dob, @age, @phone_no, @emergency_phone_no ,@email_id ,@gender, @state_id ,@country_id, @district_id,@city ,@pincode,@created_by)";
         }
 
         internal static string update_patient_details()
         {
             return $@"Update {Tbl.patient}
-                      Set patient_name =@patient_name,dob = @dob,age = @age,phone_no = @phone_no,emergency_phone_no = @emergency_phone_no, email_id = @email_id, gender= @gender,state_id =@state_id,country_id=@country_id,
-                            state_id =@state_id,country_id=@country_id,district_id = @district_id,city = @city,pincode=@pincode
+                      Set patient_name =@patient_name,dob = @dob,age = @age,phone_no = @phone_no,emergency_phone_no = @emergency_phone_no, email_id = @email_id,
+                             gender= @gender,state_id =@state_id,country_id=@country_id, modified_by =@modified_by,modified_datetime = getdate(),
+                            district_id = @district_id,city = @city,pincode=@pincode
                       where patient_id = @patient_id";
 
         }
