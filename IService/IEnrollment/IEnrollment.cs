@@ -10,12 +10,12 @@ namespace elr_API.IService.IEntrolement
         Task<ResponseDTO> ElrValidPatchId(PatchAssignmentReqDTO obj);
         Task<ResponseDTO> ElrUploadPatientDevice(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrUploadSignature(PatientEnrollmentDTO obj);
-        Task<ResponseDTO> ElrStartHookUpPatient(long patient_enrollment_id);
+        Task<ResponseDTO> ElrStartHookUpPatient(PatientEnrollmentReqDTO obj);
         Task<ResponseDTO> ElrSymtomsList();
         Task<ResponseDTO> ElrAddSymtoms(SymtomsDTO obj);
         Task<ResponseDTO> ElrCompleteHookUpPatient(long patient_enrollment_id);
-        Task<ResponseDTO> ElrEnrollmentCreationList(long? patient_enrollment_id);
         Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj);
+        Task<ResponseDTO> ElrEnrollmentCreationList(long? patient_enrollment_id);
         Task<ResponseDTO> ElrUploadEnrollmentRawData(EnrollmentRawDataDTO obj);
         Task ElrPhythonProcessEnrollmentRawData();
         Task<ResponseDTO> ElrGetRawDataList();

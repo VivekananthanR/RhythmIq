@@ -41,12 +41,7 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string check_enrollment_exists()
         {
-            return $@" select count(1) from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id and is_active = 1 ";
-        }
-        internal static string check_completed_enrollment()
-        {
-            return $@" select count(1) from {Tbl.patient_enrollment}
-                        where  patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'completed' and is_active =1";
+            return $@" select count(1) from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id and is_active = 1 and enrollment_status = 'hookuped' ";
         }
 
         #endregion
@@ -118,7 +113,8 @@ namespace elr_API.DTO.ReqDTO
                         payment_status,
                         payment_datetime,
                         enrollment_status,
-                        is_pacemaker
+                        is_pacemaker,
+                        created_by
                     )
                     SELECT
                         @user_id,
@@ -134,7 +130,8 @@ namespace elr_API.DTO.ReqDTO
                         @payment_status,
                         @payment_datetime,
                         @enrollment_status,
-                        @is_pacemaker
+                        @is_pacemaker,
+                        @created_by
                     FROM {Tbl.test_prices} tp
                     INNER JOIN {Tbl.test_mast} tm
                         ON tp.test_id = tm.test_id
@@ -143,12 +140,10 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string update_enrollment()
         {
-            return $@"UPDATE tbl_patient_enrollment SET
+            return $@"UPDATE {Tbl.patient_enrollment} SET
                     user_id                  = @user_id,
                     patient_id               = @patient_id,
-                    device_id                = @device_id,
-                    patch_id                 = @patch_id,
-                    referred_physician       = @referred_physician,
+                    referred_physician_id       = @referred_physician_id,
                     actual_technician_id     = @actual_technician_id,
                     hospital_id              = @hospital_id,
                     schedule_hookup          = @schedule_hookup,
@@ -185,12 +180,16 @@ namespace elr_API.DTO.ReqDTO
                     WHERE patient_enrollment_id = @patient_enrollment_id";
         }
 
-        internal static string start_hookup_status(long patient_enrollment_id)
+        internal static string start_hookup_status()
         {
             return $@"UPDATE {Tbl.patient_enrollment}
               SET actual_hookup = GETDATE(),
-                  enrollment_status = 'hookuped'
-              WHERE patient_enrollment_id = {patient_enrollment_id}";
+                  enrollment_status = @enrollment_status,
+                  modified_by = @modified_by,   
+                  device_id = @device_id,   
+                  patch_id = @patch_id,
+                  modified_datetime = getdate()
+              WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
         }
 
         internal static string complete_hookup_status(long complete_hookup_patient)
@@ -393,7 +392,6 @@ namespace elr_API.DTO.ReqDTO
                     SET
                         auto_check_status = 'waiting',
                         completed_datetime = NULL, 
-                        remarks = @remarks,
                         retry_count = retry_count + 1
                     WHERE enrollment_raw_data_id = @enrollment_raw_data_id";
         }

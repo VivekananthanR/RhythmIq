@@ -1793,17 +1793,6 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
-                #region
-                //query = MyProgressDTO.get_progress_summary(type);
-                //var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
-
-                //if (summary == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
-
-                //query = MyProgressDTO.get_progress_chart(type);
-                //summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
-
-                //return new ResponseDTO(summary);
-                #endregion
 
                 query = MyProgressDTO.GetProgressSummary(type);
                 var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();

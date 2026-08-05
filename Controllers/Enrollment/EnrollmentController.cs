@@ -20,9 +20,10 @@ namespace elr_API.Controllers.Entrolement
         }
 
         #region HttpGet = api/Enrollment/ElrGetValidEnrollmentId?patient_enrollment_id=
-        [HttpGet("ElrGetValidEnrollmentId")]
+        [HttpGet("ElrGetValidEnrollmentId"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrGetValidEnrollmentId(long patient_enrollment_id)
         {
+            //TokenClaims tokenClaims = Validation.ClaimValues(authorization);
             return await _enrollment.ElrGetValidEnrollmentId(patient_enrollment_id);
         }
         #endregion
@@ -63,11 +64,13 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
-        #region HttpPost = api/Enrollment/ElrStartHookUpPatient?patient_enrollment_id=
-        [HttpPost("ElrStartHookUpPatient")]
-        public async Task<ActionResult<ResponseDTO>> ElrStartHookUpPatient(long patient_enrollment_id)
+        #region HttpPost = api/Enrollment/ElrStartHookUpPatient
+        [HttpPost("ElrStartHookUpPatient"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrStartHookUpPatient([FromHeader] string authorization, PatientEnrollmentReqDTO obj)
         {
-            return await _enrollment.ElrStartHookUpPatient(patient_enrollment_id);
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _enrollment.ElrStartHookUpPatient(obj);
         }
         #endregion
 
@@ -106,9 +109,11 @@ namespace elr_API.Controllers.Entrolement
         #endregion
 
         #region HttpPost = api/Enrollment/ElrAddUpdatePatientEnrollment
-        [HttpPost("ElrAddUpdatePatientEnrollment")]
-        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment([FromBody] PatientEnrollmentDTO obj)
+        [HttpPost("ElrAddUpdatePatientEnrollment"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment([FromHeader] string authorization, [FromBody] PatientEnrollmentDTO obj)
         {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
             return await _enrollment.ElrAddUpdatePatientEnrollment(obj);
         }
         #endregion

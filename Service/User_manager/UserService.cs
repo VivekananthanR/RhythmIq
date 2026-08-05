@@ -78,97 +78,91 @@ namespace elr_API.Service.User_manager
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
+
             try
             {
                 if (obj == null || string.IsNullOrEmpty(obj.phone_no) || !Validation.IsValidPhoneNumber(obj.phone_no))
                     return new ResponseDTO(false, "Invalid phone number.");
 
+                query = PatientVerifyLoginReqDTO.existing_select_patient();
 
-                query = PatientVerifyLoginReqDTO.existing_select_patient(obj);
+                var existPatient = (await _dp.SelectQuery<PatientVerifyLoginResDTO>(query, new { phone_no = obj.phone_no }, Elr_db)).FirstOrDefault();
 
-                var existPatientElr = (await _dp.SelectQuery<PatientVerifyLoginResDTO>(query, null, Elr_db)).FirstOrDefault();
-
-                PatientVerifyLoginResDTO existPatientConnect = null;
-
-                if (existPatientElr == null)
+                if (existPatient == null)
                 {
                     var connectDetails = await _helperService.GetConnectPatientDetails(obj.phone_no);
-                    if (connectDetails != null)
+
+                    if (connectDetails == null)
+                        return new ResponseDTO("Create A New Patient");
+
+                    existPatient = new PatientVerifyLoginResDTO
                     {
-                        existPatientConnect = new PatientVerifyLoginResDTO
-                        {
-
-                            patient_id = connectDetails.patient_id,
-                            patient_name = connectDetails.patient_fullname,
-                            dob = DateTime.TryParse(connectDetails.patient_dob, out var parsedDob) ? parsedDob : default,
-                            age = int.TryParse(connectDetails.patient_age, out var parsedAge) ? parsedAge : 0,
-                            phone_no = connectDetails.patient_mobileno,
-                            emergency_phone_no = connectDetails.emergency_phone_no,
-                            email_id = connectDetails.patient_emailid,
-                            gender = connectDetails.patient_gender,
-                            city = connectDetails.patient_cityname,
-                            pincode = connectDetails.patient_pincode,
-                        };
-                    }
+                        patient_id = connectDetails.patient_id,
+                        patient_name = connectDetails.patient_fullname,
+                        dob = DateTime.TryParse(connectDetails.patient_dob, out var parsedDob) ? parsedDob : default,
+                        age = int.TryParse(connectDetails.patient_age, out var parsedAge) ? parsedAge : 0,
+                        phone_no = connectDetails.patient_mobileno,
+                        emergency_phone_no = connectDetails.emergency_phone_no,
+                        email_id = connectDetails.patient_emailid,
+                        gender = connectDetails.patient_gender,
+                        city = connectDetails.patient_cityname,
+                        pincode = connectDetails.patient_pincode
+                    };
                 }
-                var existPatient = existPatientElr ?? existPatientConnect;
 
-
-                if (existPatient == null && obj.otp == 0)
-                    return new ResponseDTO("Create A New Patient");
-                else
+                if (obj.otp == 0)
                 {
-                    if (obj.otp == 0)
+                    existPatient.otp = obj.phone_no == "8056661324"
+                        ? 123456
+                        : CommonFunctions.GenerateOTP(6);
+
+                    if (obj.phone_no != "8056661324")
                     {
-
-                        existPatient.otp = CommonFunctions.GenerateOTP(6);
-
-                        if (obj.phone_no == "8056661324") obj.otp = 123456;
-
-                        #region send Otp to sms and email
-
-                        if (obj.phone_no != "8056661324")
+                        await _iqberrychatService.OtpForLoggingPatient(new OtpForLoggingReqDTO
                         {
-                            OtpForLoggingReqDTO otpForLoggingReqDTO = new OtpForLoggingReqDTO
-                            {
-                                phone_no = existPatient.phone_no,
-                                otp = existPatient.otp.Value
-                            };
-                            await _iqberrychatService.OtpForLoggingPatient(otpForLoggingReqDTO);
-
-                        }
-                        #endregion
-                        query = PatientVerifyLoginReqDTO.Send_otp_update(existPatient);
-
-                        int a = await _dp.Execute(query, new { phone_no = existPatient.phone_no, otp = existPatient.otp.Value }, Elr_db);
-
-                        return new ResponseDTO(a > 0, a > 0 ? ResponseMessage.OTP_sended : ResponseMessage.Failed);
+                            phone_no = existPatient.phone_no,
+                            otp = existPatient.otp.Value
+                        });
                     }
 
-                    if (existPatient == null && obj.otp != 0) return new ResponseDTO(false, ResponseMessage.Invalid_OTP);
+                    query = PatientVerifyLoginReqDTO.Send_otp_update();
 
-                    else
-                    {
-                        if (existPatient.expiry_date < DateTime.Now)
+                    int result = await _dp.Execute(query,
+                        new
                         {
-                            return new ResponseDTO(false, ResponseMessage.OTP_is_Expiry);
-                        }
-                        else
-                        {
-                            return new ResponseDTO(existPatient);
-                        }
-                    }
+                            phone_no = existPatient.phone_no,
+                            otp = existPatient.otp.Value
+                        },
+                        Elr_db);
+
+                    return new ResponseDTO(result > 0,
+                        result > 0 ? ResponseMessage.OTP_sended : ResponseMessage.Failed);
                 }
 
+                query = PatientVerifyLoginReqDTO.otp_verify_select();
+
+                var otpDetails = (await _dp.SelectQuery<PatientVerifyLoginResDTO>(
+                    query,
+                    new
+                    {
+                        phone_no = obj.phone_no,
+                        otp = obj.otp
+                    },
+                    Elr_db)).FirstOrDefault();
+
+                if (otpDetails == null)
+                    return new ResponseDTO(false, ResponseMessage.Invalid_OTP);
+
+                return new ResponseDTO(otpDetails);
             }
             catch (Exception ex)
             {
                 CommonFunctions.ILogging(obj, ex.ToString());
-                ErrorMessage = ex.Message.ToString();
+                ErrorMessage = ex.Message;
             }
+
             return new ResponseDTO(ErrorMessage);
         }
-
         public async Task<ResponseDTO> ElrGetEmployeeNameList(string user_name)
         {
             ErrorMessage = string.Empty;

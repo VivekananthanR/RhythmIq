@@ -100,5 +100,6 @@ namespace elr_API.IService.IHome_manager
 
         Task<ResponseDTO> ElrMyProgress(long emp_id, string type);
 
+        Task<ResponseDTO> ElrGetEcgSearch();
     }
 }

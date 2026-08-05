@@ -34,8 +34,8 @@ namespace elr_API.Common
             {
                 //if (db == "elr_db_test")
                 //{
-                //return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_test; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
-                return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_test; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                //return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
                 //}
                 //else return "";
             }

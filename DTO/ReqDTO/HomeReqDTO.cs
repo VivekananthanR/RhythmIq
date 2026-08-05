@@ -659,11 +659,11 @@ namespace elr_API.DTO.ReqDTO
         internal static string update_device_status()
         {
             return $@"Update {Tbl.device_mast}
-                        set device_status='engaged',
-                            current_emp_id=@emp_id,
-                            modified_by=@created_by,
+                        set device_status= @device_status,
+                            current_emp_id=@current_emp_id,
+                            modified_by=@modified_by,
                             modified_datetime=GETDATE()
-                        WHERE device_id=@device_id ;";
+                        WHERE device_id = @device_id  and device_status = 'active';";
         }
 
 
@@ -788,7 +788,7 @@ namespace elr_API.DTO.ReqDTO
                             modified_by = @modified_by,
                             current_emp_id = @current_emp_id,
                             modified_datetime = getdate()
-                            where patch_id = @patch_id";
+                            where patch_id = @patch_id and patch_status = 'active'";
         }
 
         #endregion
@@ -3173,20 +3173,24 @@ namespace elr_API.DTO.ReqDTO
                 LEFT JOIN {Tbl.queued_events_records} q
                     ON
                     (
-                        DATEDIFF
+                        CASE DATEDIFF
                         (
                             WEEK,
+                            q.completed_datetime,
                             DATEADD
                             (
-                                WEEK,-3,
-                                DATEADD(DAY,
-                                1-DATEPART(WEEKDAY,GETDATE()),
-                                CAST(GETDATE() AS DATE))
-                            ),
-                            q.completed_datetime
-                        )+1
-                    )=w.WeekNo
-                    AND q.completed_by=@assigned_by
+                                DAY,
+                                -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+                                CAST(GETDATE() AS DATE)
+                            )
+                        )
+                            WHEN 0 THEN 1
+                            WHEN 1 THEN 2
+                            WHEN 2 THEN 3
+                            WHEN 3 THEN 4
+                        END
+                    ) = w.WeekNo
+                    AND q.completed_by = @assigned_by
                     AND q.completed_datetime IS NOT NULL
                     AND {GetDateFilter(type)}
 
@@ -3232,129 +3236,6 @@ namespace elr_API.DTO.ReqDTO
 
         #endregion
 
-        #region Query
-
-        //internal static string get_date_filter(string type)
-        //{
-        //    switch (type.ToLower())
-        //    {
-        //        case "week":
-        //            return "analysis_end_datetime >= DATEADD(DAY,-6,CAST(GETDATE() AS DATE))";
-
-        //        case "month":
-        //            return "analysis_end_datetime >= DATEADD(WEEK,-4,CAST(GETDATE() AS DATE))";
-
-        //        default:
-        //            return "CAST(analysis_end_datetime AS DATE)=CAST(GETDATE() AS DATE)";
-        //    }
-        //}
-
-        //internal static string get_progress_summary(string type)
-        //{
-        //    string productivity;
-        //    string unit;
-
-        //    switch (type.ToLower())
-        //    {
-        //        case "week":
-        //            productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
-        //            unit = "'events/day'";
-        //            break;
-
-        //        case "month":
-        //            productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) / 28.0 AS DECIMAL(10,2))";
-        //            unit = "'events/day'";
-        //            break;
-
-        //        default:
-        //            productivity = "CAST(COUNT(DISTINCT d.queued_events_records_id) AS DECIMAL(10,2))";
-        //            unit = "'events/day'";
-        //            break;
-        //    }
-
-        //    return $@"
-        //            SELECT
-        //                COUNT(DISTINCT d.queued_events_records_id) AS EventsSubmitted,
-        //                {productivity} AS Productivity,
-        //                {unit} AS ProductivityUnit
-        //            FROM {Tbl.detection} d
-        //            INNER JOIN {Tbl.event_assign} ea
-        //                ON ea.event_assign_id = d.event_assign_id
-        //            WHERE ea.assigned_by = @assigned_by
-        //              AND d.is_active = 1
-        //              AND d.detection_status IN ('submit','push-to-qc')
-        //              AND ea.work_status IN ('completed','partial-completed')
-        //              AND ea.is_final_completed = 1
-        //              AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}";
-        //}
-        //internal static string get_progress_chart(string type)
-        //{
-        //    switch (type.ToLower())
-        //    {
-        //        case "week":
-
-        //            return $@"
-        //        SELECT
-        //            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
-        //            COUNT(DISTINCT d.queued_events_records_id) AS Events
-        //        FROM {Tbl.detection} d
-        //        INNER JOIN {Tbl.event_assign} ea
-        //            ON ea.event_assign_id = d.event_assign_id
-        //        WHERE ea.assigned_by = @assigned_by
-        //          AND d.is_active = 1
-        //          AND d.detection_status IN ('submit','push-to-qc')
-        //          AND ea.work_status IN ('completed','partial-completed')
-        //          AND ea.is_final_completed = 1
-        //          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-        //        GROUP BY
-        //            DATEPART(WEEKDAY, ea.analysis_end_datetime),
-        //            DATENAME(WEEKDAY, ea.analysis_end_datetime)
-        //        ORDER BY
-        //            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
-
-        //        case "month":
-
-        //            return $@"
-        //        SELECT
-        //            DATENAME(WEEKDAY, ea.analysis_end_datetime) AS Label,
-        //            COUNT(DISTINCT d.queued_events_records_id) AS Events
-        //        FROM {Tbl.detection} d
-        //        INNER JOIN {Tbl.event_assign} ea
-        //            ON ea.event_assign_id = d.event_assign_id
-        //        WHERE ea.assigned_by = @assigned_by
-        //          AND d.is_active = 1
-        //          AND d.detection_status IN ('submit','push-to-qc')
-        //          AND ea.work_status IN ('completed','partial-completed')
-        //          AND ea.is_final_completed = 1
-        //          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-        //        GROUP BY
-        //            DATEPART(WEEKDAY, ea.analysis_end_datetime),
-        //            DATENAME(WEEKDAY, ea.analysis_end_datetime)
-        //        ORDER BY
-        //            DATEPART(WEEKDAY, ea.analysis_end_datetime)";
-
-        //        default:
-
-        //            return $@"
-        //        SELECT
-        //            FORMAT(ea.analysis_end_datetime, 'HH:00') AS Label,
-        //            COUNT(DISTINCT d.queued_events_records_id) AS Events
-        //        FROM {Tbl.detection} d
-        //        INNER JOIN {Tbl.event_assign} ea
-        //            ON ea.event_assign_id = d.event_assign_id
-        //        WHERE ea.assigned_by = @assigned_by
-        //          AND d.is_active = 1
-        //          AND d.detection_status IN ('submit','push-to-qc')
-        //          AND ea.work_status IN ('completed','partial-completed')
-        //          AND ea.is_final_completed = 1
-        //          AND {get_date_filter(type).Replace("analysis_end_datetime", "ea.analysis_end_datetime")}
-        //        GROUP BY
-        //            FORMAT(ea.analysis_end_datetime, 'HH:00')
-        //        ORDER BY
-        //            Label";
-        //    }
-        //}
-        #endregion
     }
 
     public class MyProgressChartDTO
@@ -3362,5 +3243,87 @@ namespace elr_API.DTO.ReqDTO
         public string Label { get; set; }
 
         public int Events { get; set; }
+    }
+
+
+    public class EcgSearchReqDTO
+    {
+        public string? event_start { get; set; }
+        public string? event_end { get; set; }
+        public DateTime? from_date { get; set; }
+        public DateTime? to_date { get; set; }
+        public long? event_finding_id { get; set; }
+        public long? queued_events_records_id { get; set; }
+        public long? user_id { get; set; }
+
+        public int? pageNumber { get; set; }
+        public int? pageSize { get; set; }
+        public int? offSet => (pageNumber - 1) * pageSize;
+        public string shortColumn { get; set; }
+        public string orderBy { get; set; }
+    }
+
+    public class EcgSearchResDTO
+    {
+        public long queued_events_records_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public long enrollment_raw_data_id { get; set; }
+        public string priority_level { get; set; }
+        public string trigger_type { get; set; }
+        public int bpm { get; set; }
+        public string event_status { get; set; }
+        public string event_file_path { get; set; }
+        public DateTime? event_start_datetime { get; set; }
+        public DateTime? completed_datetime { get; set; }
+        public long patient_id { get; set; }
+        public string patient_name { get; set; }
+        public long device_id { get; set; }
+        public string device_no { get; set; }
+        public string device_name { get; set; }
+        public long user_id { get; set; }
+        public string user_name { get; set; }
+
+        #region Query
+        internal static string get_ecg_search(EcgSearchReqDTO obj)
+        {
+            return $@"
+                    SELECT
+                        d.detection_id,
+                        d.sub_strip_event_id,
+                        d.queued_events_records_id,
+                        d.detection_status,
+                        d.created_by,
+                        d.created_datetime,
+                        qu.queued_events_records_id,
+                        qu.trigger_type,
+                        qu.completed_datetime,
+                        qu.event_status,
+                        qu.modified_by,
+                        ea.event_assign_id,
+                        ea.work_status,
+                        u.user_id,
+                        u.user_name,
+                        pt.patient_id,
+                        pt.patient_name
+                    FROM {Tbl.detection} d
+                    LEFT JOIN {Tbl.queued_events_records} qu
+                        ON d.queued_events_records_id = qu.queued_events_records_id
+                    LEFT JOIN {Tbl.event_assign} ea
+                        ON ea.event_assign_id = d.event_assign_id
+                    LEFT JOIN {Tbl.patient_enrollment} p
+                        ON qu.patient_enrollment_id = p.patient_enrollment_id
+                    LEFT JOIN {Tbl.patient} pt
+                        ON pt.patient_id = p.patient_id
+                    LEFT JOIN {Tbl.user_master} u
+                        ON u.user_id = d.created_by
+                    WHERE ea.work_status = 'partial-completed'
+                      AND d.is_active = 1
+                      AND (
+                            
+                          )
+                    ORDER BY {obj.shortColumn} {obj.orderBy} 
+                    offset {obj.offSet} rows fetch next {obj.pageSize} rows only";
+        #endregion
+        }
     }
 }
