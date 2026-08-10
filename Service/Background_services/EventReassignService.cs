@@ -9,7 +9,7 @@ namespace elr_API.Service.Background_services
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public string ELR_db = CommonFunctions.GetConnectionString("elr_db");
+        public string ELR_db = CommonFunctions.GetConnectionString("elr_DB");
 
         public EventReassignService(IServiceScopeFactory serviceScopeFactory)
         {

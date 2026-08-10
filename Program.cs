@@ -26,6 +26,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSignalR();
 builder.Services.AddHttpClient();
 
 #region CORS configuration
@@ -37,7 +40,6 @@ builder.Services.AddCors(op =>
     });
 });
 #endregion
-
 
 #region Authentication 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
@@ -88,10 +90,10 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseHttpsRedirection();
 //app.UseSerilogRequestLogging();
 app.UseCors("AllowAll");
 app.UseMiddleware<CustomErrorHandlingMiddleware>();
-app.UseHttpsRedirection();
 
 app.UseDefaultFiles();
 

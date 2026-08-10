@@ -12,7 +12,7 @@ namespace elr_API.Service.Home_manager
     {
         private readonly IDapperSqlService _db;
         public string ErrorMessage = string.Empty;
-        public string ELR_db = CommonFunctions.GetConnectionString("elr_db");
+        public string ELR_db = CommonFunctions.GetConnectionString("elr_DB");
         public HomeService(IDapperSqlService db)
         {
             _db = db;

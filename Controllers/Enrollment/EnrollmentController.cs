@@ -20,7 +20,7 @@ namespace elr_API.Controllers.Entrolement
         }
 
         #region HttpGet = api/Enrollment/ElrGetValidEnrollmentId?patient_enrollment_id=
-        [HttpGet("ElrGetValidEnrollmentId"), Authorize]
+        [HttpGet("ElrGetValidEnrollmentId")]
         public async Task<ActionResult<ResponseDTO>> ElrGetValidEnrollmentId(long patient_enrollment_id)
         {
             //TokenClaims tokenClaims = Validation.ClaimValues(authorization);
@@ -29,23 +29,33 @@ namespace elr_API.Controllers.Entrolement
         #endregion
 
         #region HttpGet = api/Enrollment/ElrValidDeviceId
-        [HttpPost("ElrValidDeviceId"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId([FromHeader] string authorization, DeviceAssignmentReqDTO obj)
+        //[HttpPost("ElrValidDeviceId"), Authorize]
+        //public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId([FromHeader] string authorization, DeviceAssignmentReqDTO obj)
+        //{
+        //    //TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+        //    //obj.emp_id = tokenClaims.id;
+        //    return await _enrollment.ElrValidDeviceId(obj);
+        //}
+        [HttpGet("ElrValidDeviceId")]
+        public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId(string device_no)
         {
-            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            obj.emp_id = tokenClaims.id;
-            return await _enrollment.ElrValidDeviceId(obj);
+            return await _enrollment.ElrValidDeviceId(device_no);
         }
         #endregion
 
-        #region HttpPost = api/Enrollment/ElrValidPatchId
-        [HttpPost("ElrValidPatchId")]
-        public async Task<ActionResult<ResponseDTO>> ElrValidPatchId([FromHeader] string authorization, PatchAssignmentReqDTO obj)
+        #region HttpGet = api/Enrollment/ElrValidPatchId?patch_no =
+        [HttpGet("ElrValidPatchId")]
+        public async Task<ActionResult<ResponseDTO>> ElrValidPatchId(string patch_no)
         {
-            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            obj.emp_id = tokenClaims.id;
-            return await _enrollment.ElrValidPatchId(obj);
+            return await _enrollment.ElrValidPatchId(patch_no);
         }
+        //[HttpPost("ElrValidPatchId")]
+        //public async Task<ActionResult<ResponseDTO>> ElrValidPatchId([FromHeader] string authorization, PatchAssignmentReqDTO obj)
+        //{
+        //    TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+        //    obj.emp_id = tokenClaims.id;
+        //    return await _enrollment.ElrValidPatchId(obj);
+        //}
         #endregion
 
         #region HttpPost = api/Enrollment/ElrUploadPatientDevice
@@ -65,13 +75,18 @@ namespace elr_API.Controllers.Entrolement
         #endregion
 
         #region HttpPost = api/Enrollment/ElrStartHookUpPatient
-        [HttpPost("ElrStartHookUpPatient"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrStartHookUpPatient([FromHeader] string authorization, PatientEnrollmentReqDTO obj)
+        [HttpPost("ElrStartHookUpPatient")]
+        public async Task<ActionResult<ResponseDTO>> ElrStartHookUpPatient(PatientEnrollmentReqDTO obj)
         {
-            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            obj.created_by = tokenClaims.id;
             return await _enrollment.ElrStartHookUpPatient(obj);
         }
+        //[HttpPost("ElrStartHookUpPatient"), Authorize]
+        //public async Task<ActionResult<ResponseDTO>> ElrStartHookUpPatient([FromHeader] string authorization, PatientEnrollmentReqDTO obj)
+        //{
+        //    TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+        //    obj.created_by = tokenClaims.id;
+        //    return await _enrollment.ElrStartHookUpPatient(obj);
+        //}
         #endregion
 
         #region HttpPost = api/Enrollment/ElrSymtomsList

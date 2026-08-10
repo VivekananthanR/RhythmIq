@@ -15,7 +15,7 @@ namespace elr_API.Service.Enrolment
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
 
-        public string ELR_db = CommonFunctions.GetConnectionString("elr_db");
+        public string ELR_db = CommonFunctions.GetConnectionString("elr_DB");
         public string ErrorMessage = string.Empty;
         public Enrollment(IDapperSqlService db, IQikberrychatService iqberrychatService, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory, IConfiguration configuration)
         {
@@ -35,11 +35,16 @@ namespace elr_API.Service.Enrolment
                 if (patient_enrollment_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = PatientEnrollmentReqDTO.check_enrollment_exists();
-                int exists = (await _db.SelectQuery<int>(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db)).FirstOrDefault();
+                var data = (await _db.SelectQuery<dynamic>(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db)).FirstOrDefault();
 
-                if (exists == 0) return new ResponseDTO(false, "Patient Enrollment Id Not Found. Device hookup cannot be assigned");
-
-                return new ResponseDTO(exists > 0, exists > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
+                if (data == null)
+                {
+                    return new ResponseDTO(false, "Patient Enrollment Id Not Found. Device hookup cannot be assigned");
+                }
+                else
+                {
+                    return new ResponseDTO(data);
+                }
             }
             catch (Exception ex)
             {
@@ -51,46 +56,21 @@ namespace elr_API.Service.Enrolment
 
 
 
-        public async Task<ResponseDTO> ElrValidDeviceId(DeviceAssignmentReqDTO obj)
+        public async Task<ResponseDTO> ElrValidDeviceId(string device_no)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                if (obj.patient_enrollment_id <= 0 || string.IsNullOrWhiteSpace(obj.device_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (string.IsNullOrWhiteSpace(device_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = DeviceResDTO.check_valid_device();
-                var deviceData = (await _db.SelectQuery<DeviceResDTO>(query, new { device_no = obj.device_no }, ELR_db)).FirstOrDefault();
+                var deviceData = (await _db.SelectQuery<DeviceResDTO>(query, new { device_no = device_no }, ELR_db)).FirstOrDefault();
 
                 if (deviceData == null) return new ResponseDTO(false, "Invalid Device Number.");
 
                 if (deviceData.device_status != "active") return new ResponseDTO(false, $"Device is currently {deviceData.device_status}. It cannot be assigned.");
 
-
-                query = DeviceAssignmentResDTO.check_device_assignment();
-                var assignment = (await _db.SelectQuery<DeviceAssignmentResDTO>(query, new { device_id = deviceData.device_id }, ELR_db)).FirstOrDefault();
-
-                if (assignment != null) return new ResponseDTO(false, "This device is already assigned to another patient.");
-
-                query = DeviceAssignmentResDTO.insert_device_assignment();
-                await _db.Execute(query, new
-                {
-                    device_id = deviceData.device_id,
-                    emp_id = obj.emp_id,
-                    patient_enrollment_id = obj.patient_enrollment_id,
-                    assignment_status = "assigned",
-                    created_by = obj.emp_id
-                }, ELR_db);
-
-                query = DeviceResDTO.update_device_status();
-                await _db.Execute(query, new
-                {
-                    device_status = "engaged",
-                    current_emp_id = obj.emp_id,
-                    modified_by = obj.emp_id,
-                    device_id = deviceData.device_id,
-                }, ELR_db);
-
                 return new ResponseDTO(true, ResponseMessage.Success);
 
             }
@@ -101,50 +81,22 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<ResponseDTO> ElrValidPatchId(PatchAssignmentReqDTO obj)
+        public async Task<ResponseDTO> ElrValidPatchId(string patch_no)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                if (obj.patient_enrollment_id <= 0 || string.IsNullOrWhiteSpace(obj.patch_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (string.IsNullOrWhiteSpace(patch_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = PatchResDTO.check_valid_patch();
-                var patchData = (await _db.SelectQuery<PatchResDTO>(query, new { patch_no = obj.patch_no }, ELR_db)).FirstOrDefault();
+                var patchData = (await _db.SelectQuery<PatchResDTO>(query, new { patch_no = patch_no }, ELR_db)).FirstOrDefault();
 
-                if (patchData == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                if (patchData == null) return new ResponseDTO(false, "Invalid Patch Number");
 
                 if (patchData.patch_status != "active") return new ResponseDTO(false, $"Patch is currently {patchData.patch_status}. It cannot be assigned.");
 
-                query = PatchAssignmentResDTO.check_patch_assignment();
-                var assignmentPatch = (await _db.SelectQuery<PatchAssignmentResDTO>(query, new { patch_id = patchData.patch_id }, ELR_db)).FirstOrDefault();
-
-                if (assignmentPatch != null) return new ResponseDTO(false, "This patch is already assigned to another patient.");
-
-                query = PatchAssignmentResDTO.insert_patch_assignment();
-                await _db.Execute(query,
-                    new
-                    {
-                        patch_id = patchData.patch_id,
-                        emp_id = obj.emp_id,
-                        patient_enrollment_id = obj.patient_enrollment_id,
-                        assignment_status = "assigned",
-                        created_by = obj.emp_id,
-
-                    }, ELR_db);
-
-                query = PatchResDTO.update_patch_status();
-                await _db.Execute(query, new
-                {
-                    patch_status = "engaged",
-                    current_emp_id = obj.emp_id,
-                    modified_by = obj.emp_id,
-                    patch_id = patchData.patch_id,
-                }, ELR_db);
-
                 return new ResponseDTO(true, ResponseMessage.Success);
-
-
 
             }
             catch (Exception ex)
@@ -299,17 +251,51 @@ namespace elr_API.Service.Enrolment
             string query = string.Empty;
             try
             {
-                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj == null || string.IsNullOrWhiteSpace(obj.patch_no) || string.IsNullOrWhiteSpace(obj.device_no) || obj.patient_enrollment_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = DeviceResDTO.get_device_assigned();
+                var deviceData = (await _db.SelectQuery<DeviceResDTO>(query, new { device_no = obj.device_no }, ELR_db)).FirstOrDefault();
+                if (deviceData == null) return new ResponseDTO(false, "Device not found or not assigned.");
+                query = PatchResDTO.get_patch_assigned();
+                var patchData = (await _db.SelectQuery<PatchResDTO>(query, new { patch_no = obj.patch_no }, ELR_db)).FirstOrDefault();
+                if (patchData == null) return new ResponseDTO(false, " Patch not found or not assigned.");
+
                 query = PatientEnrollmentDTO.start_hookup_status();
                 int row = await _db.Execute(query,
                     new
                     {
                         patient_enrollment_id = obj.patient_enrollment_id,
-                        device_id = obj.device_id,
-                        patch_id = obj.patch_id,
-                        modified_by = obj.created_by,
+                        device_id = deviceData.device_id,
+                        patch_id = patchData.patch_id,
+                        //modified_by = obj.created_by,
                         enrollment_status = "hookuped",
                     }, ELR_db);
+
+
+                query = DeviceResDTO.update_device_status();
+                await _db.Execute(query, new { device_id = deviceData.device_id, device_status = "engaged" }, ELR_db);
+
+                query = PatchResDTO.update_patch_status();
+                await _db.Execute(query, new { patch_id = patchData.patch_id, patch_status = "engaged" }, ELR_db);
+
+                query = DeviceAssignmentResDTO.insert_device_assignment();
+                await _db.Execute(query, new
+                {
+                    patient_enrollment_id = obj.patient_enrollment_id,
+                    device_id = deviceData.device_id,
+                    assignment_status = "assigned",
+                    //created_by = obj.created_by
+                }, ELR_db);
+
+
+                query = PatchAssignmentResDTO.insert_patch_assignment();
+                await _db.Execute(query, new
+                {
+                    patient_enrollment_id = obj.patient_enrollment_id,
+                    patch_id = patchData.patch_id,
+                    assignment_status = "assigned",
+                    //created_by = obj.created_by
+                }, ELR_db);
 
                 return new ResponseDTO(row > 0, row > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
             }
@@ -369,8 +355,38 @@ namespace elr_API.Service.Enrolment
             try
             {
                 if (patient_enrollment_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientEnrollmentDTO.check_completed_enrollment();
+                int checkData = (await _db.SelectQuery<int>(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db)).FirstOrDefault();
+                if (checkData > 0) return new ResponseDTO(false, "Patient enrollment is already completed. No further action is required.");
+
                 query = PatientEnrollmentDTO.complete_hookup_status(patient_enrollment_id);
                 int row = await _db.Execute(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db);
+
+                query = DeviceResDTO.get_device_by_enrollment();
+                long device_id = (await _db.SelectQuery<long>(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db)).FirstOrDefault();
+
+                if (device_id > 0)
+                {
+                    query = DeviceResDTO.update_device_status_active();
+                    await _db.Execute(query, new { device_id = device_id }, ELR_db);
+                }
+
+                query = DeviceAssignmentResDTO.complete_device_assignment();
+                await _db.Execute(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db);
+
+                query = PatchResDTO.get_patch_by_enrollment();
+                long patch_id = (await _db.SelectQuery<long>(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db)).FirstOrDefault();
+
+                if (patch_id > 0)
+                {
+                    query = PatchResDTO.update_patch_status_active();
+                    await _db.Execute(query, new { patch_id = patch_id }, ELR_db);
+
+                }
+
+                query = PatchAssignmentResDTO.complete_device_assignment();
+                await _db.Execute(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db);
 
                 return new ResponseDTO((row > 0), row > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
             }
@@ -504,7 +520,7 @@ namespace elr_API.Service.Enrolment
 
                     client.Timeout = TimeSpan.FromSeconds(30);
 
-                    var url = _configuration["PythonApi:ProcessUrl"];
+                    var url = CommonFunctions.DataOnLive() ? _configuration["PythonApi:ProcessUrlLive"] : _configuration["PythonApi:ProcessUrlLocal"];
 
                     var response = await client.PostAsync(url, formData);
 

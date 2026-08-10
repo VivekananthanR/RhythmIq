@@ -6,8 +6,8 @@ namespace elr_API.IService.IEntrolement
     public interface IEnrollment
     {
         Task<ResponseDTO> ElrGetValidEnrollmentId(long patient_enrollment_id);
-        Task<ResponseDTO> ElrValidDeviceId(DeviceAssignmentReqDTO obj);
-        Task<ResponseDTO> ElrValidPatchId(PatchAssignmentReqDTO obj);
+        Task<ResponseDTO> ElrValidDeviceId(string device_no);
+        Task<ResponseDTO> ElrValidPatchId(string patch_no);
         Task<ResponseDTO> ElrUploadPatientDevice(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrUploadSignature(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrStartHookUpPatient(PatientEnrollmentReqDTO obj);

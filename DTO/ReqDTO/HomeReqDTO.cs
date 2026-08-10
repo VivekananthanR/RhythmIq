@@ -656,14 +656,26 @@ namespace elr_API.DTO.ReqDTO
                         is_active = @is_active
                         where device_id = @device_id";
         }
+        //internal static string update_device_status()
+        //{
+        //    return $@"Update {Tbl.device_mast}
+        //                set device_status= @device_status,
+        //                    current_emp_id=@current_emp_id,
+        //                    modified_by=@modified_by,
+        //                   modified_datetime=GETDATE()
+        //                WHERE device_id = @device_id  and device_status = 'active';";
+
+        //}
         internal static string update_device_status()
         {
             return $@"Update {Tbl.device_mast}
-                        set device_status= @device_status,
-                            current_emp_id=@current_emp_id,
-                            modified_by=@modified_by,
-                            modified_datetime=GETDATE()
+                        set device_status= @device_status
                         WHERE device_id = @device_id  and device_status = 'active';";
+
+        }
+        internal static string get_device_assigned()
+        {
+            return $@"select device_id,device_no,device_status from {Tbl.device_mast} where device_no =@device_no and device_status = 'active' and is_active= 1";
         }
 
 
@@ -677,7 +689,25 @@ namespace elr_API.DTO.ReqDTO
                         device_status
                     FROM {Tbl.device_mast}
                     WHERE device_no = @device_no
-                    AND is_active = 1";
+                    AND is_active = 1 ";
+        }
+
+        internal static string update_device_status_active()
+        {
+            return $@"
+                    UPDATE {Tbl.device_mast}
+                    SET device_status = 'active'
+                    WHERE device_id = @device_id";
+        }
+
+        internal static string get_device_by_enrollment()
+        {
+            return $@"
+                    SELECT TOP 1 device_id
+                    FROM {Tbl.device_assignment}
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                      AND assignment_status = 'assigned'
+                      AND is_active = 1";
         }
 
         #endregion
@@ -718,20 +748,47 @@ namespace elr_API.DTO.ReqDTO
                     INSERT INTO {Tbl.device_assignment}
                     (
                         device_id,
-                        emp_id,
                         patient_enrollment_id,
-                        assignment_status,
-                        created_by
+                        assignment_status
                     )
                     VALUES
                     (
                         @device_id,
-                        @emp_id,
                         @patient_enrollment_id,
-                        @assignment_status,
-                        @created_by
+                        @assignment_status
                     );";
         }
+        //public static string insert_device_assignment()
+        //{
+        //    return $@"
+        //            INSERT INTO {Tbl.device_assignment}
+        //            (
+        //                device_id,
+        //                emp_id,
+        //                patient_enrollment_id,
+        //                assignment_status,
+        //                created_by
+        //            )
+        //            VALUES
+        //            (
+        //                @device_id,
+        //                @emp_id,
+        //                @patient_enrollment_id,
+        //                @assignment_status,
+        //                @created_by
+        //            );";
+        //}
+
+        internal static string complete_device_assignment()
+        {
+            return $@"
+                UPDATE {Tbl.device_assignment}
+                SET assignment_status = 'completed'
+                WHERE patient_enrollment_id = @patient_enrollment_id
+                  AND assignment_status = 'assigned'
+                  AND is_active = 1";
+        }
+
         #endregion
     }
     public class PatchReqDTO
@@ -784,13 +841,38 @@ namespace elr_API.DTO.ReqDTO
         internal static string update_patch_status()
         {
             return $@"update {Tbl.patch_mast}
-                        set patch_status = @patch_status,
-                            modified_by = @modified_by,
-                            current_emp_id = @current_emp_id,
-                            modified_datetime = getdate()
+                        set patch_status = @patch_status
                             where patch_id = @patch_id and patch_status = 'active'";
         }
-
+        //internal static string update_patch_status()
+        //{
+        //    return $@"update {Tbl.patch_mast}
+        //                set patch_status = @patch_status,
+        //                    modified_by = @modified_by,
+        //                    current_emp_id = @current_emp_id,
+        //                    modified_datetime = getdate()
+        //                    where patch_id = @patch_id and patch_status = 'active'";
+        //}
+        internal static string get_patch_by_enrollment()
+        {
+            return $@"
+                    SELECT TOP 1 patch_id
+                    FROM {Tbl.patch_assignment}
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                      AND assignment_status = 'assigned'
+                      AND is_active = 1";
+        }
+        internal static string update_patch_status_active()
+        {
+            return $@"
+                    UPDATE {Tbl.patch_mast}
+                    SET patch_status = 'active'
+                    WHERE patch_id = @patch_id";
+        }
+        internal static string get_patch_assigned()
+        {
+            return $@"select patch_id,patch_no,patch_status from {Tbl.patch_mast} where patch_no =@patch_no and patch_status = 'active' and is_active= 1";
+        }
         #endregion
     }
     public class PatchAssignmentReqDTO
@@ -823,9 +905,24 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string insert_patch_assignment()
         {
-            return $@"insert into {Tbl.patch_assignment} (patch_id,emp_id,patient_enrollment_id,assignment_status,created_by)
-                        values (@patch_id,@emp_id,@patient_enrollment_id,@assignment_status,@created_by)";
+            return $@"insert into {Tbl.patch_assignment} (patch_id,patient_enrollment_id,assignment_status)
+                        values (@patch_id,@patient_enrollment_id,@assignment_status)";
         }
+        //internal static string insert_patch_assignment()
+        //{
+        //    return $@"insert into {Tbl.patch_assignment} (patch_id,emp_id,patient_enrollment_id,assignment_status,created_by)
+        //                values (@patch_id,@emp_id,@patient_enrollment_id,@assignment_status,@created_by)";
+        //}
+        internal static string complete_device_assignment()
+        {
+            return $@"
+                UPDATE {Tbl.patch_assignment}
+                SET assignment_status = 'completed'
+                WHERE patient_enrollment_id = @patient_enrollment_id
+                  AND assignment_status = 'assigned'
+                  AND is_active = 1";
+        }
+
 
         #endregion
 
@@ -3283,14 +3380,15 @@ namespace elr_API.DTO.ReqDTO
         public long user_id { get; set; }
         public string user_name { get; set; }
 
+
         #region Query
         internal static string get_ecg_search(EcgSearchReqDTO obj)
         {
+            string condition = $@"";
             return $@"
                     SELECT
                         d.detection_id,
                         d.sub_strip_event_id,
-                        d.queued_events_records_id,
                         d.detection_status,
                         d.created_by,
                         d.created_datetime,
@@ -3316,11 +3414,7 @@ namespace elr_API.DTO.ReqDTO
                         ON pt.patient_id = p.patient_id
                     LEFT JOIN {Tbl.user_master} u
                         ON u.user_id = d.created_by
-                    WHERE ea.work_status = 'partial-completed'
-                      AND d.is_active = 1
-                      AND (
-                            
-                          )
+                    WHERE {condition}
                     ORDER BY {obj.shortColumn} {obj.orderBy} 
                     offset {obj.offSet} rows fetch next {obj.pageSize} rows only";
         #endregion

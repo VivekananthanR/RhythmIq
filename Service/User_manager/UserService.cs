@@ -15,7 +15,7 @@ namespace elr_API.Service.User_manager
         private readonly IHelperService _helperService;
         private readonly IQikberrychatService _iqberrychatService;
 
-        public string Elr_db = CommonFunctions.GetConnectionString("elr_db");
+        public string Elr_db = CommonFunctions.GetConnectionString("elr_DB");
         public string ErrorMessage { get; set; } = string.Empty;
 
         public UserService(IDapperSqlService db, ITokenService tokenService, IHelperService helperService, IQikberrychatService qikberrychatService)

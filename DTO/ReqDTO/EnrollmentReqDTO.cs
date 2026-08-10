@@ -15,6 +15,8 @@ namespace elr_API.DTO.ReqDTO
         public long device_id { get; set; }
         public long patch_id { get; set; }
         public long referred_physician { get; set; }
+        public string device_no { get; set; }
+        public string patch_no { get; set; }
 
         public DateTime? schedule_hookup { get; set; }
         public DateTime? schedule_removal { get; set; }
@@ -41,7 +43,10 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string check_enrollment_exists()
         {
-            return $@" select count(1) from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id and is_active = 1 and enrollment_status = 'hookuped' ";
+            return $@" SELECT patient_enrollment_id, gu_id, user_id, patient_id, device_id, patch_id, schedule_hookup, schedule_removal, actual_hookup, actual_removal, 
+                    enrollment_status, payment_status, remarks, clinical_user_id, created_by, actual_technician_id, is_pacemaker
+                    FROM {Tbl.patient_enrollment}
+                    WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1 and enrollment_status = 'requested' ";
         }
 
         #endregion
@@ -185,12 +190,21 @@ namespace elr_API.DTO.ReqDTO
             return $@"UPDATE {Tbl.patient_enrollment}
               SET actual_hookup = GETDATE(),
                   enrollment_status = @enrollment_status,
-                  modified_by = @modified_by,   
                   device_id = @device_id,   
-                  patch_id = @patch_id,
-                  modified_datetime = getdate()
+                  patch_id = @patch_id
               WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
         }
+        //internal static string start_hookup_status()
+        //{
+        //    return $@"UPDATE {Tbl.patient_enrollment}
+        //      SET actual_hookup = GETDATE(),
+        //          enrollment_status = @enrollment_status,
+        //          modified_by = @modified_by,   
+        //          device_id = @device_id,   
+        //          patch_id = @patch_id,
+        //          modified_datetime = getdate()
+        //      WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
+        //}
 
         internal static string complete_hookup_status(long complete_hookup_patient)
         {
@@ -207,6 +221,10 @@ namespace elr_API.DTO.ReqDTO
               WHERE patient_enrollment_id = @patient_enrollment_id";
         }
 
+        internal static string check_completed_enrollment()
+        {
+            return $@"select top 1 * from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'completed' and is_active = 1";
+        }
 
 
         #endregion
