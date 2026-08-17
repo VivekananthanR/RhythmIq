@@ -64,6 +64,18 @@ namespace elr_API.Service.User_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
+                query = PatientVerifyLoginReqDTO.existing_patient();
+                PatientVerifyLoginResDTO data = (await _dp.SelectQuery<PatientVerifyLoginResDTO>(query, new { phone_no = obj.phone_no, email_id = obj.email_id, patient_id = obj.patient_id }, Elr_db)).FirstOrDefault();
+
+                if (data != null)
+                {
+                    if (data.phone_no == obj.phone_no)
+                        return new ResponseDTO(false, "Phone no is already exists");
+
+                    if (data.email_id == obj.email_id)
+                        return new ResponseDTO(false, "Email Id is already exists");
+                }
+
                 if (obj.patient_id == 0)
                     query = PatientVerifyLoginResDTO.insert_patient_details();
                 else

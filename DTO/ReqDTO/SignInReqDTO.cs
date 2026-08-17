@@ -33,6 +33,18 @@ namespace elr_API.DTO.ReqDTO
                     WHERE p.phone_no = @phone_no
                       AND p.is_active = 1";
         }
+        public static string existing_patient()
+        {
+            return @"
+                SELECT TOP 1
+                    patient_id,
+                    phone_no,
+                    email_id
+                FROM tbl_patient
+                WHERE is_active = 1
+                  AND (phone_no = @phone_no OR email_id = @email_id)
+                  AND (@patient_id = 0 OR patient_id <> @patient_id)";
+        }
         internal static string Send_otp_update()
         {
             return $@"
