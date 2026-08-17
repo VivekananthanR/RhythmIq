@@ -31,7 +31,7 @@ namespace elr_API.DTO.ReqDTO
         public string payment_status { get; set; }
         public string remarks { get; set; }
         public long clinical_user_id { get; set; }
-
+        public string emp_code { get; set; }
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
         public long modified_by { get; set; }
@@ -40,16 +40,80 @@ namespace elr_API.DTO.ReqDTO
         public bool is_pacemaker { get; set; }
 
         #region Query
+        internal static string get_user_id_by_emp_code()
+        {
+            return $@"SELECT user_id FROM {Tbl.user_master} WHERE emp_code = @emp_code AND is_active = 1";
+        }
 
         internal static string check_enrollment_exists()
         {
-            return $@" SELECT patient_enrollment_id, gu_id, user_id, patient_id, device_id, patch_id, schedule_hookup, schedule_removal, actual_hookup, actual_removal, 
-                    enrollment_status, payment_status, remarks, clinical_user_id, created_by, actual_technician_id, is_pacemaker
-                    FROM {Tbl.patient_enrollment}
-                    WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1 and enrollment_status = 'requested' ";
+            return $@" SELECT pe.patient_enrollment_id, pe.gu_id, pe.user_id, pe.patient_id, pe.device_id, pe.patch_id, pe.schedule_hookup, pe.schedule_removal, pe.actual_hookup, pe.actual_removal, 
+                    pe.enrollment_status, pe.payment_status, pe.remarks, pe.clinical_user_id, pe.created_by, pe.actual_technician_id, pe.is_pacemaker,
+                    tech.user_name AS actual_technician_name,
+                    phy.user_name AS referred_physician_name,
+                    l.device_id,
+                    l.device_no,
+                    b.patient_id,
+                    b.patient_name,
+                    b.dob AS patient_dob,
+                    b.age AS patient_age,
+                    b.phone_no AS patient_phone,
+                    b.emergency_phone_no,
+                    b.email_id AS patient_email,
+                    b.gender AS patient_gender,
+                    b.city AS patient_city,
+                    b.pincode AS patient_pincode,
+                    g.district_name,
+                    h.state_name AS patient_state,
+                    i.country_name,
+                    k.test_name,
+                    e.hospital_name,
+                    m.patch_no,
+                    m.patch_id
+                    FROM {Tbl.patient_enrollment} as pe
+                        LEFT JOIN {Tbl.patient} b
+                            ON b.patient_id = pe.patient_id
+
+                        LEFT JOIN {Tbl.user_master} tech
+                            ON tech.user_id = pe.actual_technician_id
+
+                        LEFT JOIN {Tbl.user_master} phy
+                            ON phy.user_id = pe.referred_physician_id
+
+                        LEFT JOIN {Tbl.hospital_mast} e
+                            ON e.hospital_id = pe.hospital_id
+
+                        LEFT JOIN {Tbl.district} g
+                            ON g.district_id = b.district_id
+
+                        LEFT JOIN {Tbl.state} h
+                            ON h.state_id = b.state_id
+
+                        LEFT JOIN {Tbl.country} i
+                            ON i.country_id = h.country_id
+
+                        LEFT JOIN {Tbl.test_prices} j
+                            ON j.test_prices_id = pe.estimated_test_prices_id
+
+                        LEFT JOIN {Tbl.test_mast} k
+                            ON j.test_id = k.test_id
+
+                        LEFT JOIN {Tbl.device_mast} l
+                            ON l.device_id = pe.device_id
+
+                        LEFT JOIN {Tbl.patch_mast} m
+                            ON m.patch_id = pe.patch_id
+
+                    WHERE pe.patient_enrollment_id = @patient_enrollment_id and pe.is_active = 1 and pe.enrollment_status = 'requested' ";
         }
 
         #endregion
+    }
+
+    public class GetPatientEnrollmentListReqDTO
+    {
+        public string enrollment_status { get; set; }
+        public string search { get; set; }
     }
 
     public class PatientEnrollmentDTO
@@ -99,7 +163,10 @@ namespace elr_API.DTO.ReqDTO
 
 
         #region Query
-
+        internal static string check_enrollment_status()
+        {
+            return $@"SELECT patient_enrollment_id, enrollment_status FROM {Tbl.patient_enrollment} WHERE patient_enrollment_id = @patient_enrollment_id AND is_active = 1";
+        }
         internal static string insert_enrollment()
         {
             return $@"
@@ -184,33 +251,25 @@ namespace elr_API.DTO.ReqDTO
                         hookup_end_device_img = ISNULL(@hookup_end_device_img, hookup_end_device_img)
                     WHERE patient_enrollment_id = @patient_enrollment_id";
         }
-
         internal static string start_hookup_status()
         {
             return $@"UPDATE {Tbl.patient_enrollment}
               SET actual_hookup = GETDATE(),
                   enrollment_status = @enrollment_status,
+                  modified_by = @modified_by,   
                   device_id = @device_id,   
-                  patch_id = @patch_id
+                  patch_id = @patch_id,
+                  modified_datetime = getdate()
               WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
         }
-        //internal static string start_hookup_status()
-        //{
-        //    return $@"UPDATE {Tbl.patient_enrollment}
-        //      SET actual_hookup = GETDATE(),
-        //          enrollment_status = @enrollment_status,
-        //          modified_by = @modified_by,   
-        //          device_id = @device_id,   
-        //          patch_id = @patch_id,
-        //          modified_datetime = getdate()
-        //      WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
-        //}
 
-        internal static string complete_hookup_status(long complete_hookup_patient)
+        internal static string complete_hookup_status(long patient_enrollment_id)
         {
             return $@"UPDATE {Tbl.patient_enrollment}
               SET actual_removal = GETDATE(),
-                  enrollment_status = 'completed'
+                  enrollment_status = 'completed',
+                    modified_by = @modified_by, 
+                    modified_datetime = getdate()
               WHERE patient_enrollment_id = @patient_enrollment_id";
         }
 
@@ -239,6 +298,8 @@ namespace elr_API.DTO.ReqDTO
 
         public long device_id { get; set; }
         public string device_no { get; set; }
+        public long patch_id { get; set; }
+        public string patch_no { get; set; }
 
         public long patient_id { get; set; }
         public string patient_name { get; set; }
@@ -282,7 +343,9 @@ namespace elr_API.DTO.ReqDTO
                 h.state_name AS patient_state,
                 i.country_name,
                 k.test_name,
-                e.hospital_name
+                e.hospital_name,
+                m.patch_no,
+                m.patch_id
 
             FROM {Tbl.patient_enrollment} a
 
@@ -316,7 +379,22 @@ namespace elr_API.DTO.ReqDTO
             LEFT JOIN {Tbl.device_mast} l
                 ON l.device_id = a.device_id
 
-            WHERE a.enrollment_status = 'requested' and  (a.patient_enrollment_id = @patient_enrollment_id or @patient_enrollment_id = 0 or @patient_enrollment_id is null)";
+            LEFT JOIN {Tbl.patch_mast} m
+                ON m.patch_id = a.patch_id
+
+          WHERE
+                (
+                    @enrollment_status IS NULL
+                    OR @enrollment_status = ''
+                    OR a.enrollment_status = @enrollment_status
+                )
+                AND
+                (
+                    @search IS NULL
+                    OR @search = ''
+                    OR CONVERT(VARCHAR(50), a.patient_enrollment_id) LIKE '%' + @search + '%'
+                    OR b.patient_name LIKE '%' + @search + '%'
+                )";
         }
         #endregion
     }

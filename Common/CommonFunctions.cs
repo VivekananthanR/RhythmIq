@@ -24,20 +24,13 @@ namespace elr_API.Common
         {
             if (DataOnLive())
             {
-                //if (db == "elr_db_test")
-                //{
                 return "Data Source=EC2AMAZ-LEO11MO\\SQLEXPRESS;Initial Catalog=elr_DB;User ID=sa;Password=test@1234;Encrypt=False;";
-                //}
-                //else return "";
+
             }
             else
             {
-                //if (db == "elr_db_test")
-                //{
-                //return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_test; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
-                return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_DB; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
-                //}
-                //else return "";
+                return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_13Aug; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+
             }
         }
         #endregion

@@ -130,6 +130,19 @@ public class PatientVerifyLoginResDTO
                       where patient_id = @patient_id";
 
     }
+    internal static string patient_details_select()
+    {
+        return $@"select p.patient_id, p.patient_name as patient_fullname, p.dob as patient_dob, p.age as patient_age, p.phone_no as patient_mobileno, p.emergency_phone_no as emergency_phone_no, p.email_id as patient_emailid, p.gender as patient_gender, p.city as patient_cityname, p.pincode as patient_pincode, p.district_id, p.state_id,p.country_id, p.created_by, p.created_datetime, p.is_active ,
+                        d.district_name,c.country_name, s.state_name
+                        from {Tbl.patient} as p
+                        left join {Tbl.district} as d
+                        on p.district_id = d.district_id
+                        left join {Tbl.state} as s
+                        on p.state_id = s.state_id
+                        left join {Tbl.country} as c
+                        on p.country_id = c.country_id
+                        where p.is_active = 1 and p.phone_no = @phone_no";
+    }
 
     internal static string patient_detatils()
     {

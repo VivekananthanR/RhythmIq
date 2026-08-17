@@ -656,16 +656,6 @@ namespace elr_API.DTO.ReqDTO
                         is_active = @is_active
                         where device_id = @device_id";
         }
-        //internal static string update_device_status()
-        //{
-        //    return $@"Update {Tbl.device_mast}
-        //                set device_status= @device_status,
-        //                    current_emp_id=@current_emp_id,
-        //                    modified_by=@modified_by,
-        //                   modified_datetime=GETDATE()
-        //                WHERE device_id = @device_id  and device_status = 'active';";
-
-        //}
         internal static string update_device_status()
         {
             return $@"Update {Tbl.device_mast}
@@ -742,48 +732,35 @@ namespace elr_API.DTO.ReqDTO
                     AND assignment_status = 'assigned'
                     AND is_active = 1;";
         }
+
         public static string insert_device_assignment()
         {
             return $@"
                     INSERT INTO {Tbl.device_assignment}
                     (
                         device_id,
+                        emp_id,
                         patient_enrollment_id,
-                        assignment_status
+                        assignment_status,
+                        created_by
                     )
                     VALUES
                     (
                         @device_id,
+                        @emp_id,
                         @patient_enrollment_id,
-                        @assignment_status
+                        @assignment_status,
+                        @created_by
                     );";
         }
-        //public static string insert_device_assignment()
-        //{
-        //    return $@"
-        //            INSERT INTO {Tbl.device_assignment}
-        //            (
-        //                device_id,
-        //                emp_id,
-        //                patient_enrollment_id,
-        //                assignment_status,
-        //                created_by
-        //            )
-        //            VALUES
-        //            (
-        //                @device_id,
-        //                @emp_id,
-        //                @patient_enrollment_id,
-        //                @assignment_status,
-        //                @created_by
-        //            );";
-        //}
 
         internal static string complete_device_assignment()
         {
             return $@"
                 UPDATE {Tbl.device_assignment}
-                SET assignment_status = 'completed'
+                SET assignment_status = 'completed',
+                    modified_by = @modified_by,
+                    modified_datetime = GETDATE()
                 WHERE patient_enrollment_id = @patient_enrollment_id
                   AND assignment_status = 'assigned'
                   AND is_active = 1";
@@ -844,15 +821,6 @@ namespace elr_API.DTO.ReqDTO
                         set patch_status = @patch_status
                             where patch_id = @patch_id and patch_status = 'active'";
         }
-        //internal static string update_patch_status()
-        //{
-        //    return $@"update {Tbl.patch_mast}
-        //                set patch_status = @patch_status,
-        //                    modified_by = @modified_by,
-        //                    current_emp_id = @current_emp_id,
-        //                    modified_datetime = getdate()
-        //                    where patch_id = @patch_id and patch_status = 'active'";
-        //}
         internal static string get_patch_by_enrollment()
         {
             return $@"
@@ -902,22 +870,18 @@ namespace elr_API.DTO.ReqDTO
                         from {Tbl.patch_assignment}
                             where patch_id = @patch_id and assignment_status = 'assigned' and is_active = 1";
         }
-
         internal static string insert_patch_assignment()
         {
-            return $@"insert into {Tbl.patch_assignment} (patch_id,patient_enrollment_id,assignment_status)
-                        values (@patch_id,@patient_enrollment_id,@assignment_status)";
+            return $@"insert into {Tbl.patch_assignment} (patch_id,emp_id,patient_enrollment_id,assignment_status,created_by)
+                        values (@patch_id,@emp_id,@patient_enrollment_id,@assignment_status,@created_by)";
         }
-        //internal static string insert_patch_assignment()
-        //{
-        //    return $@"insert into {Tbl.patch_assignment} (patch_id,emp_id,patient_enrollment_id,assignment_status,created_by)
-        //                values (@patch_id,@emp_id,@patient_enrollment_id,@assignment_status,@created_by)";
-        //}
         internal static string complete_device_assignment()
         {
             return $@"
                 UPDATE {Tbl.patch_assignment}
-                SET assignment_status = 'completed'
+                SET assignment_status = 'completed',
+                    modified_by = @modified_by,
+                    modified_datetime = GETDATE()
                 WHERE patient_enrollment_id = @patient_enrollment_id
                   AND assignment_status = 'assigned'
                   AND is_active = 1";

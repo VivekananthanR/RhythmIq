@@ -28,14 +28,24 @@ namespace elr_API.Service.User_manager
         public async Task<ResponseDTO> ElrGetPatient(string phone_no)
         {
             ErrorMessage = string.Empty;
-
+            string query = string.Empty;
             try
             {
-                var patient = await _helperService.GetConnectPatientDetails(phone_no);
+                if (string.IsNullOrWhiteSpace(phone_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                if (patient == null) return new ResponseDTO(false, "Patient not found.");
+                query = PatientVerifyLoginResDTO.patient_details_select();
 
-                return new ResponseDTO(patient);
+                var patientDetails = (await _dp.SelectQuery<ConnectPatientDetails>(query, new { phone_no = phone_no }, Elr_db)).FirstOrDefault();
+
+                if (patientDetails == null)
+                {
+                    var patient = await _helperService.GetConnectPatientDetails(phone_no);
+
+                    if (patient == null) return new ResponseDTO(false, "Patient not found.");
+
+                    return new ResponseDTO(patient);
+                }
+                return new ResponseDTO(patientDetails);
             }
             catch (Exception ex)
             {

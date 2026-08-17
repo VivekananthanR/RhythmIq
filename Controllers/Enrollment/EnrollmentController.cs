@@ -1,9 +1,6 @@
-﻿using elr_API.Common;
-using elr_API.DTO.ReqDTO;
+﻿using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
-using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.IEntrolement;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace elr_API.Controllers.Entrolement
@@ -108,27 +105,27 @@ namespace elr_API.Controllers.Entrolement
 
         #region HttpPost = api/Enrollment/ElrCompleteHookUpPatient?patient_enrollment_id=
         [HttpPost("ElrCompleteHookUpPatient")]
-        public async Task<ActionResult<ResponseDTO>> ElrCompleteHookUpPatient(long patient_enrollment_id)
+        public async Task<ActionResult<ResponseDTO>> ElrCompleteHookUpPatient(PatientEnrollmentReqDTO obj)
         {
-            return await _enrollment.ElrCompleteHookUpPatient(patient_enrollment_id);
+            return await _enrollment.ElrCompleteHookUpPatient(obj);
         }
         #endregion
 
 
-        #region HttpGet = api/Enrollment/ElrEnrollmentCreationList?patient_enrollment_id=
-        [HttpGet("ElrEnrollmentCreationList")]
-        public async Task<ActionResult<ResponseDTO>> ElrEnrollmentCreationList(long? patient_enrollment_id)
+        #region HttpGet = api/Enrollment/ElrEnrollmentCreationList
+        [HttpPost("ElrEnrollmentCreationList")]
+        public async Task<ActionResult<ResponseDTO>> ElrEnrollmentCreationList(GetPatientEnrollmentListReqDTO obj)
         {
-            return await _enrollment.ElrEnrollmentCreationList(patient_enrollment_id);
+            return await _enrollment.ElrEnrollmentCreationList(obj);
         }
         #endregion
 
         #region HttpPost = api/Enrollment/ElrAddUpdatePatientEnrollment
-        [HttpPost("ElrAddUpdatePatientEnrollment"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment([FromHeader] string authorization, [FromBody] PatientEnrollmentDTO obj)
+        [HttpPost("ElrAddUpdatePatientEnrollment")]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientEnrollment([FromBody] PatientEnrollmentDTO obj)
         {
-            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            obj.created_by = tokenClaims.id;
+            //TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = 1;
             return await _enrollment.ElrAddUpdatePatientEnrollment(obj);
         }
         #endregion

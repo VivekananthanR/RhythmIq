@@ -13,9 +13,9 @@ namespace elr_API.IService.IEntrolement
         Task<ResponseDTO> ElrStartHookUpPatient(PatientEnrollmentReqDTO obj);
         Task<ResponseDTO> ElrSymtomsList();
         Task<ResponseDTO> ElrAddSymtoms(SymtomsDTO obj);
-        Task<ResponseDTO> ElrCompleteHookUpPatient(long patient_enrollment_id);
+        Task<ResponseDTO> ElrCompleteHookUpPatient(PatientEnrollmentReqDTO obj);
         Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj);
-        Task<ResponseDTO> ElrEnrollmentCreationList(long? patient_enrollment_id);
+        Task<ResponseDTO> ElrEnrollmentCreationList(GetPatientEnrollmentListReqDTO obj);
         Task<ResponseDTO> ElrUploadEnrollmentRawData(EnrollmentRawDataDTO obj);
         Task ElrPhythonProcessEnrollmentRawData();
         Task<ResponseDTO> ElrGetRawDataList();
