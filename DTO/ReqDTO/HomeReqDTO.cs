@@ -1281,6 +1281,10 @@ namespace elr_API.DTO.ReqDTO
         //                  )
         //                ORDER BY s.symptom_start_datetime asc ;";
         //}
+        internal static string check_patient_enrollment_id()
+        {
+            return $@"SELECT patient_enrollment_id FROM {Tbl.symptoms} WHERE patient_enrollment_id = @patient_enrollment_id";
+        }
         #endregion
 
     }

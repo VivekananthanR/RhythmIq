@@ -11,7 +11,7 @@ namespace elr_API.IService.IEntrolement
         Task<ResponseDTO> ElrUploadPatientDevice(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrUploadSignature(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrStartHookUpPatient(PatientEnrollmentReqDTO obj);
-        Task<ResponseDTO> ElrSymtomsList();
+        Task<ResponseDTO> ElrSymtomsList(long patient_enrollment_id);
         Task<ResponseDTO> ElrAddSymtoms(SymtomsDTO obj);
         Task<ResponseDTO> ElrCompleteHookUpPatient(PatientEnrollmentReqDTO obj);
         Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj);

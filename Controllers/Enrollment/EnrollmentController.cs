@@ -86,11 +86,11 @@ namespace elr_API.Controllers.Entrolement
         //}
         #endregion
 
-        #region HttpPost = api/Enrollment/ElrSymtomsList
+        #region HttpPost = api/Enrollment/ElrSymtomsList?patient_enrollment_id=
         [HttpGet("ElrSymtomsList")]
-        public async Task<ResponseDTO> ElrSymtomsList()
+        public async Task<ResponseDTO> ElrSymtomsList(long patient_enrollment_id)
         {
-            return await _enrollment.ElrSymtomsList();
+            return await _enrollment.ElrSymtomsList(patient_enrollment_id);
         }
         #endregion
 

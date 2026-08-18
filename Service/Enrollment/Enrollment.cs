@@ -327,14 +327,20 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<ResponseDTO> ElrSymtomsList()
+        public async Task<ResponseDTO> ElrSymtomsList(long patient_enrollment_id)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
+                query = SymptomDTO.check_patient_enrollment_id();
+                long enrollmentId = (await _db.SelectQuery<long>(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db)).FirstOrDefault();
+
+                if (enrollmentId <= 0) return new ResponseDTO(false, $"Patient enrollment id {patient_enrollment_id} not found.");
+
                 query = SymtomsDTO.select_symtoms_list();
-                var data = await _db.SelectQuery<SymtomsDTO>(query, null, ELR_db);
+                var data = await _db.SelectQuery<SymtomsDTO>(query, new { patient_enrollment_id = enrollmentId }, ELR_db);
+
                 return new ResponseDTO(data);
 
             }
@@ -390,8 +396,6 @@ namespace elr_API.Service.Enrolment
 
                 if (string.Equals(enrollmentData.enrollment_status, "completed", StringComparison.OrdinalIgnoreCase)) return new ResponseDTO(false, $"Patient enrollment id {obj.patient_enrollment_id} is already completed.");
 
-                if (!string.Equals(enrollmentData.enrollment_status, "hookuped", StringComparison.OrdinalIgnoreCase))
-                    return new ResponseDTO(false, $"Patient enrollment id {obj.patient_enrollment_id} is currently in {enrollmentData.enrollment_status}.");
 
                 query = PatientEnrollmentDTO.complete_hookup_status(obj.patient_enrollment_id);
                 int row = await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id, modified_by = obj.created_by }, ELR_db);
@@ -440,6 +444,11 @@ namespace elr_API.Service.Enrolment
             try
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientEnrollmentDTO.get_patient_details();
+                obj.patient_id = (await _db.SelectQuery<long>(query, new { patient_id = obj.patient_id }, ELR_db)).FirstOrDefault();
+
+                if (obj.patient_id == 0) return new ResponseDTO(false, $"Patient details not found for Id.");
 
                 if (obj.patient_enrollment_id == 0) query = PatientEnrollmentDTO.insert_enrollment();
                 else

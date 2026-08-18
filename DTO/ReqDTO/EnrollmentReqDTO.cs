@@ -48,7 +48,7 @@ namespace elr_API.DTO.ReqDTO
         internal static string check_enrollment_exists()
         {
             return $@" SELECT pe.patient_enrollment_id, pe.gu_id, pe.user_id, pe.patient_id, pe.device_id, pe.patch_id, pe.schedule_hookup, pe.schedule_removal, pe.actual_hookup, pe.actual_removal, 
-                    pe.enrollment_status, pe.payment_status, pe.remarks, pe.clinical_user_id, pe.created_by, pe.actual_technician_id, pe.is_pacemaker,
+                    pe.enrollment_status, pe.payment_status, pe.remarks, pe.clinical_user_id, pe.created_by, pe.actual_technician_id, pe.is_pacemaker,pe.actual_amount,
                     tech.user_name AS actual_technician_name,
                     phy.user_name AS referred_physician_name,
                     l.device_id,
@@ -67,6 +67,7 @@ namespace elr_API.DTO.ReqDTO
                     h.state_name AS patient_state,
                     i.country_name,
                     k.test_name,
+                    k.duration_in_day,
                     e.hospital_name,
                     m.patch_no,
                     m.patch_id
@@ -163,6 +164,10 @@ namespace elr_API.DTO.ReqDTO
 
 
         #region Query
+        internal static string get_patient_details()
+        {
+            return $@"SELECT top 1 patient_id FROM {Tbl.patient} WHERE patient_id = @patient_id AND is_active = 1";
+        }
         internal static string check_enrollment_status()
         {
             return $@"SELECT patient_enrollment_id, enrollment_status FROM {Tbl.patient_enrollment} WHERE patient_enrollment_id = @patient_enrollment_id AND is_active = 1";
@@ -313,6 +318,7 @@ namespace elr_API.DTO.ReqDTO
         public string emergency_phone_no { get; set; }
         public string patient_email { get; set; }
         public string test_name { get; set; }
+        public int duration_in_day { get; set; }
         public string hospital_name { get; set; }
         public string referred_physician_name { get; set; }
 
@@ -343,6 +349,7 @@ namespace elr_API.DTO.ReqDTO
                 h.state_name AS patient_state,
                 i.country_name,
                 k.test_name,
+                k.duration_in_day,
                 e.hospital_name,
                 m.patch_no,
                 m.patch_id
@@ -404,6 +411,7 @@ namespace elr_API.DTO.ReqDTO
         public long symptoms_id { get; set; }
         public long patient_enrollment_id { get; set; }
         public long? symptoms_type_id { get; set; }
+        public string? symptoms_type { get; set; }
         public string? custom_symptom_text { get; set; }
         public DateTime? symptom_start_datetime { get; set; }
         public DateTime? symptom_end_datetime { get; set; }
@@ -421,7 +429,11 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string select_symtoms_list()
         {
-            return $@"select * from {Tbl.symptoms}";
+            return $@"select a.symptoms_id, a.patient_enrollment_id, a.symptoms_type_id, b.symptoms_type, a.custom_symptom_text, a.symptom_start_datetime, a.symptom_end_datetime, a.symptom_notes, a.created_by, a.created_datetime, a.is_active,b.symptoms_type_id, b.symptoms_type
+                      from {Tbl.symptoms} as a 
+                      left join {Tbl.symptoms_type} as b
+                        on a.symptoms_type_id = b.symptoms_type_id
+                    where (@patient_enrollment_id = 0 or a.patient_enrollment_id = @patient_enrollment_id) and a.is_active = 1";
         }
         #endregion
     }
