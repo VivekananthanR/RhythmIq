@@ -35,5 +35,9 @@
         public static readonly string event_finding_mast = "tbl_event_finding_mast";
         public static readonly string sub_strip_event_finding = "tbl_sub_strip_event_finding";
         public static readonly string detection = "tbl_detection";
+        public static readonly string report_type = "tbl_report_type";
+        public static readonly string report_mast = "tbl_report_mast";
+        public static readonly string activity_log = "tbl_activity_log";
+        public static readonly string activity_log_finding = "tbl_activity_log_finding";
     }
 }

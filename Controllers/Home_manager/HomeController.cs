@@ -19,6 +19,17 @@ namespace elr_API.Controllers.Home_manager
             _homeService = homeService;
         }
 
+        #region HttpGet = api/Home/ElrGetDevice 
+
+        [HttpGet("ElrGetDevice"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetDevice([FromHeader] string authorization, DeviceReqDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.current_emp_id = tokenClaims.id;
+            return await _homeService.ElrGetDevice(obj);
+        }
+        #endregion
+
         #region HttpPost = api/Home/ElrAddUpdateDevice
         [HttpPost("ElrAddUpdateDevice"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrAddUpdateDevice([FromHeader] string authorization, DeviceResDTO obj)
@@ -422,6 +433,18 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
+        #region HttpPost = api/Home/ElrActivityLogList
+        [HttpPost("ElrActivityLogList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrActivityLogList([FromHeader] string authorization, ActivityLogReqDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrActivityLogList(obj);
+        }
+        #endregion
+
+
+
         //Testing event assign status
         #region HttpGet = api/Home/ElrGetByIdEventAssign
         [HttpGet("ElrGetByIdEventAssign"), Authorize]
@@ -451,6 +474,13 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
+        #region HttpPost = api/Home/ElrFetchHistoryList
+        [HttpPost("ElrFetchHistoryList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrFetchHistoryList(FectchHistoryReqDTO obj)
+        {
+            return await _homeService.ElrFetchHistoryList(obj);
+        }
+        #endregion
 
         #region HttpGet = api/Home/ElrMyProgress?type =
         [HttpGet("ElrMyProgress"), Authorize]

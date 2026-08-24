@@ -115,6 +115,7 @@ namespace elr_API.Service.Enrolment
                 query = RequestPatientEnrollmentResDTO.select_request_patient_enrollment();
                 var data = (await _db.SelectQuery<RequestPatientEnrollmentResDTO>(query, obj, ELR_db)).ToList();
 
+                if (!data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
                 return new ResponseDTO(data);
             }
             catch (Exception ex)

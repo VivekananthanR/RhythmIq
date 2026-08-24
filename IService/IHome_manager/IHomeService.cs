@@ -5,8 +5,9 @@ namespace elr_API.IService.IHome_manager
 {
     public interface IHomeService
     {
+        Task<ResponseDTO> ElrGetDevice(DeviceReqDTO obj);
         Task<ResponseDTO> ElrAddUpdateDevice(DeviceResDTO obj);
-
+        //Task<ResponseDTO> ElrGetPatch(PatchReqDTO obj);
         Task<ResponseDTO> ElrAddUpdatePatch(PatchResDTO obj);
 
 
@@ -92,13 +93,19 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrQcPickDetection(ConfirmSubmitDTO obj);
         Task<ResponseDTO> ElrCompletePriorityReport(PriorityCompleteReportReqDTO obj);
 
+        Task<ResponseDTO> ElrAddUpdateActivityLog(ActivityLogReqDTO obj);
+        Task<ResponseDTO> ElrActivityLogList(ActivityLogReqDTO obj);
+
         Task<ResponseDTO> ElrGetByIdEventAssign(long emp_id);
 
         Task<ResponseDTO> ElrFetchECG(FetchECGReqDTO obj);
         Task<ResponseDTO> ElrGetFetchHistory(long queued_events_records_id);
-
+        Task<ResponseDTO> ElrFetchHistoryList(FectchHistoryReqDTO obj);
 
         Task<ResponseDTO> ElrMyProgress(long emp_id, string type);
+
+        Task<ResponseDTO> ElrGetReportType();
+        Task<ResponseDTO> ElrAddUpdateReportType(ReportTypeDTO obj);
 
         //Task<ResponseDTO> ElrGetEcgSearch();
     }

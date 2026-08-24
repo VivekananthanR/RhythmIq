@@ -633,6 +633,7 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
+        public long? patient_enrollment_id { get; set; }
 
         #region Query
         internal static string insert_device()
@@ -646,15 +647,37 @@ namespace elr_API.DTO.ReqDTO
                         set device_no = @device_no ,
                         device_name = @device_name,
                         manufacturer_name = @manufacturer_name,
-                        model_no = @model_no,
+                        model_no = @model_no,                   
                         serial_no = @serial_no,
                         current_emp_id =@current_emp_id,
                         current_location_id= @current_location_id,
                         device_status = @device_status,
-                        modified_by = @modified_by,
+                        modified_by = @modified_by,             
                         modified_datetime = getdate(),
                         is_active = @is_active
                         where device_id = @device_id";
+        }
+        internal static string select_device()
+        {
+            return $@"SELECT
+                    d.device_id,
+                    d.device_no,
+                    d.current_location_id,
+                    d.current_emp_id,
+                    d.device_status,
+                    da.patient_enrollment_id,
+                    pe.enrollment_status
+
+                FROM {Tbl.device_mast} AS d
+                INNER JOIN {Tbl.location_mast} AS l
+                    ON l.location_id = d.current_location_id
+                LEFT JOIN {Tbl.device_assignment} AS da
+                    ON da.device_id = d.device_id   
+                    AND da.assignment_status = 'Assigned'
+                LEFT JOIN {Tbl.patient_enrollment} AS pe 
+                    ON pe.patient_enrollment_id = da.patient_enrollment_id
+                WHERE d.current_emp_id = @current_emp_id
+                  AND d.is_active = 1;";
         }
         internal static string update_device_status()
         {
@@ -1048,6 +1071,7 @@ namespace elr_API.DTO.ReqDTO
             return @$"
                     UPDATE {Tbl.queued_events_records}
                     SET event_status = 'processing',
+                        modified_by = @modified_by,
                         modified_datetime = GETDATE()
                     WHERE queued_events_records_id = @queued_events_records_id ";
         }
@@ -3000,6 +3024,171 @@ namespace elr_API.DTO.ReqDTO
         public List<FindingDTO> finding_list { get; set; }
 
     }
+    public class ActivityLogReqDTO
+    {
+        public long activity_log_id { get; set; }
+        public long queued_events_records_id { get; set; }
+        public long detection_id { get; set; }
+        public string action_type { get; set; }
+        public List<ActivityLogFindingDTO> finding_list { get; set; }
+        public long created_by { get; set; }
+        public int pageNumber { get; set; }
+        public int pageSize { get; set; }
+        public int offSet => (pageNumber - 1) * pageSize;
+        public string sortBy { get; set; }
+        public string orderBy { get; set; }
+
+
+
+    }
+    public class ActivityLogResDTO
+    {
+        public long activity_log_id { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long? modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        public long queued_events_records_id { get; set; }
+        public long detection_id { get; set; }
+        public string action_type { get; set; }
+        public List<ActivityLogFindingDTO> finding_list { get; set; }
+        public long user_id { get; set; }
+        public string user_name { get; set; }
+
+        #region Query 
+        internal static string select_activity_log(ActivityLogReqDTO obj)
+        {
+            return $@"
+                    SELECT
+                        al.activity_log_id,
+                        al.created_by,
+                        al.created_datetime,
+                        al.modified_by,
+                        al.modified_datetime,
+                        al.is_active,
+                        al.queued_events_records_id,
+                        al.detection_id,
+                        al.action_type,
+
+                        u.user_id,
+                        u.user_name
+
+                    FROM {Tbl.activity_log} al
+
+                    LEFT JOIN {Tbl.user_master} u
+                        ON u.user_id = al.created_by
+
+                    WHERE al.queued_events_records_id = @queued_events_records_id
+                      AND al.is_active = 1
+
+                    ORDER BY {obj.sortBy} {obj.orderBy}
+                    OFFSET @offSet ROWS
+                    FETCH NEXT {obj.pageSize} ROWS ONLY
+                ";
+        }
+        internal static string select_activity_log_finding()
+        {
+            return $@"
+                    SELECT
+                        alf.activity_log_finding_id,
+                        alf.event_finding_id,
+                        efm.finding_name,
+                        alf.value1,
+                        alf.value2,
+                        alf.finding_status,
+                        alf.created_by,
+                        alf.created_datetime,
+                        alf.modified_by,
+                        alf.modified_datetime,
+                        alf.is_active
+
+                    FROM {Tbl.activity_log_finding} alf
+
+                    INNER JOIN {Tbl.event_finding_mast} efm
+                        ON efm.event_finding_id = alf.event_finding_id
+
+                    WHERE alf.activity_log_id = @activity_log_id
+                      AND alf.is_active = 1
+
+                    ORDER BY alf.activity_log_finding_id ASC;
+                    ";
+        }
+
+
+        internal static string insert_activity_log()
+        {
+            return $@"insert into {Tbl.activity_log} (queued_events_records_id,created_by,detection_id,action_type)
+                      values (@queued_events_records_id , @created_by, @detection_id, @action_type)";
+        }
+        internal static string insert_activity_log_finding()
+        {
+            return $@"insert into {Tbl.activity_log_finding} (activity_log_id,event_finding_id,value1,value2,created_by,finding_status)
+                      values (@activity_log_id ,@event_finding_id ,@value1 ,@value2, @created_by, @finding_status)";
+        }
+        #endregion
+
+    }
+    public class ActivityLogFindingDTO
+    {
+        public long activity_log_finding_id { get; set; }
+        public long event_finding_id { get; set; }
+        public string finding_name { get; set; }
+        public decimal? value1 { get; set; }
+        public decimal? value2 { get; set; }
+        public string finding_status { get; set; }
+    }
+    public class FectchHistoryReqDTO
+    {
+        public int pageNumber { get; set; }
+        public int pageSize { get; set; }
+        public int offSet => (pageNumber - 1) * pageSize;
+        public string sortBy { get; set; }
+        public string orderBy { get; set; }
+    }
+
+    public class FectchHistoryRespDTO
+    {
+        public long queued_events_records_id { get; set; }
+        public string trigger_type { get; set; }
+        public DateTime? event_start_datetime { get; set; }
+        public DateTime? event_end_datetime { get; set; }
+        public string event_status { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public string event_source { get; set; }
+        public string fetch_duration_minutes { get; set; }
+        public long completed_by { get; set; }
+        public DateTime? completed_datetime { get; set; }
+        public string remarks { get; set; }
+        public long user_id { get; set; }
+        public string user_name { get; set; }
+        public long patient_id { get; set; }
+        public string patient_name { get; set; }
+
+        #region Query 
+        internal static string select_fetch_history_list(FectchHistoryReqDTO obj)
+        {
+            return $@"
+
+                    select count(*) from {Tbl.queued_events_records} where trigger_type = 'Fetch-ECG';
+
+                    select a.queued_events_records_id,trigger_type,event_start_datetime,event_end_datetime,event_status,a.created_by,a.created_datetime, event_source, fetch_duration_minutes,completed_by,completed_datetime,a.remarks,
+                    b.user_id,b.user_name,c.patient_id,d.patient_name
+                    from {Tbl.queued_events_records} as a
+                    left join {Tbl.user_master} as b
+                    on b.user_id = a.created_by
+                    left join {Tbl.patient_enrollment} as c
+                    on c.patient_enrollment_id = a.patient_enrollment_id
+                    inner join {Tbl.patient} as d
+                    on d.patient_id = c.patient_id
+                    where a.trigger_type = 'Fetch-ECG'
+                    order by {obj.sortBy} {obj.orderBy}
+                    offset @offSet rows fetch next {obj.pageSize} rows only";
+        }
+        #endregion
+    }
 
     public class FetchECGReqDTO
     {
@@ -3007,6 +3196,7 @@ namespace elr_API.DTO.ReqDTO
         public int minutes { get; set; }
         public string fetch_direction { get; set; }
         public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
 
         #region Query
         internal static string get_current_event()
@@ -3057,9 +3247,9 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"insert into {Tbl.queued_events_records}
                       ( patient_enrollment_id, enrollment_raw_data_id, priority_level, trigger_type, bpm, event_start_datetime, event_end_datetime,
-                                               event_status, event_file_path, parent_queued_events_records_id, event_source,fetch_duration_minutes, modified_by)
+                                               event_status, event_file_path, parent_queued_events_records_id, event_source,fetch_duration_minutes, created_by,created_datetime)
                         values(@patient_enrollment_id, @enrollment_raw_data_id, @priority_level, @trigger_type, @bpm, @event_start_datetime, @event_end_datetime,
-                                                @event_status, @event_file_path, @parent_queued_events_records_id, @event_source, @fetch_duration_minutes, @modified_by);";
+                                                @event_status, @event_file_path, @parent_queued_events_records_id, @event_source, @fetch_duration_minutes, @created_by, @created_datetime);";
         }
 
 
@@ -3387,5 +3577,48 @@ namespace elr_API.DTO.ReqDTO
                     offset {obj.offSet} rows fetch next {obj.pageSize} rows only";
         #endregion
         }
+
+
+
+    }
+
+
+    public class ReportTypeDTO
+    {
+        public long report_type_id { get; set; }
+        public string report_type_name { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        #region Query
+
+        internal static string insert_report_type()
+        {
+            return $@"
+                    INSERT INTO {Tbl.report_type} (report_type_name, created_by)
+                    VALUES (@report_type_name, @created_by)";
+        }
+        internal static string get_report_type()
+        {
+            return $@"
+                    SELECT
+                        report_type_id,
+                        report_type_name,
+                        created_by,
+                        created_datetime,
+                        modified_by,
+                        modified_datetime,
+                        is_active
+                    FROM {Tbl.report_type}
+                    WHERE is_active = 1";
+        }
+        internal static string update_report_type()
+        {
+            return $@"report_type_name = @report_type_name , modified_by = @modified_by, modified_datetime = getdate(), is_active = @is_active where report_type_id = @report_type_id";
+        }
+        #endregion
     }
 }

@@ -115,6 +115,7 @@ namespace elr_API.DTO.ReqDTO
     {
         public string enrollment_status { get; set; }
         public string search { get; set; }
+        public DateTime? date { get; set; }
     }
 
     public class PatientEnrollmentDTO
@@ -299,6 +300,7 @@ namespace elr_API.DTO.ReqDTO
         public string enrollment_status { get; set; }
         public decimal actual_amount { get; set; }
         public DateTime? schedule_hookup { get; set; }
+        public DateTime? schedule_removal { get; set; }
         public string actual_technician_name { get; set; }
 
         public long device_id { get; set; }
@@ -330,7 +332,8 @@ namespace elr_API.DTO.ReqDTO
                 a.patient_enrollment_id,
                 a.enrollment_status,
                 a.actual_amount,
-                a.schedule_hookup,
+                a.schedule_hookup ,
+                a.schedule_removal ,
                 tech.user_name AS actual_technician_name,
                 phy.user_name AS referred_physician_name,
                 l.device_id,
@@ -401,7 +404,9 @@ namespace elr_API.DTO.ReqDTO
                     OR @search = ''
                     OR CONVERT(VARCHAR(50), a.patient_enrollment_id) LIKE '%' + @search + '%'
                     OR b.patient_name LIKE '%' + @search + '%'
-                )";
+                    OR b.phone_no LIKE '%' + @search + '%'
+                ) 
+                AND ( a.schedule_hookup = @date or a.schedule_removal =@date or @date='' or  @date is null)";
         }
         #endregion
     }

@@ -12,8 +12,8 @@ namespace elr_API.DTO.ResDTO
 
         public ResponseDTO(object data)
         {
-            Data = ResponseEncrypt.EncryptData(data);
-            //Data = CommonFunctions.DataOnLive() ? ResponseEncrypt.EncryptData(data) : data;
+            //Data = ResponseEncrypt.EncryptData(data);
+            Data = CommonFunctions.DataOnLive() ? ResponseEncrypt.EncryptData(data) : data;
         }
 
         public ResponseDTO(bool status, string message)
