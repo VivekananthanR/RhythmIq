@@ -38,6 +38,8 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
         public bool is_pacemaker { get; set; }
+        public bool is_patient_removal { get; set; }
+        public bool is_patient_hookuped { get; set; }
 
         #region Query
         internal static string get_user_id_by_emp_code()
@@ -45,9 +47,13 @@ namespace elr_API.DTO.ReqDTO
             return $@"SELECT user_id FROM {Tbl.user_master} WHERE emp_code = @emp_code AND is_active = 1";
         }
 
+        internal static string get_pateint_id_emp_code()
+        {
+            return $@"select patient_id from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id ";
+        }
         internal static string check_enrollment_exists()
         {
-            return $@" SELECT pe.patient_enrollment_id, pe.gu_id, pe.user_id, pe.patient_id, pe.device_id, pe.patch_id, pe.schedule_hookup, pe.schedule_removal, pe.actual_hookup, pe.actual_removal, 
+            return $@" SELECT pe.patient_enrollment_id, pe.gu_id, pe.user_id, pe.patient_id, pe.device_id, pe.patch_id, pe.schedule_hookup, pe.schedule_removal, pe.actual_hookup, pe.actual_removal, pe.is_patient_hookuped, pe.is_patient_removal,
                     pe.enrollment_status, pe.payment_status, pe.remarks, pe.clinical_user_id, pe.created_by, pe.actual_technician_id, pe.is_pacemaker,pe.actual_amount,
                     tech.user_name AS actual_technician_name,
                     phy.user_name AS referred_physician_name,
@@ -76,7 +82,7 @@ namespace elr_API.DTO.ReqDTO
                             ON b.patient_id = pe.patient_id
 
                         LEFT JOIN {Tbl.user_master} tech
-                            ON tech.user_id = pe.actual_technician_id
+                            ON tech.user_id = pe.user_id
 
                         LEFT JOIN {Tbl.user_master} phy
                             ON phy.user_id = pe.referred_physician_id
@@ -162,6 +168,7 @@ namespace elr_API.DTO.ReqDTO
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
         public bool is_pacemaker { get; set; }
+        public bool is_patient_hookuped { get; set; }
 
 
         #region Query
@@ -181,7 +188,6 @@ namespace elr_API.DTO.ReqDTO
                         user_id,
                         patient_id,
                         referred_physician_id,
-                        actual_technician_id,
                         hospital_id,
                         schedule_hookup,
                         schedule_removal,
@@ -198,7 +204,6 @@ namespace elr_API.DTO.ReqDTO
                         @user_id,
                         @patient_id,
                         @referred_physician_id,
-                        @actual_technician_id,
                         @hospital_id,
                         @schedule_hookup,
                         DATEADD(DAY, tm.duration_in_day, @schedule_hookup),
@@ -222,7 +227,6 @@ namespace elr_API.DTO.ReqDTO
                     user_id                  = @user_id,
                     patient_id               = @patient_id,
                     referred_physician_id       = @referred_physician_id,
-                    actual_technician_id     = @actual_technician_id,
                     hospital_id              = @hospital_id,
                     schedule_hookup          = @schedule_hookup,
                     schedule_removal         = @schedule_removal,
@@ -260,12 +264,11 @@ namespace elr_API.DTO.ReqDTO
         internal static string start_hookup_status()
         {
             return $@"UPDATE {Tbl.patient_enrollment}
-              SET actual_hookup = GETDATE(),
-                  enrollment_status = @enrollment_status,
-                  modified_by = @modified_by,   
-                  device_id = @device_id,   
-                  patch_id = @patch_id,
-                  modified_datetime = getdate()
+              SET actual_technician_id = @actual_technician_id,
+                  actual_hookup = GETDATE(),
+                  enrollment_status = @enrollment_status, 
+                  device_id = @device_id,  
+                  is_patient_hookuped = @is_patient_hookuped 
               WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
         }
 
@@ -274,6 +277,7 @@ namespace elr_API.DTO.ReqDTO
             return $@"UPDATE {Tbl.patient_enrollment}
               SET actual_removal = GETDATE(),
                   enrollment_status = 'completed',
+                    is_patient_removal =@is_patient_removal,
                     modified_by = @modified_by, 
                     modified_datetime = getdate()
               WHERE patient_enrollment_id = @patient_enrollment_id";

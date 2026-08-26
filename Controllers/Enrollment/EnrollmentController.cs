@@ -26,13 +26,7 @@ namespace elr_API.Controllers.Entrolement
         #endregion
 
         #region HttpGet = api/Enrollment/ElrValidDeviceId
-        //[HttpPost("ElrValidDeviceId"), Authorize]
-        //public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId([FromHeader] string authorization, DeviceAssignmentReqDTO obj)
-        //{
-        //    //TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-        //    //obj.emp_id = tokenClaims.id;
-        //    return await _enrollment.ElrValidDeviceId(obj);
-        //}
+
         [HttpGet("ElrValidDeviceId")]
         public async Task<ActionResult<ResponseDTO>> ElrValidDeviceId(string device_no)
         {
@@ -46,13 +40,7 @@ namespace elr_API.Controllers.Entrolement
         {
             return await _enrollment.ElrValidPatchId(patch_no);
         }
-        //[HttpPost("ElrValidPatchId")]
-        //public async Task<ActionResult<ResponseDTO>> ElrValidPatchId([FromHeader] string authorization, PatchAssignmentReqDTO obj)
-        //{
-        //    TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-        //    obj.emp_id = tokenClaims.id;
-        //    return await _enrollment.ElrValidPatchId(obj);
-        //}
+
         #endregion
 
         #region HttpPost = api/Enrollment/ElrUploadPatientDevice

@@ -635,6 +635,13 @@ namespace elr_API.DTO.ReqDTO
         public bool is_active { get; set; }
         public long? patient_enrollment_id { get; set; }
 
+
+        public long? from_location_id { get; set; }
+        public long? to_location_id { get; set; }
+        public long? from_emp_id { get; set; }
+        public long? to_emp_id { get; set; }
+        public string transfer_status { get; set; }
+
         #region Query
         internal static string insert_device()
         {
@@ -686,9 +693,9 @@ namespace elr_API.DTO.ReqDTO
                         WHERE device_id = @device_id  and device_status = 'active';";
 
         }
-        internal static string get_device_assigned()
+        internal static string get_device()
         {
-            return $@"select device_id,device_no,device_status from {Tbl.device_mast} where device_no =@device_no and device_status = 'active' and is_active= 1";
+            return $@"select device_id,device_no,device_status,current_emp_id from {Tbl.device_mast} where device_no =@device_no and device_status = 'active' and is_active= 1";
         }
 
 
@@ -710,26 +717,54 @@ namespace elr_API.DTO.ReqDTO
             return $@"
                     UPDATE {Tbl.device_mast}
                     SET device_status = 'active'
-                    WHERE device_id = @device_id";
+                    WHERE device_id = @device_id and is_active = 1";
         }
 
         internal static string get_device_by_enrollment()
         {
             return $@"
-                    SELECT TOP 1 device_id
-                    FROM {Tbl.device_assignment}
-                    WHERE patient_enrollment_id = @patient_enrollment_id
-                      AND assignment_status = 'assigned'
-                      AND is_active = 1";
+                    SELECT TOP 1
+                        da.device_id,
+                        dm.current_emp_id,
+                        dm.current_location_id,
+                        dm.device_status
+                    FROM {Tbl.device_assignment} da
+                    INNER JOIN {Tbl.device_mast} dm
+                        ON dm.device_id = da.device_id
+                    WHERE da.patient_enrollment_id = @patient_enrollment_id
+                      AND da.assignment_status in('assigned' , 'processing')
+                      AND da.is_active = 1
+                      AND dm.is_active = 1
+                    ORDER BY da.device_assignment_id DESC";
         }
-
+        internal static string get_assigned_device_by_enrollment()
+        {
+            return $@"
+                SELECT TOP 1
+                    da.device_id,
+                    da.patient_enrollment_id,
+                    da.emp_id,
+                    dm.current_emp_id,
+                    dm.current_location_id,
+                    dm.device_status
+                FROM {Tbl.device_assignment} da
+                INNER JOIN {Tbl.device_mast} dm
+                    ON dm.device_id = da.device_id
+                WHERE da.patient_enrollment_id = @patient_enrollment_id
+                  AND da.assignment_status = 'assigned'
+                  AND da.is_active = 1
+                  AND dm.is_active = 1
+                ORDER BY da.device_assignment_id DESC";
+        }
         #endregion
     }
     public class DeviceAssignmentReqDTO
     {
-        public string device_no { get; set; }
+        public long device_assignment_id { get; set; }
         public long emp_id { get; set; }
         public long patient_enrollment_id { get; set; }
+        public long created_by { get; set; }
+        public string assignment_status { get; set; }
     }
     public class DeviceAssignmentResDTO
     {
@@ -755,8 +790,56 @@ namespace elr_API.DTO.ReqDTO
                     AND assignment_status = 'assigned'
                     AND is_active = 1;";
         }
+        public static string update_device_assign_pateint_enroll_id()
+        {
+            return $@"
+                    UPDATE {Tbl.device_assignment}
+                    SET patient_enrollment_id = @patient_enrollment_id,
+                        assignment_status = 'processing',
+                        modified_by = @modified_by,
+                        modified_datetime = GETDATE()
+                    WHERE device_id = @device_id
+                      AND assignment_status in ( 'assigned','completed')
+                      AND is_active = 1";
+        }
+        internal static string insert_device_assignment()
+        {
+            return $@"
+                    INSERT INTO {Tbl.device_assignment}
+                    (
+                        emp_id,
+                        device_id,
+                        assignment_status,
+                        created_by
+                    )
+                    VALUES
+                    (
+                        @emp_id,
+                        @device_id,
+                        'assigned',
+                        @created_by
+                    );";
+        }
 
-        public static string insert_device_assignment()
+        internal static string update_device_assignment()
+        {
+            return $@"update {Tbl.device_assignment}
+                        set emp_id = @emp_id,
+                              device_id = @device_id,
+                              modified_by = @modified_by,
+                              modified_datetime = GETDATE(),
+                              assignment_status = @assignment_status
+                                remarks = @remarks,
+                                is_active = @is_active
+                                where device_assignment_id = @device_assignment_id and assignment_status = 'assignment_status'";
+        }
+        internal static string update_device_assign_status()
+        {
+            return $@" update {Tbl.device_assignment}
+                        set assignment_status = 'processing'
+                        where patient_enrollment_id = @patient_enrollment_id and assignment_status = 'assigned'";
+        }
+        internal static string insert_device_assignment_history()
         {
             return $@"
                     INSERT INTO {Tbl.device_assignment}
@@ -765,30 +848,23 @@ namespace elr_API.DTO.ReqDTO
                         emp_id,
                         patient_enrollment_id,
                         assignment_status,
-                        created_by
+                        remarks,
+                        created_by,
+                        created_datetime,
+                        is_active
                     )
                     VALUES
                     (
                         @device_id,
                         @emp_id,
-                        @patient_enrollment_id,
-                        @assignment_status,
-                        @created_by
-                    );";
+                    @patient_enrollment_id,
+                    @assignment_status,
+                    @remarks,
+                    @created_by,
+                    GETDATE(),
+                    1
+                )";
         }
-
-        internal static string complete_device_assignment()
-        {
-            return $@"
-                UPDATE {Tbl.device_assignment}
-                SET assignment_status = 'completed',
-                    modified_by = @modified_by,
-                    modified_datetime = GETDATE()
-                WHERE patient_enrollment_id = @patient_enrollment_id
-                  AND assignment_status = 'assigned'
-                  AND is_active = 1";
-        }
-
         #endregion
     }
     public class PatchReqDTO
@@ -3141,6 +3217,7 @@ namespace elr_API.DTO.ReqDTO
     }
     public class FectchHistoryReqDTO
     {
+        public long queued_events_records_id { get; set; }
         public int pageNumber { get; set; }
         public int pageSize { get; set; }
         public int offSet => (pageNumber - 1) * pageSize;
@@ -3151,6 +3228,7 @@ namespace elr_API.DTO.ReqDTO
     public class FectchHistoryRespDTO
     {
         public long queued_events_records_id { get; set; }
+        public long parent_queued_events_records_id { get; set; }
         public string trigger_type { get; set; }
         public DateTime? event_start_datetime { get; set; }
         public DateTime? event_end_datetime { get; set; }
@@ -3172,9 +3250,11 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"
 
-                    select count(*) from {Tbl.queued_events_records} where trigger_type = 'Fetch-ECG';
+                    select count(*) from {Tbl.queued_events_records} where trigger_type = 'Fetch-ECG' and
+                    (parent_queued_events_records_id = (select case  when parent_queued_events_records_id > 0 then parent_queued_events_records_id else queued_events_records_id end from {Tbl.queued_events_records} where queued_events_records_id = @queued_events_records_id)
+                    or @queued_events_records_id = 0 ) ;
 
-                    select a.queued_events_records_id,trigger_type,event_start_datetime,event_end_datetime,event_status,a.created_by,a.created_datetime, event_source, fetch_duration_minutes,completed_by,completed_datetime,a.remarks,
+                    select a.parent_queued_events_records_id, a.queued_events_records_id,trigger_type,event_start_datetime,event_end_datetime,event_status,a.created_by,a.created_datetime, event_source, fetch_duration_minutes,completed_by,completed_datetime,a.remarks,
                     b.user_id,b.user_name,c.patient_id,d.patient_name
                     from {Tbl.queued_events_records} as a
                     left join {Tbl.user_master} as b
@@ -3183,7 +3263,9 @@ namespace elr_API.DTO.ReqDTO
                     on c.patient_enrollment_id = a.patient_enrollment_id
                     inner join {Tbl.patient} as d
                     on d.patient_id = c.patient_id
-                    where a.trigger_type = 'Fetch-ECG'
+                    where a.trigger_type = 'Fetch-ECG' and 
+                    (a.parent_queued_events_records_id = (select case  when parent_queued_events_records_id > 0 then parent_queued_events_records_id else queued_events_records_id end from {Tbl.queued_events_records} where queued_events_records_id = @queued_events_records_id)
+                    or @queued_events_records_id = 0 ) 
                     order by {obj.sortBy} {obj.orderBy}
                     offset @offSet rows fetch next {obj.pageSize} rows only";
         }
