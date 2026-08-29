@@ -1152,6 +1152,12 @@ namespace elr_API.DTO.ReqDTO
                     WHERE queued_events_records_id = @queued_events_records_id ";
         }
 
+
+        internal static string get_modified_datetime_query()
+        {
+            return $@"select modified_datetime from {Tbl.queued_events_records} where queued_events_records_id =@queued_events_records_id and is_active = 1";
+        }
+
         internal static string update_event_status()
         {
             return @$"
@@ -2464,6 +2470,24 @@ namespace elr_API.DTO.ReqDTO
         public long? queued_events_records_id { get; set; }
 
         #region Query
+
+        internal static string get_event_findings()
+        {
+            return $@"
+                    SELECT DISTINCT
+                        sef.event_finding_id,
+                        sef.queued_events_records_id,
+                        fm.finding_name,
+                        sef.value1,
+                        sef.value2
+                    FROM {Tbl.sub_strip_event_finding} AS sef
+                    INNER JOIN {Tbl.event_finding_mast} AS fm
+                        ON fm.event_finding_id = sef.event_finding_id
+                    WHERE
+                        sef.queued_events_records_id = @queued_events_records_id
+                        AND sef.is_active = 1
+                        AND fm.is_active = 1";
+        }
 
         internal static string select_complete_qc_report_findings()
         {
@@ -3820,12 +3844,9 @@ namespace elr_API.DTO.ReqDTO
     {
         public DateTime? from_date { get; set; }
         public DateTime? to_date { get; set; }
-        public string completed_datetime { get; set; }
-        public string event_start_datetime { get; set; }
-        public long report_type_id { get; set; }
+        public string date_type { get; set; }//process_date.event_date
         public long queued_events_records_id { get; set; }
         public long user_id { get; set; }
-        public string user_name { get; set; }
         public List<long> finding_ids { get; set; }
 
         public int pageNumber { get; set; }
@@ -3851,31 +3872,69 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string get_ecg_search(EventEcgSearchReqDTO obj)
         {
-            return $@"select 
-                        qe.queued_events_records_id,qe.event_start_datetime,qe.event_status,qe.created_by,
-                        qe.created_datetime,qe.modified_by,qe.is_active,qe.patient_enrollment_id,qe.completed_by,qe.completed_datetime,
-                        ev.event_assign_id,ev.work_status,ev.is_active,ev.is_final_completed,p.patient_id,p.patient_name,um.user_id,um.user_name
-                        from {Tbl.queued_events_records} as qe
-                        inner join {Tbl.event_assign} as ev
-                        on ev.queued_events_records_id = qe.queued_events_records_id
-                        inner join {Tbl.patient_enrollment} as pe
-                        on pe.patient_enrollment_id = qe.patient_enrollment_id
-                        inner join {Tbl.patient} as p
-                        on p.patient_id = pe.patient_id
-                        inner join {Tbl.user_master} as um
-                        on um.user_id = qe.completed_by
-                        where qe.completed_by is not null and qe.is_active =1 and ev.is_final_completed =1 and ev.is_active =1 
-                        and (@from_date is null or @from_date > qe.completed_datetime) 
-                        or (@from_date is null or @from_date > qe.event_start_datetime) 
-                        and (@to_date is null or @to_date <    qe.completed_datetime )  
-                        or ( @to_date is null or @to_date <  qe.event_start_datetime)
-                        and (@queued_events_records_id = 0 or qe.queued_events_records_id = @qe.queued_events_records_id)
-                        and (@completed_datetime is null or @completed_datetime = '' or qe.completed_datetime is not null  = @completed_datetime)
-                        and (@event_start_datetime is null or @event_start_datetime = '' or qe.event_start_datetime is not null  = @event_start_datetime)
-                        and (@user_id = 0 or um.user_id = @user_id)
-                        
-                    ORDER BY {obj.sortBy} {obj.orderBy} 
-                    offset @offSet rows fetch next {obj.pageSize} rows only";
+            string condition = $@"
+                                qe.completed_by IS NOT NULL
+                                AND qe.is_active = 1
+                                AND ev.is_final_completed = 1
+                                AND ev.is_active = 1
+
+                                AND (  (@date_type = 'process_date' AND qe.completed_datetime IS NOT NULL) OR (@date_type = 'event_date' AND qe.event_start_datetime IS NOT NULL))
+                             
+                                AND (  @from_date IS NULL OR ( @date_type = 'process_date' AND qe.completed_datetime >= @from_date ) OR ( @date_type = 'event_date' AND qe.event_start_datetime >= @from_date ))
+                                  
+                                AND ( @to_date IS NULL OR ( @date_type = 'process_date' AND qe.completed_datetime < DATEADD(DAY, 1, @to_date) ) OR (  @date_type = 'event_date' AND qe.event_start_datetime < DATEADD(DAY, 1, @to_date) ))
+                                    
+                                AND (  @queued_events_records_id = 0 OR qe.queued_events_records_id = @queued_events_records_id )
+                                
+                                AND ( @user_id = 0  OR um.user_id = @user_id )
+                                
+                                AND (
+                                    @has_findings = 0
+                                    OR EXISTS
+                                    (
+                                        SELECT 1
+                                        FROM {Tbl.sub_strip_event_finding} AS sef
+                                        WHERE sef.queued_events_records_id = qe.queued_events_records_id
+                                          AND sef.event_finding_id IN @finding_ids
+                                          AND sef.is_active = 1
+                                    )
+                                )";
+
+            return $@"
+                        SELECT COUNT(DISTINCT qe.queued_events_records_id)
+                        FROM {Tbl.queued_events_records} AS qe
+
+                        INNER JOIN {Tbl.event_assign} AS ev
+                            ON ev.queued_events_records_id = qe.queued_events_records_id
+
+                        INNER JOIN {Tbl.patient_enrollment} AS pe
+                            ON pe.patient_enrollment_id = qe.patient_enrollment_id
+
+                        INNER JOIN {Tbl.patient} AS p
+                            ON p.patient_id = pe.patient_id
+
+                        INNER JOIN {Tbl.user_master} AS um
+                            ON um.user_id = qe.completed_by
+                            where {condition};
+
+
+                       select 
+                            qe.queued_events_records_id,qe.event_start_datetime,qe.event_status,qe.created_by,
+                            qe.created_datetime,qe.modified_by,qe.is_active,qe.patient_enrollment_id,qe.completed_by,qe.completed_datetime,
+                            ev.event_assign_id,ev.work_status,ev.is_active,ev.is_final_completed,p.patient_id,p.patient_name,um.user_id,um.user_name
+                            from {Tbl.queued_events_records} as qe
+                            inner join {Tbl.event_assign} as ev
+                            on ev.queued_events_records_id = qe.queued_events_records_id
+                            inner join {Tbl.patient_enrollment} as pe
+                            on pe.patient_enrollment_id = qe.patient_enrollment_id
+                            inner join {Tbl.patient} as p
+                            on p.patient_id = pe.patient_id
+                            inner join {Tbl.user_master} as um
+                            on um.user_id = qe.completed_by
+                           WHERE {condition}
+                           
+                        ORDER BY {obj.sortBy} {obj.orderBy} 
+                        offset @offSet rows fetch next {obj.pageSize} rows only";
         #endregion
         }
 

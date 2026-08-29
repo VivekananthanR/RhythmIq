@@ -671,6 +671,10 @@ namespace elr_API.Service.Home_manager
 
                     query = QueuedAnomalyDTO.update_event_processing();
                     await _db.Execute(query, new { queued_events_records_id = data.queued_events_records_id, modified_by = emp_id }, ELR_db);
+
+                    query = QueuedAnomalyDTO.get_modified_datetime_query();
+                    data.modified_datetime = (await _db.SelectQuery<DateTime?>(query, new { queued_events_records_id = data.queued_events_records_id }, ELR_db)).FirstOrDefault();
+
                 }
                 catch
                 {
@@ -2151,11 +2155,33 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
+                var hasFindings = obj.finding_ids != null && obj.finding_ids.Any();
+
+                var parameters = new
+                {
+                    obj.from_date,
+                    obj.to_date,
+                    obj.date_type,
+                    obj.queued_events_records_id,
+                    obj.user_id,
+                    obj.finding_ids,
+                    obj.pageNumber,
+                    obj.pageSize,
+                    obj.offSet,
+                    has_findings = hasFindings ? 1 : 0
+                };
 
                 query = EventEcgSearchResDTO.get_ecg_search(obj);
-                var (totalCount, data) = await _db.SelectQueryWithCount<long, EventEcgSearchResDTO>(query, obj, ELR_db);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, EventEcgSearchResDTO>(query, parameters, ELR_db);
 
                 if (data == null || !data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                foreach (var item in data)
+                {
+                    query = FindingDTO.get_event_findings();
+                    item.findings_list = (await _db.SelectQuery<FindingDTO>(query, new { queued_events_records_id = item.queued_events_records_id }, ELR_db)).ToList();
+
+                }
 
                 var response = new
                 {

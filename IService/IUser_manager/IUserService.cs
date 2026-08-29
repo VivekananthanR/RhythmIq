@@ -13,6 +13,7 @@ namespace elr_API.IService.IUser_manager
         Task<ResponseDTO> ElrGetEmployee(string emp_code);
         Task<ResponseDTO> ElrAddUpdateEmployeeDetails(AddUpdateEmployeeDetailsReqDTO obj);
         Task<ResponseDTO> ElrEmployeeLogin(MasterEmployeeLoginReqDTO obj);
+        Task<ResponseDTO> ElrEmployeeLogOut(long user_id);
         Task<ResponseDTO> ElrphysiciansList(string? physiciansName);
         Task<ResponseDTO> ElrTechniciansList(string? technicians_name);
         Task<ResponseDTO> ElrGetPatientEventPage(long patient_id);

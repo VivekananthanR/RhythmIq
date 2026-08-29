@@ -80,6 +80,18 @@ namespace elr_API.Controllers.User_manager
         }
         #endregion
 
+
+        #region HttpPost = api/User/ElrEmployeeLogOut
+        [HttpPost("ElrEmployeeLogOut")]
+        public async Task<ActionResult<ResponseDTO>> ElrEmployeeLogOut(long user_id)
+        {
+            return await _userService.ElrEmployeeLogOut(user_id);
+        }
+        #endregion
+
+
+
+
         #region HttpPost = api/User/ElrphysiciansList?physiciansName =
         [HttpGet("ElrphysiciansList")]
         public async Task<ResponseDTO> ElrphysiciansList(string? physiciansName)

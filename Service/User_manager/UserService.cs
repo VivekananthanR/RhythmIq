@@ -256,6 +256,25 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(ErrorMessage);
         }
 
+        public async Task<ResponseDTO> ElrEmployeeLogOut(long user_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (user_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                query = MasterEmployeeLoginReqDTO.user_logOut();
+                int row = await _dp.Execute(query, new { user_id = user_id }, Elr_db);
+                return new ResponseDTO(row > 0, row > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(ErrorMessage);
+        }
+
         //Employee Login    
         public async Task<ResponseDTO> ElrEmployeeLogin(MasterEmployeeLoginReqDTO obj)
         {
@@ -273,6 +292,11 @@ namespace elr_API.Service.User_manager
                 {
                     return new ResponseDTO(false, "Employee is not registered. Please register the Employee Details");
                 }
+
+                query = MasterEmployeeLoginReqDTO.user_logIn();
+                int row = await _dp.Execute(query, new { user_id = data.user_id }, Elr_db);
+
+                if (row <= 0) return new ResponseDTO(false, "Already login");
                 var meterboxData = await _helperService.GetMeterBoxEmployeeDetails(data.emp_code);
 
                 if (meterboxData == null) return new ResponseDTO(false, "Employee Not Found In Meterbox");

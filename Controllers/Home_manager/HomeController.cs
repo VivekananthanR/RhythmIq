@@ -526,6 +526,14 @@ namespace elr_API.Controllers.Home_manager
             return await _homeService.ElrAddUpdateReportType(obj);
         }
         #endregion
+
+        #region HttpPost = api/Home/ElrGetEventEcgSearch
+        [HttpPost("ElrGetEventEcgSearch"), Authorize]
+        public async Task<ResponseDTO> ElrGetEventEcgSearch(EventEcgSearchReqDTO obj)
+        {
+            return await _homeService.ElrGetEventEcgSearch(obj);
+        }
+        #endregion
     }
 
 }

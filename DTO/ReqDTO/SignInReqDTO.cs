@@ -185,6 +185,16 @@ public class MasterEmployeeLoginReqDTO
     {
         return $@"Select * from {Tbl.user_master}  where (phone_no = @user_name OR email_id = @user_name OR emp_code = @user_name) and is_active = 1";
     }
+
+    internal static string user_logIn()
+    {
+        return $@"update {Tbl.user_master} set is_logIn = 1 where user_id = @user_id and is_logIn = 0 and is_active = 1";
+    }
+
+    internal static string user_logOut()
+    {
+        return $@"update {Tbl.user_master} set is_logIn = 0 where user_id = @user_id and is_logIn = 1 and is_active = 1";
+    }
     #endregion
 
 }
@@ -200,6 +210,7 @@ public class MasterEmployeeLoginResDTO
     public int otp { get; set; }
     public DateTime? otp_expiry_time { get; set; }
     public bool is_active { get; set; }
+    public bool is_logIn { get; set; }
 
     public long user_type_id { get; set; }
     public string user_type { get; set; }

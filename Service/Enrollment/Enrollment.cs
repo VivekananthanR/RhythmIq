@@ -114,10 +114,16 @@ namespace elr_API.Service.Enrolment
             try
             {
                 query = RequestPatientEnrollmentResDTO.select_request_patient_enrollment();
-                var data = (await _db.SelectQuery<RequestPatientEnrollmentResDTO>(query, obj, ELR_db)).ToList();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, RequestPatientEnrollmentResDTO>(query, obj, ELR_db);
 
-                if (!data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
-                return new ResponseDTO(data);
+                if (!data.Any() || data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                var response = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(response);
             }
             catch (Exception ex)
             {
