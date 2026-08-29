@@ -16,5 +16,7 @@ namespace elr_API.IService.IUser_manager
         Task<ResponseDTO> ElrphysiciansList(string? physiciansName);
         Task<ResponseDTO> ElrTechniciansList(string? technicians_name);
         Task<ResponseDTO> ElrGetPatientEventPage(long patient_id);
+
+        Task<ResponseDTO> ElrGetPatientSearch(PatientEcgSearchReqDTO obj);
     }
 }

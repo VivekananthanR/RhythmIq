@@ -374,6 +374,39 @@ namespace elr_API.Service.User_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+
+        public async Task<ResponseDTO> ElrGetPatientSearch(PatientEcgSearchReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientEcgSearchReqDTO.selelct_pateint_details(obj);
+                var (totalCount, data) = await _dp.SelectQueryWithCount<long, PatientEcgSearechResDTO>(query, obj, Elr_db);
+
+                if (!data.Any() || data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                var result = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+
+                return new ResponseDTO(result);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
     }
 
 

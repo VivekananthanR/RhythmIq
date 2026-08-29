@@ -1,4 +1,5 @@
-﻿using elr_API.Common;
+﻿using ClosedXML.Excel;
+using elr_API.Common;
 using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
 using elr_API.IService.IDapper;
@@ -639,6 +640,8 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
+                if (queued_events_records_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
                 bool active = await IsProcessingEvent(emp_id);
 
                 if (active) return new ResponseDTO(false, "Current event must be completed before taking next event");
@@ -1602,7 +1605,7 @@ namespace elr_API.Service.Home_manager
                 if (obj == null || obj.queued_events_records_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = ActivityLogResDTO.select_activity_log(obj);
-                var activityData = await _db.SelectQuery<ActivityLogResDTO>(query, obj, ELR_db);
+                var (totalCount, activityData) = await _db.SelectQueryWithCount<long, ActivityLogResDTO>(query, obj, ELR_db);
 
                 if (activityData == null || activityData.Count() == 0) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
@@ -1622,8 +1625,13 @@ namespace elr_API.Service.Home_manager
                         }
                     }
                 }
+                var result = new
+                {
+                    totalCount = totalCount,
+                    item = activityData,
+                };
 
-                return new ResponseDTO(activityData);
+                return new ResponseDTO(result);
 
             }
             catch (Exception ex)
@@ -1941,20 +1949,116 @@ namespace elr_API.Service.Home_manager
             try
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
                 query = FectchHistoryRespDTO.select_fetch_history_list(obj);
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, FectchHistoryRespDTO>(query, obj, ELR_db);
+
                 if (data == null || totalCount <= 0) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
-                var result = new
+
+                var response = new
                 {
                     totalCount = totalCount,
                     item = data
                 };
-                return new ResponseDTO(result);
+                return new ResponseDTO(response);
+
             }
             catch (Exception ex)
             {
                 CommonFunctions.ILogging(obj, ex.Message.ToString());
                 ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+        public async Task<byte[]> ElrFetchHistoryExcel(FectchHistoryReqDTO obj)
+        {
+            try
+            {
+                if (obj == null) return null;
+
+                string query = FectchHistoryRespDTO.select_fetch_history_excel(obj);
+
+                var data = await _db.SelectQuery<FectchHistoryRespDTO>(query, obj, ELR_db);
+
+                if (data == null || !data.Any()) return null;
+
+                using var workbook = new XLWorkbook();
+
+                var worksheet = workbook.Worksheets.Add("Fetch History");
+
+                worksheet.Cell(1, 1).Value = "Ecg ID";
+                worksheet.Cell(1, 2).Value = "Patient name";
+                worksheet.Cell(1, 3).Value = "Patient ID";
+                worksheet.Cell(1, 4).Value = "Event Date & Time";
+                worksheet.Cell(1, 5).Value = "Requested by";
+                worksheet.Cell(1, 6).Value = "Reason";
+                worksheet.Cell(1, 7).Value = "Status";
+                worksheet.Cell(1, 8).Value = "Processed by";
+                worksheet.Cell(1, 9).Value = "Processed Date & Time";
+
+                int row = 2;
+
+                foreach (var item in data)
+                {
+                    worksheet.Cell(row, 1).Value = item.queued_events_records_id;
+                    worksheet.Cell(row, 2).Value = item.patient_name;
+                    worksheet.Cell(row, 3).Value = item.patient_id;
+                    worksheet.Cell(row, 4).Value = item.created_datetime;
+                    worksheet.Cell(row, 5).Value = item.user_name;
+                    worksheet.Cell(row, 6).Value = item.event_source;
+                    worksheet.Cell(row, 7).Value = item.event_status;
+                    worksheet.Cell(row, 8).Value = item.completed_user_name;
+                    worksheet.Cell(row, 9).Value = item.completed_datetime;
+
+                    row++;
+                }
+
+                worksheet.Columns().AdjustToContents();
+
+                using var stream = new MemoryStream();
+
+                workbook.SaveAs(stream);
+
+                return stream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message);
+                ErrorMessage = ex.Message;
+
+                return null;
+            }
+        }
+        public async Task<ResponseDTO> ElrGetByIdFetchHistory(long queued_events_records_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (queued_events_records_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = FectchHistoryRespDTO.get_fetch_history_by_id();
+                var data = (await _db.SelectQuery<FectchHistoryRespDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).FirstOrDefault();
+
+                if (data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                if (data != null)
+                {
+                    query = SymptomDTO.get_event_symptoms();
+
+                    data.symptoms = (await _db.SelectQuery<SymptomDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+
+                    query = FindingDTO.get_fetch_history_by_id();
+
+                    data.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { queued_events_records_id = queued_events_records_id }, ELR_db)).ToList();
+                }
+                return new ResponseDTO(data);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+
             }
             return new ResponseDTO(false, ErrorMessage);
         }
@@ -2039,6 +2143,35 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
+        public async Task<ResponseDTO> ElrGetEventEcgSearch(EventEcgSearchReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+
+                query = EventEcgSearchResDTO.get_ecg_search(obj);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, EventEcgSearchResDTO>(query, obj, ELR_db);
+
+                if (data == null || !data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                var response = new
+                {
+                    TotalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(response);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
     }
 }

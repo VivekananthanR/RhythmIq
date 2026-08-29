@@ -101,12 +101,14 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrFetchECG(FetchECGReqDTO obj);
         Task<ResponseDTO> ElrGetFetchHistory(long queued_events_records_id);
         Task<ResponseDTO> ElrFetchHistoryList(FectchHistoryReqDTO obj);
+        Task<ResponseDTO> ElrGetByIdFetchHistory(long queued_events_records_id);
+        Task<byte[]> ElrFetchHistoryExcel(FectchHistoryReqDTO obj);
 
         Task<ResponseDTO> ElrMyProgress(long emp_id, string type);
 
         Task<ResponseDTO> ElrGetReportType();
         Task<ResponseDTO> ElrAddUpdateReportType(ReportTypeDTO obj);
 
-        //Task<ResponseDTO> ElrGetEcgSearch();
+        Task<ResponseDTO> ElrGetEventEcgSearch(EventEcgSearchReqDTO obj);
     }
 }

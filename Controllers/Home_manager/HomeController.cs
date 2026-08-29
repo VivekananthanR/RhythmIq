@@ -482,12 +482,48 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
+        #region HttpPost = api/Home/ElrFetchHistoryExcel
+        [HttpPost("ElrFetchHistoryExcel"), Authorize]
+        public async Task<ActionResult<byte[]>> ElrFetchHistoryExcel(FectchHistoryReqDTO obj)
+        {
+            return await _homeService.ElrFetchHistoryExcel(obj);
+        }
+        #endregion
+
+        #region HttpGet = api/Home/ElrGetByIdFetchHistory?queued_events_records_id =
+        [HttpGet("ElrGetByIdFetchHistory"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetByIdFetchHistory(long queued_events_records_id)
+        {
+            return await _homeService.ElrGetByIdFetchHistory(queued_events_records_id);
+        }
+        #endregion    
+
+
         #region HttpGet = api/Home/ElrMyProgress?type =
         [HttpGet("ElrMyProgress"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrMyProgress([FromHeader] string authorization, string type)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
             return await _homeService.ElrMyProgress(tokenClaims.id, type);
+        }
+        #endregion
+
+        #region HttpGet = api/Home/ElrGetReportType
+        [HttpGet("ElrGetReportType"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetReportType()
+        {
+            return await _homeService.ElrGetReportType();
+        }
+        #endregion
+
+
+        #region HttpPost = api/Home/ElrAddUpdateReportType
+        [HttpPost("ElrAddUpdateReportType"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateReportType([FromHeader] string authorization, ReportTypeDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdateReportType(obj);
         }
         #endregion
     }

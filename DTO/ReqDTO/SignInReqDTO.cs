@@ -272,7 +272,7 @@ public class AddUpdateEmployeeDetailsReqDTO
     {
         return $@"select user_id,user_name,phone_no,email_id,emp_code,is_active
                         from {Tbl.user_master}
-                         where (@user_name is null or user_name = @user_name)";
+                         where (@user_name is null or user_name = @user_name) and is_active =1  order by user_name asc";
     }
 
     internal static string select_physicians_list()
@@ -307,6 +307,86 @@ public class AddUpdateEmployeeDetailsReqDTO
     #endregion
 
 }
+public class PatientEcgSearchReqDTO
+{
+    public long patient_id { get; set; }
+    public string patient_name { get; set; }
+    public long patient_enrollment_id { get; set; }
+    public int pageNumber { get; set; }
+    public int pageSize { get; set; }
+    public int offSet => (pageNumber - 1) * pageSize;
+
+    public string sortBy { get; set; }
+    public string orderBy { get; set; }
+
+    #region Query 
+    internal static string selelct_pateint_details(PatientEcgSearchReqDTO obj)
+    {
+        return $@"
+                SELECT COUNT(*)
+                FROM {Tbl.patient_enrollment} AS a
+                INNER JOIN {Tbl.patient} AS b
+                    ON a.patient_id = b.patient_id
+               WHERE a.is_active = 1
+                AND (
+                    a.patient_enrollment_id = @patient_enrollment_id
+                    OR @patient_enrollment_id = 0
+                )
+                AND (
+                    a.patient_id = @patient_id
+                    OR @patient_id = 0
+                )
+                AND (
+                    b.patient_name LIKE '%' + @patient_name + '%'
+                    OR @patient_name IS NULL
+                    OR @patient_name = ''
+                );
+
+                    SELECT
+                        a.patient_enrollment_id,
+                        a.patient_id,
+                        a.referred_physician_id,
+                        a.actual_hookup,
+                        a.enrollment_status,
+                        b.patient_name,
+                        a.is_active,
+                        c.user_name AS referred_physician
+                    FROM {Tbl.patient_enrollment} AS a
+                    INNER JOIN {Tbl.patient} AS b
+                        ON a.patient_id = b.patient_id
+                    INNER JOIN {Tbl.user_master} AS c
+                        ON c.user_id = a.referred_physician_id
+                    WHERE a.is_active = 1
+                        AND (a.patient_enrollment_id = @patient_enrollment_id OR @patient_enrollment_id = 0)
+                        AND (a.patient_id = @patient_id OR @patient_id = 0)
+                        AND (
+                            b.patient_name LIKE '%' + @patient_name + '%'
+                            OR @patient_name IS NULL
+                            OR @patient_name = ''
+                        )
+                    ORDER BY {obj.sortBy} {obj.orderBy}
+                    OFFSET @offset ROWS
+                    FETCH NEXT @pageSize ROWS ONLY;";
+    }
+    #endregion
+
+}
+
+
+
+public class PatientEcgSearechResDTO
+{
+    public long patient_id { get; set; }
+    public string patient_name { get; set; }
+    public long patient_enrollment_id { get; set; }
+    public DateTime? created_datetime { get; set; }
+    public DateTime? actual_hookup { get; set; }
+    public string enrollment_status { get; set; }
+    public long referred_physician_id { get; set; }
+    public string referred_physician { get; set; }
+    public bool is_active { get; set; }
+}
+
 
 
 public class PhysiciansListResDTO

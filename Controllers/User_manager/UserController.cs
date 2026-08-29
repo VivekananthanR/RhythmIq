@@ -103,5 +103,13 @@ namespace elr_API.Controllers.User_manager
             return await _userService.ElrGetPatientEventPage(patient_id);
         }
         #endregion
+
+        #region HttpPost = api/User/ElrGetPatientSearch
+        [HttpPost("ElrGetPatientSearch")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetPatientSearch(PatientEcgSearchReqDTO obj)
+        {
+            return await _userService.ElrGetPatientSearch(obj);
+        }
+        #endregion
     }
 }
