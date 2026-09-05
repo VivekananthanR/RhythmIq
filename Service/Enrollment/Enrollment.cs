@@ -116,8 +116,6 @@ namespace elr_API.Service.Enrolment
                 query = RequestPatientEnrollmentResDTO.select_request_patient_enrollment();
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, RequestPatientEnrollmentResDTO>(query, obj, ELR_db);
 
-                if (!data.Any() || data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
-
                 var response = new
                 {
                     totalCount = totalCount,

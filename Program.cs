@@ -60,8 +60,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 #endregion
 
+#region Background service configuration
 
 builder.Services.AddHostedService<EventReassignService>();
+builder.Services.AddHostedService<PatientReportService>();
+
+#endregion
 
 #region Service configuration
 

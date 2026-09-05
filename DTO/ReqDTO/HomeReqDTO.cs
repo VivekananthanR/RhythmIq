@@ -1053,7 +1053,7 @@ namespace elr_API.DTO.ReqDTO
                             LEFT JOIN {Tbl.device_mast} d
                                 ON pe.device_id = d.device_id
 
-                                where a.is_active = 1
+                                where a.is_active = 1 and pe.is_active = 1 and p.is_active = 1 and u.is_active = 1 and d.is_active = 1
                                         and a.event_status <> 'partial-completed' and a.event_status <> 'completed'
 
                                 order by {obj.shortColumn} {obj.orderBy}
@@ -1215,10 +1215,12 @@ namespace elr_API.DTO.ReqDTO
                     WHERE q.queued_events_records_id =
                     (
                         SELECT TOP 1 q1.queued_events_records_id
-                        FROM {Tbl.queued_events_records} q1
-                        WITH (UPDLOCK, READPAST, ROWLOCK)
+                        FROM {Tbl.queued_events_records} q1 WITH (UPDLOCK, READPAST, ROWLOCK)
+                        INNER JOIN {Tbl.patient_enrollment} pe
+                            ON pe.patient_enrollment_id = q1.patient_enrollment_id
                         WHERE q1.event_status = 'pending'
                           AND q1.is_active = 1
+                          AND pe.is_active = 1
                           AND NOT EXISTS
                           (
                               SELECT 1
@@ -1244,7 +1246,6 @@ namespace elr_API.DTO.ReqDTO
                             q1.created_datetime ASC
                     );";
         }
-
         internal static string get_event_details()
         {
             return $@"
@@ -1273,7 +1274,7 @@ namespace elr_API.DTO.ReqDTO
                         ON p.patient_id = pe.patient_id
                     LEFT JOIN {Tbl.device_mast} d
                         ON d.device_id = pe.device_id
-                    WHERE q.queued_events_records_id = @queued_events_records_id AND q.is_active = 1;";
+                    WHERE q.queued_events_records_id = @queued_events_records_id AND q.is_active = 1 AND pe.is_active = 1 AND p.is_active = 1 AND d.is_active = 1;";
         }
 
 
@@ -1455,30 +1456,54 @@ namespace elr_API.DTO.ReqDTO
                         modified_by = @assigned_by,
                         modified_datetime = GETDATE()
                     WHERE event_assign_id  = @event_assign_id 
-                      AND work_status IN ('completed', 'partial-completed')
-                      AND is_final_completed = 0";
+                      AND work_status IN ('completed', 'partial-completed')";
         }
+        //internal static string update_work_status_by_event_assign()
+        //{
+        //    return $@"
+        //            UPDATE {Tbl.event_assign}
+        //            SET
+        //                work_status = @work_status,
+        //                is_final_completed =
+        //                    CASE
+        //                        WHEN @work_status IN ('completed','partial-completed')
+        //                        THEN 0
+        //                        ELSE is_final_completed
+        //                    END,
+        //                analysis_end_datetime =
+        //                    CASE
+        //                        WHEN @work_status IN ('completed','partial-completed')
+        //                        THEN GETDATE()
+        //                        ELSE analysis_end_datetime
+        //                    END,
+        //                modified_by = @modified_by,
+        //                modified_datetime = GETDATE()
+        //            WHERE event_assign_id = @event_assign_id";
+        //}
         internal static string update_work_status_by_event_assign()
         {
             return $@"
                     UPDATE {Tbl.event_assign}
                     SET
                         work_status = @work_status,
+
                         is_final_completed =
                             CASE
-                                WHEN @work_status IN ('completed','partial-completed')
-                                THEN 0
+                                WHEN @is_final_completed = 1 THEN 1
                                 ELSE is_final_completed
                             END,
+
                         analysis_end_datetime =
                             CASE
                                 WHEN @work_status IN ('completed','partial-completed')
                                 THEN GETDATE()
                                 ELSE analysis_end_datetime
                             END,
+
                         modified_by = @modified_by,
                         modified_datetime = GETDATE()
-                    WHERE event_assign_id = @event_assign_id";
+
+                    WHERE event_assign_id = @event_assign_id;";
         }
         internal static string event_assign_insert()
         {
@@ -1487,6 +1512,28 @@ namespace elr_API.DTO.ReqDTO
         }
 
         #region Background service
+        //internal static string reassign_expired_events()
+        //{
+        //    return $@"
+        //            UPDATE {Tbl.event_assign}
+        //            SET
+        //                work_status = 'reassigned',
+        //                modified_by = assigned_by,
+        //                last_activity_datetime = GETDATE(),
+        //                remarks = '10 Minutes Reached'
+        //            OUTPUT INSERTED.event_assign_id
+        //           WHERE
+        //                (
+        //                    work_status = 'inprogress'
+        //                    AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10
+        //                )
+        //                OR
+        //                (
+        //                    work_status IN ('completed','partial-completed')
+        //                    AND is_final_completed = 0
+        //                    AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10
+        //                )";
+        //}
         internal static string reassign_expired_events()
         {
             return $@"
@@ -1497,17 +1544,11 @@ namespace elr_API.DTO.ReqDTO
                         last_activity_datetime = GETDATE(),
                         remarks = '10 Minutes Reached'
                     OUTPUT INSERTED.event_assign_id
-                   WHERE
-                        (
-                            work_status = 'inprogress'
-                            AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10
-                        )
-                        OR
-                        (
-                            work_status IN ('completed','partial-completed')
-                            AND is_final_completed = 0
-                            AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10
-                        )";
+                    WHERE
+                        is_active = 1
+                        AND ISNULL(is_final_completed, 0) = 0
+                        AND work_status IN ('inprogress', 'completed', 'partial-completed')
+                        AND DATEDIFF(MINUTE, analysis_start_datetime, GETDATE()) >= 10;";
         }
 
         internal static string insert_reassigned_log()
@@ -1597,6 +1638,23 @@ namespace elr_API.DTO.ReqDTO
         //              AND q.event_status = 'processing';";
         //}
 
+        //internal static string reset_reassigned_events()
+        //{
+        //    return $@"
+        //            UPDATE q
+        //            SET
+        //                q.event_status = 'pending',
+        //                q.modified_by = ea.created_by,
+        //                q.modified_datetime = GETDATE(),
+        //                q.completed_by = NULL,
+        //                q.completed_datetime = NULL,
+        //                q.remarks = '10 Minutes Reached'
+        //            FROM {Tbl.queued_events_records} q
+        //            INNER JOIN {Tbl.event_assign} ea
+        //                ON ea.queued_events_records_id = q.queued_events_records_id
+        //            WHERE ea.event_assign_id = @event_assign_id
+        //              AND q.event_status IN ('processing','completed');";
+        //}
         internal static string reset_reassigned_events()
         {
             return $@"
@@ -1612,7 +1670,8 @@ namespace elr_API.DTO.ReqDTO
                     INNER JOIN {Tbl.event_assign} ea
                         ON ea.queued_events_records_id = q.queued_events_records_id
                     WHERE ea.event_assign_id = @event_assign_id
-                      AND q.event_status IN ('processing','completed');";
+                      AND ISNULL(ea.is_final_completed, 0) = 0
+                      AND q.event_status IN ('processing', 'completed');";
         }
         #endregion
 
@@ -1622,23 +1681,6 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"
 
-                    -- Log (Update BEFORE)
-                    INSERT INTO {Tbl.event_assign_log}
-                    (
-                        event_assign_id,
-                        patient_enrollment_id,
-                        queued_events_records_id,
-                        table_name,
-                        record_id,
-                        action_type,
-                        old_work_status,
-                        new_work_status,
-                        old_value,
-                        new_value,
-                        remarks,
-                        created_by,
-                        created_datetime
-                    )
                     SELECT
                         event_assign_id,
                         patient_enrollment_id,
@@ -1662,6 +1704,7 @@ namespace elr_API.DTO.ReqDTO
                     UPDATE ea
                     SET
                         ea.work_status = 'reassigned',
+                        ea.is_final_completed = 0,
                         ea.modified_by = @modified_by,
                         ea.modified_datetime = GETDATE(),
                         ea.last_activity_datetime = GETDATE(),
@@ -2351,20 +2394,7 @@ namespace elr_API.DTO.ReqDTO
         internal static string update_detection_log()
         {
             return $@"
-                    INSERT INTO {Tbl.event_assign_log}
-                    (
-                        event_assign_id,
-                        patient_enrollment_id,
-                        queued_events_records_id,
-                        table_name,
-                        record_id,
-                        action_type,
-                        old_value,
-                        new_value,
-                        remarks,
-                        created_by,
-                        created_datetime
-                    )
+
                     SELECT
                         d.event_assign_id,
                         ea.patient_enrollment_id,
@@ -2507,16 +2537,28 @@ namespace elr_API.DTO.ReqDTO
         internal static string get_fetch_history_by_id()
         {
             return $@"
-                    select a.detection_id,a.sub_strip_event_id,a.queued_events_records_id,a.detection_status,a.event_assign_id,
-                    b.sub_strip_event_finding_id,b.event_finding_id,b.value1,b.value2,a.is_active,b.is_active,c.finding_name
-                    from {Tbl.detection} as a
-                    inner join {Tbl.sub_strip_event_finding} as b
-                    on a.queued_events_records_id = b.queued_events_records_id
-                    left join {Tbl.event_finding_mast} as c
-                    on c.event_finding_id = b.event_finding_id
-                    where a.queued_events_records_id = @queued_events_records_id
-                    and a.is_active =1
-                    and b.is_active =1 ";
+                    SELECT
+                        c.queued_events_records_id,
+                        c.event_finding_id,
+                        c.sub_strip_event_id,
+                        d.finding_name,
+                        c.value1,
+                        c.value2,
+                        c.detection_id
+                    FROM {Tbl.sub_strip_event_finding} AS c
+                    INNER JOIN {Tbl.event_finding_mast} AS d
+                        ON d.event_finding_id = c.event_finding_id
+                    WHERE c.queued_events_records_id = @queued_events_records_id
+                        AND c.is_active = 1
+                        AND d.is_active = 1
+                    GROUP BY
+                        c.queued_events_records_id,
+                        c.event_finding_id,
+                        c.sub_strip_event_id,
+                        d.finding_name,
+                        c.value1,
+                        c.value2,
+                        c.detection_id;";
         }
         internal static string get_parent_finding()
         {
@@ -3104,6 +3146,7 @@ namespace elr_API.DTO.ReqDTO
     {
         public long activity_log_id { get; set; }
         public long queued_events_records_id { get; set; }
+        public long? sub_strip_event_id { get; set; }
         public long detection_id { get; set; }
         public string action_type { get; set; }
         public List<ActivityLogFindingDTO> finding_list { get; set; }
@@ -3128,6 +3171,7 @@ namespace elr_API.DTO.ReqDTO
 
         public long queued_events_records_id { get; set; }
         public long detection_id { get; set; }
+        public long? sub_strip_event_id { get; set; }
         public string action_type { get; set; }
         public List<ActivityLogFindingDTO> finding_list { get; set; }
         public long user_id { get; set; }
@@ -3137,13 +3181,28 @@ namespace elr_API.DTO.ReqDTO
         internal static string select_activity_log(ActivityLogReqDTO obj)
         {
             return $@"
-
-                    select count(*) 
+                    SELECT COUNT(*)
                     FROM {Tbl.activity_log} al
                     LEFT JOIN {Tbl.user_master} u
                         ON u.user_id = al.created_by
-                    WHERE al.queued_events_records_id = @queued_events_records_id
-                      AND al.is_active = 1 and u.is_active = 1
+                    LEFT JOIN {Tbl.detection} d
+                        ON d.detection_id = al.detection_id
+                    WHERE al.is_active = 1
+                          AND u.is_active = 1
+                          AND al.queued_events_records_id = @queued_events_records_id
+                            AND
+                            (
+                                (
+                                    ISNULL(@sub_strip_event_id, 0) = 0
+                                    AND d.sub_strip_event_id IS NULL
+                                )
+                                OR
+                                (
+                                    ISNULL(@sub_strip_event_id, 0) <> 0
+                                    AND d.sub_strip_event_id = @sub_strip_event_id
+                                )
+                            );
+
 
                     SELECT
                         al.activity_log_id,
@@ -3155,21 +3214,37 @@ namespace elr_API.DTO.ReqDTO
                         al.queued_events_records_id,
                         al.detection_id,
                         al.action_type,
-
                         u.user_id,
-                        u.user_name
+                        u.user_name,
+                        d.sub_strip_event_id
 
                     FROM {Tbl.activity_log} al
-
                     LEFT JOIN {Tbl.user_master} u
                         ON u.user_id = al.created_by
+                    LEFT JOIN {Tbl.detection} d
+                        ON d.detection_id = al.detection_id
 
-                    WHERE al.queued_events_records_id = @queued_events_records_id
-                      AND al.is_active = 1 and u.is_active = 1
+                    WHERE
+                        al.is_active = 1
+                        AND u.is_active = 1
 
+                        AND al.queued_events_records_id = @queued_events_records_id
+
+                        AND
+                        (
+                            (
+                                ISNULL(@sub_strip_event_id, 0) = 0
+                                AND d.sub_strip_event_id IS NULL
+                            )
+                            OR
+                            (
+                                ISNULL(@sub_strip_event_id, 0) <> 0
+                                AND d.sub_strip_event_id = @sub_strip_event_id
+                            )
+                        )
                     ORDER BY {obj.sortBy} {obj.orderBy}
                     OFFSET @offSet ROWS
-                    FETCH NEXT {obj.pageSize} ROWS ONLY
+                    FETCH NEXT @pageSize ROWS ONLY;
                 ";
         }
         internal static string select_activity_log_finding()
@@ -3282,12 +3357,12 @@ namespace elr_API.DTO.ReqDTO
         internal static string get_fetch_history_by_id()
         {
             return $@"
-                    SELECT
+                    SELECT DISTINCT 
                         a.queued_events_records_id,
                         a.patient_enrollment_id,
                         a.enrollment_raw_data_id,
                         a.priority_level,
-                        a.trigger_type,
+                        a.trigger_type, 
                         a.bpm,
                         a.event_status,
                         a.event_file_path,
@@ -3322,25 +3397,105 @@ namespace elr_API.DTO.ReqDTO
                         AND dm.is_active = 1
 
                       left join {Tbl.event_assign} as ea
-                        on ea.queued_events_records_id = a.queued_events_records_id
+                        on ea.queued_events_records_id = a.queued_events_records_id 
 
                     WHERE a.queued_events_records_id = @queued_events_records_id
                       AND a.is_active = 1
                       AND d.is_active = 1
+                    and ea.is_final_completed = 1
+                    and ea.work_status = 'completed' 
+                    and ea.is_active = 1
                 ";
         }
-
         internal static string select_fetch_history_list(FectchHistoryReqDTO obj)
         {
             return $@"
                     SELECT COUNT(*)
+                    FROM
+                    (
+                        SELECT DISTINCT
+                            a.queued_events_records_id
+                        FROM {Tbl.queued_events_records} AS a
+
+                        LEFT JOIN {Tbl.patient_enrollment} AS c
+                            ON c.patient_enrollment_id = a.patient_enrollment_id
+
+                        INNER JOIN {Tbl.patient} AS d
+                            ON d.patient_id = c.patient_id
+
+                        WHERE a.trigger_type = 'Fetch-ECG'
+                          AND a.is_active = 1
+
+                          AND
+                          (
+                              a.parent_queued_events_records_id =
+                              (
+                                  SELECT
+                                      CASE
+                                          WHEN parent_queued_events_records_id > 0
+                                              THEN parent_queued_events_records_id
+                                          ELSE queued_events_records_id
+                                      END
+                                  FROM {Tbl.queued_events_records}
+                                  WHERE queued_events_records_id = @queued_events_records_id
+                                    AND is_active = 1
+                              )
+                              OR @queued_events_records_id = 0
+                          )
+
+                          AND (@event_status IS NULL
+                               OR @event_status = ''
+                               OR a.event_status = @event_status)
+
+                          AND (@from_date IS NULL
+                               OR a.created_datetime >= @from_date)
+
+                          AND (@to_date IS NULL
+                               OR a.created_datetime < DATEADD(DAY, 1, @to_date))
+
+                          AND (@patient_name IS NULL
+                               OR @patient_name = ''
+                               OR d.patient_name LIKE '%' + @patient_name + '%')
+                    ) AS TotalData;
+
+
+                    SELECT DISTINCT
+                        a.queued_events_records_id,
+                        a.is_active,
+                        a.parent_queued_events_records_id,
+                        a.trigger_type,
+                        a.event_start_datetime,
+                        a.event_end_datetime,
+                        a.event_status,
+                        a.created_by,
+                        a.created_datetime,
+                        a.event_source,
+                        a.fetch_duration_minutes,
+                        a.completed_by,
+                        a.completed_datetime,
+                        a.remarks,
+
+                        b.user_id,
+                        b.user_name,
+
+                        c.patient_id,
+                        d.patient_name,
+
+                        e.user_name AS completed_user_name
+
                     FROM {Tbl.queued_events_records} AS a
 
-                            LEFT JOIN {Tbl.patient_enrollment} AS c
-                                ON c.patient_enrollment_id = a.patient_enrollment_id
+                    LEFT JOIN {Tbl.user_master} AS b
+                        ON b.user_id = a.created_by
 
-                            INNER JOIN {Tbl.patient} AS d
-                                ON d.patient_id = c.patient_id
+                    LEFT JOIN {Tbl.user_master} AS e
+                        ON e.user_id = a.completed_by
+
+                    LEFT JOIN {Tbl.patient_enrollment} AS c
+                        ON c.patient_enrollment_id = a.patient_enrollment_id
+
+                    INNER JOIN {Tbl.patient} AS d
+                        ON d.patient_id = c.patient_id
 
                     WHERE a.trigger_type = 'Fetch-ECG'
                       AND a.is_active = 1
@@ -3362,86 +3517,138 @@ namespace elr_API.DTO.ReqDTO
                           OR @queued_events_records_id = 0
                       )
 
-                      AND (@event_status IS NULL OR @event_status = '' OR a.event_status = @event_status)
+                      AND (@event_status IS NULL
+                           OR @event_status = ''
+                           OR a.event_status = @event_status)
 
-                      AND (@from_date IS NULL OR a.event_start_datetime >= @from_date)
+                      AND (@patient_name IS NULL
+                           OR @patient_name = ''
+                           OR d.patient_name LIKE '%' + @patient_name + '%')
 
-                      AND (@to_date IS NULL OR a.event_start_datetime <= @to_date)
+                      AND (@from_date IS NULL
+                           OR a.created_datetime >= @from_date)
 
-                      AND (@patient_name IS NULL OR @patient_name = '' OR d.patient_name LIKE '%' + @patient_name + '%');
+                      AND (@to_date IS NULL
+                           OR a.created_datetime < DATEADD(DAY, 1, @to_date))
 
+                    ORDER BY {obj.sortBy} {obj.orderBy}
 
-                            SELECT
-                                a.queued_events_records_id,
-                                a.is_active,
-                                a.parent_queued_events_records_id,
-                                a.trigger_type,
-                                a.event_start_datetime,
-                                a.event_end_datetime,
-                                a.event_status,
-                                a.created_by,
-                                a.created_datetime,
-                                a.event_source,
-                                a.fetch_duration_minutes,
-                                a.completed_by,
-                                a.completed_datetime,
-                                a.remarks,
-
-                                b.user_id,
-                                b.user_name,
-
-                                c.patient_id,
-                                d.patient_name,
-
-                                e.user_name AS completed_user_name
-
-                            FROM {Tbl.queued_events_records} AS a
-
-                            LEFT JOIN {Tbl.user_master} AS b
-                                ON b.user_id = a.created_by
-
-                            LEFT JOIN {Tbl.user_master} AS e
-                                ON a.completed_by = e.user_id
-
-                            LEFT JOIN {Tbl.patient_enrollment} AS c
-                                ON c.patient_enrollment_id = a.patient_enrollment_id
-
-                            INNER JOIN {Tbl.patient} AS d
-                                ON d.patient_id = c.patient_id
-
-                            WHERE a.trigger_type = 'Fetch-ECG'
-                              AND a.is_active = 1
-
-                              AND
-                              (
-                                  a.parent_queued_events_records_id =
-                                  (
-                                      SELECT
-                                          CASE
-                                              WHEN parent_queued_events_records_id > 0
-                                                  THEN parent_queued_events_records_id
-                                              ELSE queued_events_records_id
-                                          END
-                                      FROM {Tbl.queued_events_records}
-                                      WHERE queued_events_records_id = @queued_events_records_id
-                                        AND is_active = 1
-                                  )
-                                  OR @queued_events_records_id = 0
-                              )
-
-                              AND (@event_status IS NULL OR @event_status = '' OR a.event_status = @event_status)
-
-                              AND (@patient_name IS NULL OR @patient_name = '' OR d.patient_name LIKE '%' + @patient_name + '%')
-
-                              AND (@from_date IS NULL OR a.event_start_datetime >= @from_date)
-
-                              AND (@to_date IS NULL OR a.event_start_datetime <= @to_date)
-
-                            ORDER BY {obj.sortBy} {obj.orderBy}
-
-                            OFFSET @offSet ROWS
-                            FETCH NEXT {obj.pageSize} ROWS ONLY";
+                    OFFSET @offSet ROWS
+                    FETCH NEXT {obj.pageSize} ROWS ONLY;
+                ";
         }
+        //internal static string select_fetch_history_list(FectchHistoryReqDTO obj)
+        //{
+        //    return $@"
+        //            SELECT COUNT(*)
+        //            FROM {Tbl.queued_events_records} AS a
+
+        //                    LEFT JOIN {Tbl.patient_enrollment} AS c
+        //                        ON c.patient_enrollment_id = a.patient_enrollment_id
+
+        //                    INNER JOIN {Tbl.patient} AS d
+        //                        ON d.patient_id = c.patient_id
+
+        //            WHERE a.trigger_type = 'Fetch-ECG'
+        //              AND a.is_active = 1
+
+        //              AND
+        //              (
+        //                  a.parent_queued_events_records_id =
+        //                  (
+        //                      SELECT
+        //                          CASE
+        //                              WHEN parent_queued_events_records_id > 0
+        //                                  THEN parent_queued_events_records_id
+        //                              ELSE queued_events_records_id
+        //                          END
+        //                      FROM {Tbl.queued_events_records}
+        //                      WHERE queued_events_records_id = @queued_events_records_id
+        //                        AND is_active = 1
+        //                  )
+        //                  OR @queued_events_records_id = 0
+        //              )
+
+        //              AND (@event_status IS NULL OR @event_status = '' OR a.event_status = @event_status)
+
+        //              AND (@from_date IS NULL OR a.created_datetime >= @from_date)
+
+        //              AND (@to_date IS NULL OR a.created_datetime  < DATEADD(DAY, 1, @to_date))
+
+        //              AND (@patient_name IS NULL OR @patient_name = '' OR d.patient_name LIKE '%' + @patient_name + '%');
+
+
+        //                    SELECT
+        //                        a.queued_events_records_id,
+        //                        a.is_active,
+        //                        a.parent_queued_events_records_id,
+        //                        a.trigger_type,
+        //                        a.event_start_datetime,
+        //                        a.event_end_datetime,
+        //                        a.event_status,
+        //                        a.created_by,
+        //                        a.created_datetime,
+        //                        a.event_source,
+        //                        a.fetch_duration_minutes,
+        //                        a.completed_by,
+        //                        a.completed_datetime,
+        //                        a.remarks,
+
+        //                        b.user_id,
+        //                        b.user_name,
+
+        //                        c.patient_id,
+        //                        d.patient_name,
+
+        //                        e.user_name AS completed_user_name
+
+        //                    FROM {Tbl.queued_events_records} AS a
+
+        //                    LEFT JOIN {Tbl.user_master} AS b
+        //                        ON b.user_id = a.created_by
+
+        //                    LEFT JOIN {Tbl.user_master} AS e
+        //                        ON a.completed_by = e.user_id
+
+        //                    LEFT JOIN {Tbl.patient_enrollment} AS c
+        //                        ON c.patient_enrollment_id = a.patient_enrollment_id
+
+        //                    INNER JOIN {Tbl.patient} AS d
+        //                        ON d.patient_id = c.patient_id
+
+        //                    WHERE a.trigger_type = 'Fetch-ECG'
+        //                      AND a.is_active = 1
+
+        //                      AND
+        //                      (
+        //                          a.parent_queued_events_records_id =
+        //                          (
+        //                              SELECT
+        //                                  CASE
+        //                                      WHEN parent_queued_events_records_id > 0
+        //                                          THEN parent_queued_events_records_id
+        //                                      ELSE queued_events_records_id
+        //                                  END
+        //                              FROM {Tbl.queued_events_records}
+        //                              WHERE queued_events_records_id = @queued_events_records_id
+        //                                AND is_active = 1
+        //                          )
+        //                          OR @queued_events_records_id = 0
+        //                      )
+
+        //                      AND (@event_status IS NULL OR @event_status = '' OR a.event_status = @event_status)
+
+        //                      AND (@patient_name IS NULL OR @patient_name = '' OR d.patient_name LIKE '%' + @patient_name + '%')
+
+        //                      AND (@from_date IS NULL OR a.created_datetime >= @from_date)
+
+        //                      AND (@to_date IS NULL OR a.created_datetime  < DATEADD(DAY, 1, @to_date))
+
+        //                    ORDER BY {obj.sortBy} {obj.orderBy}
+
+        //                    OFFSET @offSet ROWS
+        //                    FETCH NEXT {obj.pageSize} ROWS ONLY";
+        //}
         internal static string select_fetch_history_excel(FectchHistoryReqDTO obj)
         {
             return $@"
@@ -3516,12 +3723,12 @@ namespace elr_API.DTO.ReqDTO
 
                       AND (
                           @from_date IS NULL
-                          OR a.event_start_datetime >= @from_date
+                          OR a.created_datetime >= @from_date
                       )
 
                       AND (
                           @to_date IS NULL
-                          OR a.event_start_datetime < DATEADD(DAY, 1, @to_date)
+                          OR a.created_datetime < DATEADD(DAY, 1, @to_date)
                       )
 
                     ORDER BY {obj.sortBy} {obj.orderBy}";
@@ -3848,6 +4055,7 @@ namespace elr_API.DTO.ReqDTO
         public long queued_events_records_id { get; set; }
         public long user_id { get; set; }
         public List<long> finding_ids { get; set; }
+        public int limit { get; set; }
 
         public int pageNumber { get; set; }
         public int pageSize { get; set; }
@@ -3872,74 +4080,242 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string get_ecg_search(EventEcgSearchReqDTO obj)
         {
+            string sortBy = obj.sortBy;
+
+            if (obj.sortBy == "queued_events_records_id")
+            {
+                sortBy = "qe.queued_events_records_id";
+            }
+
             string condition = $@"
                                 qe.completed_by IS NOT NULL
                                 AND qe.is_active = 1
+
                                 AND ev.is_final_completed = 1
                                 AND ev.is_active = 1
 
-                                AND (  (@date_type = 'process_date' AND qe.completed_datetime IS NOT NULL) OR (@date_type = 'event_date' AND qe.event_start_datetime IS NOT NULL))
-                             
-                                AND (  @from_date IS NULL OR ( @date_type = 'process_date' AND qe.completed_datetime >= @from_date ) OR ( @date_type = 'event_date' AND qe.event_start_datetime >= @from_date ))
-                                  
-                                AND ( @to_date IS NULL OR ( @date_type = 'process_date' AND qe.completed_datetime < DATEADD(DAY, 1, @to_date) ) OR (  @date_type = 'event_date' AND qe.event_start_datetime < DATEADD(DAY, 1, @to_date) ))
-                                    
-                                AND (  @queued_events_records_id = 0 OR qe.queued_events_records_id = @queued_events_records_id )
-                                
-                                AND ( @user_id = 0  OR um.user_id = @user_id )
-                                
                                 AND (
-                                    @has_findings = 0
-                                    OR EXISTS
-                                    (
-                                        SELECT 1
-                                        FROM {Tbl.sub_strip_event_finding} AS sef
-                                        WHERE sef.queued_events_records_id = qe.queued_events_records_id
-                                          AND sef.event_finding_id IN @finding_ids
-                                          AND sef.is_active = 1
-                                    )
-                                )";
+                                    @date_type IS NULL
+                                    OR @date_type = ''
+                                    OR (@date_type = 'process_date' AND qe.completed_datetime IS NOT NULL)
+                                    OR (@date_type = 'event_date' AND qe.event_start_datetime IS NOT NULL)
+                                )
+
+                                AND (
+                                @from_date IS NULL
+                                OR (@date_type = 'process_date' AND qe.completed_datetime >= @from_date)
+                                OR (@date_type = 'event_date' AND qe.event_start_datetime >= @from_date)
+                            )
+
+                            AND (
+                                @to_date IS NULL
+                                OR (@date_type = 'process_date'
+                                    AND qe.completed_datetime < DATEADD(DAY, 1, @to_date))
+                                OR (@date_type = 'event_date'
+                                    AND qe.event_start_datetime < DATEADD(DAY, 1, @to_date))
+                            )
+
+                            AND (
+                                @queued_events_records_id = 0
+                                OR qe.queued_events_records_id = @queued_events_records_id
+                            )
+
+                            AND (
+                                @user_id = 0
+                                OR um.user_id = @user_id
+                            )
+
+                            AND (
+                                @has_findings = 0
+                                OR EXISTS
+                                (
+                                    SELECT 1    
+                                    FROM {Tbl.sub_strip_event_finding} AS sef
+                                    WHERE sef.queued_events_records_id =
+                                          qe.queued_events_records_id
+                                      AND sef.event_finding_id IN @finding_ids
+                                      AND sef.is_active = 1
+                                )
+                            )";
 
             return $@"
-                        SELECT COUNT(DISTINCT qe.queued_events_records_id)
+                    ;WITH FilteredData AS
+                    (
+                        SELECT
+                            qe.queued_events_records_id,
+                            qe.event_start_datetime,
+                            qe.event_status,
+                            qe.created_by,
+                            qe.created_datetime,
+                            qe.modified_by,
+                            qe.is_active,
+                            qe.patient_enrollment_id,
+                            qe.completed_by,
+                            qe.completed_datetime,
+
+                            ev.event_assign_id,
+                            ev.work_status,
+                            ev.is_active AS event_is_active,
+                            ev.is_final_completed,
+
+                            p.patient_id,
+                            p.patient_name,
+
+                            um.user_id,
+                            um.user_name,
+
+                            ROW_NUMBER() OVER
+                            (
+                                ORDER BY {sortBy} {obj.orderBy}
+                            ) AS RowNum
+
                         FROM {Tbl.queued_events_records} AS qe
 
-                        INNER JOIN {Tbl.event_assign} AS ev
-                            ON ev.queued_events_records_id = qe.queued_events_records_id
+                        INNER JOIN
+                        (
+                            SELECT *
+                            FROM
+                            (
+                                SELECT
+                                    ea.*,
+                                    ROW_NUMBER() OVER
+                                    (
+                                        PARTITION BY ea.queued_events_records_id
+                                        ORDER BY ea.event_assign_id DESC
+                                    ) AS rn
+                                FROM {Tbl.event_assign} AS ea
+                                WHERE ea.is_active = 1
+                                  AND ea.is_final_completed = 1
+                            ) AS x
+                            WHERE x.rn = 1
+                        ) AS ev
+                            ON ev.queued_events_records_id =
+                               qe.queued_events_records_id
 
                         INNER JOIN {Tbl.patient_enrollment} AS pe
-                            ON pe.patient_enrollment_id = qe.patient_enrollment_id
+                            ON pe.patient_enrollment_id =
+                               qe.patient_enrollment_id
 
                         INNER JOIN {Tbl.patient} AS p
-                            ON p.patient_id = pe.patient_id
+                            ON p.patient_id =
+                               pe.patient_id
 
                         INNER JOIN {Tbl.user_master} AS um
-                            ON um.user_id = qe.completed_by
-                            where {condition};
+                            ON um.user_id =
+                               qe.completed_by
+
+                        WHERE {condition}
+                    )
+
+                    SELECT COUNT(*)
+                    FROM FilteredData
+                    WHERE RowNum <= @limit;
 
 
-                       select 
-                            qe.queued_events_records_id,qe.event_start_datetime,qe.event_status,qe.created_by,
-                            qe.created_datetime,qe.modified_by,qe.is_active,qe.patient_enrollment_id,qe.completed_by,qe.completed_datetime,
-                            ev.event_assign_id,ev.work_status,ev.is_active,ev.is_final_completed,p.patient_id,p.patient_name,um.user_id,um.user_name
-                            from {Tbl.queued_events_records} as qe
-                            inner join {Tbl.event_assign} as ev
-                            on ev.queued_events_records_id = qe.queued_events_records_id
-                            inner join {Tbl.patient_enrollment} as pe
-                            on pe.patient_enrollment_id = qe.patient_enrollment_id
-                            inner join {Tbl.patient} as p
-                            on p.patient_id = pe.patient_id
-                            inner join {Tbl.user_master} as um
-                            on um.user_id = qe.completed_by
-                           WHERE {condition}
-                           
-                        ORDER BY {obj.sortBy} {obj.orderBy} 
-                        offset @offSet rows fetch next {obj.pageSize} rows only";
-        #endregion
+                    ;WITH FilteredData AS
+                    (
+                        SELECT
+                            qe.queued_events_records_id,
+                            qe.event_start_datetime,
+                            qe.event_status,
+                            qe.created_by,
+                            qe.created_datetime,
+                            qe.modified_by,
+                            qe.is_active,
+                            qe.patient_enrollment_id,
+                            qe.completed_by,
+                            qe.completed_datetime,
+
+                            ev.event_assign_id,
+                            ev.work_status,
+                            ev.is_active AS event_is_active,
+                            ev.is_final_completed,
+
+                            p.patient_id,
+                            p.patient_name,
+
+                            um.user_id,
+                            um.user_name,
+
+                            ROW_NUMBER() OVER
+                            (
+                                ORDER BY {sortBy} {obj.orderBy}
+                            ) AS RowNum
+
+                        FROM {Tbl.queued_events_records} AS qe
+
+                        INNER JOIN
+                        (
+                            SELECT *
+                            FROM
+                            (
+                                SELECT
+                                    ea.*,
+                                    ROW_NUMBER() OVER
+                                    (
+                                        PARTITION BY ea.queued_events_records_id
+                                        ORDER BY ea.event_assign_id DESC
+                                    ) AS rn
+                                FROM {Tbl.event_assign} AS ea
+                                WHERE ea.is_active = 1
+                                  AND ea.is_final_completed = 1
+                            ) AS x
+                            WHERE x.rn = 1
+                        ) AS ev
+                            ON ev.queued_events_records_id =
+                               qe.queued_events_records_id
+
+                        INNER JOIN {Tbl.patient_enrollment} AS pe
+                            ON pe.patient_enrollment_id =
+                               qe.patient_enrollment_id
+
+                        INNER JOIN {Tbl.patient} AS p
+                            ON p.patient_id =
+                               pe.patient_id
+
+                        INNER JOIN {Tbl.user_master} AS um
+                            ON um.user_id =
+                               qe.completed_by
+
+                        WHERE {condition}
+                    )
+
+                    SELECT
+                        queued_events_records_id,
+                        event_start_datetime,
+                        event_status,
+                        created_by,
+                        created_datetime,
+                        modified_by,
+                        is_active,
+                        patient_enrollment_id,
+                        completed_by,
+                        completed_datetime,
+
+                        event_assign_id,
+                        work_status,
+                        event_is_active,
+                        is_final_completed,
+
+                        patient_id,
+                        patient_name,
+
+                        user_id,
+                        user_name
+
+                    FROM FilteredData
+
+                    WHERE RowNum > @offSet
+                      AND RowNum <=
+                        CASE
+                            WHEN @limit < (@offSet + @pageSize)
+                                THEN @limit
+                            ELSE (@offSet + @pageSize)
+                        END
+
+                    ORDER BY RowNum;";
         }
-
-
-
+        #endregion
     }
 
 

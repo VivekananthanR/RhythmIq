@@ -19,5 +19,7 @@ namespace elr_API.IService.IUser_manager
         Task<ResponseDTO> ElrGetPatientEventPage(long patient_id);
 
         Task<ResponseDTO> ElrGetPatientSearch(PatientEcgSearchReqDTO obj);
+
+        Task<ResponseDTO> ElrGetPatientReportList(PatientReportReqDTO obj);
     }
 }

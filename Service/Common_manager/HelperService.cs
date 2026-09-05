@@ -11,6 +11,7 @@ namespace elr_API.Service.Common_manager
 
         private readonly string MeterboxApiBaseUrl = "http://api.chchealthcare.in/MobileAPI/api/MIS/GetEmployeeDetails?EmployeeId=";
         private readonly string ConnectApiBaseUrl = "http://192.168.97.68:2010/api/Dashboard/GetConnectPatientDetails?mobile_no=";
+        private readonly string ConnectApiBaseUrl_live = "https://apihw.chchealthcare.in/MobileAPI/api/Dashboard/GetConnectPatientDetails?mobile_no=";
 
 
 
@@ -35,7 +36,8 @@ namespace elr_API.Service.Common_manager
         public async Task<ConnectPatientDetails?> GetConnectPatientDetails(string mobile_no)
         {
             var client = _httpClientFactory.CreateClient();
-            var apiUrl = $"{ConnectApiBaseUrl}{mobile_no}";
+
+            var apiUrl = CommonFunctions.DataOnLive() ? $"{ConnectApiBaseUrl_live}{mobile_no}" : $"{ConnectApiBaseUrl}{mobile_no}";
 
             var response = await client.GetAsync(apiUrl);
 

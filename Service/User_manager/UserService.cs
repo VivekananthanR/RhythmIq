@@ -64,6 +64,8 @@ namespace elr_API.Service.User_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
+                if (!Validation.IsValidPhoneNumber(obj.phone_no)) return new ResponseDTO(false, "Enter A Valid Phone Number.");
+
                 query = PatientVerifyLoginReqDTO.existing_patient();
                 PatientVerifyLoginResDTO data = (await _dp.SelectQuery<PatientVerifyLoginResDTO>(query, new { phone_no = obj.phone_no, email_id = obj.email_id, patient_id = obj.patient_id }, Elr_db)).FirstOrDefault();
 
@@ -104,7 +106,7 @@ namespace elr_API.Service.User_manager
             try
             {
                 if (obj == null || string.IsNullOrEmpty(obj.phone_no) || !Validation.IsValidPhoneNumber(obj.phone_no))
-                    return new ResponseDTO(false, "Invalid phone number.");
+                    return new ResponseDTO(false, "Enter A Valid Phone Number.");
 
                 query = PatientVerifyLoginReqDTO.existing_select_patient();
 
@@ -115,7 +117,7 @@ namespace elr_API.Service.User_manager
                     var connectDetails = await _helperService.GetConnectPatientDetails(obj.phone_no);
 
                     if (connectDetails == null)
-                        return new ResponseDTO("Create A New Patient");
+                        return new ResponseDTO(true, "New Patient");
 
                     existPatient = new PatientVerifyLoginResDTO
                     {
@@ -134,17 +136,17 @@ namespace elr_API.Service.User_manager
 
                 if (obj.otp == 0)
                 {
-                    existPatient.otp = obj.phone_no == "8056661324"
-                        ? 123456
-                        : CommonFunctions.GenerateOTP(6);
+                    existPatient.otp = obj.phone_no == "8056661324" ? 123456 : CommonFunctions.GenerateOTP(6);
 
                     if (obj.phone_no != "8056661324")
                     {
-                        await _iqberrychatService.OtpForLoggingPatient(new OtpForLoggingReqDTO
+                        var response = await _iqberrychatService.OtpForLoggingPatient(new OtpForLoggingReqDTO
                         {
                             phone_no = existPatient.phone_no,
                             otp = existPatient.otp.Value
                         });
+
+                        return new ResponseDTO(response);
                     }
 
                     query = PatientVerifyLoginReqDTO.Send_otp_update();
@@ -157,8 +159,7 @@ namespace elr_API.Service.User_manager
                         },
                         Elr_db);
 
-                    return new ResponseDTO(result > 0,
-                        result > 0 ? ResponseMessage.OTP_sended : ResponseMessage.Failed);
+                    return new ResponseDTO(result > 0, result > 0 ? ResponseMessage.OTP_sended : ResponseMessage.Failed);
                 }
 
                 query = PatientVerifyLoginReqDTO.otp_verify_select();
@@ -411,7 +412,7 @@ namespace elr_API.Service.User_manager
                 query = PatientEcgSearchReqDTO.selelct_pateint_details(obj);
                 var (totalCount, data) = await _dp.SelectQueryWithCount<long, PatientEcgSearechResDTO>(query, obj, Elr_db);
 
-                if (!data.Any() || data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                //if (!data.Any() || data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
                 var result = new
                 {
@@ -430,6 +431,36 @@ namespace elr_API.Service.User_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+        public async Task<ResponseDTO> ElrGetPatientReportList(PatientReportReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientReportDTO.get_patient_report_list(obj);
+                var (totalCount, data) = await _dp.SelectQueryWithCount<long, PatientReportDTO>(query, obj, Elr_db);
+
+                //if (!data.Any() || data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+                var result = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+
+                return new ResponseDTO(result);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
 
     }
 

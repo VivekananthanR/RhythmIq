@@ -323,6 +323,8 @@ public class PatientEcgSearchReqDTO
     public long patient_id { get; set; }
     public string patient_name { get; set; }
     public long patient_enrollment_id { get; set; }
+    public bool active { get; set; }
+    public bool historical { get; set; }
     public int pageNumber { get; set; }
     public int pageSize { get; set; }
     public int offSet => (pageNumber - 1) * pageSize;
@@ -351,7 +353,12 @@ public class PatientEcgSearchReqDTO
                     b.patient_name LIKE '%' + @patient_name + '%'
                     OR @patient_name IS NULL
                     OR @patient_name = ''
-                );
+                )
+                AND ( 
+                            (@active = 1 and a.enrollment_status = 'monitoring' ) or
+                            (@historical = 1 and a.enrollment_status = 'completed' ) or 
+                            (@active = 0 AND @historical = 0)
+                        );
 
                     SELECT
                         a.patient_enrollment_id,
@@ -361,12 +368,17 @@ public class PatientEcgSearchReqDTO
                         a.enrollment_status,
                         b.patient_name,
                         a.is_active,
+                        e.duration_in_day,
                         c.user_name AS referred_physician
                     FROM {Tbl.patient_enrollment} AS a
                     INNER JOIN {Tbl.patient} AS b
                         ON a.patient_id = b.patient_id
                     INNER JOIN {Tbl.user_master} AS c
                         ON c.user_id = a.referred_physician_id
+                    inner join {Tbl.test_prices} as d
+                        on d.test_prices_id = a.estimated_test_prices_id
+                        inner join {Tbl.test_mast} as e
+                        on e.test_id = d.test_id
                     WHERE a.is_active = 1
                         AND (a.patient_enrollment_id = @patient_enrollment_id OR @patient_enrollment_id = 0)
                         AND (a.patient_id = @patient_id OR @patient_id = 0)
@@ -375,12 +387,195 @@ public class PatientEcgSearchReqDTO
                             OR @patient_name IS NULL
                             OR @patient_name = ''
                         )
+                    AND ( 
+                            (@active = 1 and a.enrollment_status = 'monitoring' ) or
+                            (@historical = 1 and a.enrollment_status = 'completed' ) or 
+                            (@active = 0 AND @historical = 0)
+                        )
                     ORDER BY {obj.sortBy} {obj.orderBy}
                     OFFSET @offset ROWS
                     FETCH NEXT @pageSize ROWS ONLY;";
     }
     #endregion
 
+}
+
+
+public class PatientReportReqDTO
+{
+    public long patient_report_id { get; set; }
+    public long patient_id { get; set; }
+    public string patient_name { get; set; }
+    public DateTime? report_due_datetime { get; set; }
+    public string report_type_name { get; set; }
+    public string referred_physician_name { get; set; }
+    public int pageNumber { get; set; }
+    public int pageSize { get; set; }
+    public int offSet => (pageNumber - 1) * pageSize;
+    public string sortBy { get; set; }
+    public string orderBy { get; set; }
+}
+
+public class PatientReportDTO
+{
+
+    public long patient_report_id { get; set; }
+    public long patient_id { get; set; }
+    public string patient_name { get; set; }
+    public DateTime? actual_hookup { get; set; }
+    public DateTime? report_due_datetime { get; set; }
+    public string report_type_name { get; set; }
+    public string referred_physician_name { get; set; }
+
+
+
+    #region Query
+
+    internal static string get_patient_report_list(PatientReportReqDTO obj)
+    {
+        string sortBy;
+
+        if (string.IsNullOrEmpty(obj.sortBy))
+        {
+            sortBy = "pr.created_datetime";
+        }
+        else if (obj.sortBy == "patient_id")
+        {
+            sortBy = "p.patient_id";
+        }
+        else if (obj.sortBy == "patient_name")
+        {
+            sortBy = "p.patient_name";
+        }
+        else if (obj.sortBy == "report_due_datetime")
+        {
+            sortBy = "pr.report_due_datetime";
+        }
+        else if (obj.sortBy == "report_type_name")
+        {
+            sortBy = "rt.report_type_name";
+        }
+        else if (obj.sortBy == "referred_physician_name")
+        {
+            sortBy = "c.user_name";
+        }
+        else
+        {
+            sortBy = "pr.created_datetime";
+        }
+
+        string orderBy = string.IsNullOrEmpty(obj.orderBy) ? "DESC" : (obj.orderBy.ToUpper() == "ASC" ? "ASC" : "DESC");
+
+
+        return $@"
+                SELECT COUNT(*)
+                FROM {Tbl.patient_report} AS pr
+                INNER JOIN {Tbl.patient_enrollment} AS pe
+                    ON pr.patient_enrollment_id = pe.patient_enrollment_id
+                INNER JOIN {Tbl.patient} AS p
+                    ON pe.patient_id = p.patient_id
+                INNER JOIN {Tbl.report_type} AS rt
+                    ON pr.report_type_id = rt.report_type_id
+                LEFT JOIN {Tbl.user_master} AS c
+                    ON pe.referred_physician_id = c.user_id
+                WHERE pr.is_active = 1
+                  AND pe.is_active = 1;
+
+
+                SELECT
+                    pr.patient_report_id,
+                    p.patient_id,
+                    p.patient_name,
+                    pr.report_due_datetime,
+                    pe.actual_hookup,
+                    rt.report_type_name,
+                    c.user_name AS referred_physician_name
+                FROM {Tbl.patient_report} AS pr
+                INNER JOIN {Tbl.patient_enrollment} AS pe
+                    ON pr.patient_enrollment_id = pe.patient_enrollment_id
+                INNER JOIN {Tbl.patient} AS p
+                    ON pe.patient_id = p.patient_id
+                INNER JOIN {Tbl.report_type} AS rt
+                    ON pr.report_type_id = rt.report_type_id
+                LEFT JOIN {Tbl.user_master} AS c
+                    ON pe.referred_physician_id = c.user_id
+                WHERE pr.is_active = 1
+                  AND pe.is_active = 1
+                ORDER BY {sortBy} {orderBy}
+                OFFSET @offset ROWS
+                FETCH NEXT @pageSize ROWS ONLY;";
+    }
+
+
+    internal static string create_24_hours_report()
+    {
+        return $@"
+            INSERT INTO {Tbl.patient_report}  (patient_enrollment_id, report_type_id, report_status, report_due_datetime, created_datetime,  is_active )
+
+            SELECT
+                pe.patient_enrollment_id,
+                rt.report_type_id,
+                'pending',
+                DATEADD(HOUR, 24, pe.actual_hookup),
+                GETDATE(),
+                1
+            FROM {Tbl.patient_enrollment} pe
+            INNER JOIN {Tbl.report_type} rt
+                ON rt.report_type_id= 1
+                AND rt.is_active = 1
+            WHERE pe.actual_hookup IS NOT NULL
+              AND DATEADD(HOUR, 24, pe.actual_hookup) <= GETDATE()
+              AND pe.is_active = 1
+              AND NOT EXISTS
+              (
+                  SELECT 1
+                  FROM {Tbl.patient_report} pr
+                  WHERE pr.patient_enrollment_id = pe.patient_enrollment_id
+                    AND pr.report_type_id = rt.report_type_id
+                    AND pr.is_active = 1
+              );
+        ";
+    }
+
+
+    internal static string create_final_report()
+    {
+        return $@"
+            INSERT INTO {Tbl.patient_report}
+            (
+                patient_enrollment_id,
+                report_type_id,
+                report_status,
+                report_due_datetime,
+                created_datetime,
+                is_active
+            )
+            SELECT
+                pe.patient_enrollment_id,
+                rt.report_type_id,
+                'pending',
+                pe.actual_removal,
+                GETDATE(),
+                1
+            FROM {Tbl.patient_enrollment} pe
+            INNER JOIN {Tbl.report_type} rt
+                ON rt.report_type_id = 2
+                AND rt.is_active = 1
+            WHERE pe.actual_removal IS NOT NULL
+              AND pe.actual_removal <= GETDATE()
+              AND pe.is_active = 1
+              AND NOT EXISTS
+              (
+                  SELECT 1
+                  FROM {Tbl.patient_report} pr
+                  WHERE pr.patient_enrollment_id = pe.patient_enrollment_id
+                    AND pr.report_type_id = rt.report_type_id
+                    AND pr.is_active = 1
+              );
+        ";
+    }
+
+    #endregion
 }
 
 
@@ -393,6 +588,7 @@ public class PatientEcgSearechResDTO
     public DateTime? created_datetime { get; set; }
     public DateTime? actual_hookup { get; set; }
     public string enrollment_status { get; set; }
+    public int duration_in_day { get; set; }
     public long referred_physician_id { get; set; }
     public string referred_physician { get; set; }
     public bool is_active { get; set; }

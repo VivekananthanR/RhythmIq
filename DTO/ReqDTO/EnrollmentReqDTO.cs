@@ -261,22 +261,40 @@ namespace elr_API.DTO.ReqDTO
                         hookup_end_device_img = ISNULL(@hookup_end_device_img, hookup_end_device_img)
                     WHERE patient_enrollment_id = @patient_enrollment_id";
         }
+        //internal static string start_hookup_status()
+        //{
+        //    return $@"UPDATE {Tbl.patient_enrollment}
+        //      SET actual_technician_id = @actual_technician_id,
+        //          actual_hookup = GETDATE(),
+        //          enrollment_status = @enrollment_status, 
+        //          device_id = @device_id,  
+        //          is_patient_hookuped = @is_patient_hookuped 
+        //      WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
+        //}
         internal static string start_hookup_status()
         {
-            return $@"UPDATE {Tbl.patient_enrollment}
-              SET actual_technician_id = @actual_technician_id,
-                  actual_hookup = GETDATE(),
-                  enrollment_status = @enrollment_status, 
-                  device_id = @device_id,  
-                  is_patient_hookuped = @is_patient_hookuped 
-              WHERE patient_enrollment_id = @patient_enrollment_id and enrollment_status = 'requested'";
+            return $@"
+                    UPDATE pe
+                    SET
+                        pe.actual_technician_id = @actual_technician_id,
+                        pe.actual_hookup = GETDATE(),
+                        pe.actual_removal = DATEADD(DAY, tm.duration_in_day, GETDATE()),
+                        pe.enrollment_status = @enrollment_status,
+                        pe.device_id = @device_id,
+                        pe.is_patient_hookuped = @is_patient_hookuped
+                    FROM {Tbl.patient_enrollment} pe
+                    INNER JOIN {Tbl.test_prices} tp
+                        ON pe.estimated_test_prices_id = tp.test_prices_id
+                    INNER JOIN {Tbl.test_mast} tm
+                        ON tp.test_id = tm.test_id
+                    WHERE pe.patient_enrollment_id = @patient_enrollment_id
+                      AND pe.enrollment_status = 'requested'";
         }
 
         internal static string complete_hookup_status(long patient_enrollment_id)
         {
             return $@"UPDATE {Tbl.patient_enrollment}
-              SET actual_removal = GETDATE(),
-                  enrollment_status = 'completed',
+              SET enrollment_status = 'completed',
                     is_patient_removal =@is_patient_removal,
                     modified_by = @modified_by, 
                     modified_datetime = getdate()
@@ -332,85 +350,140 @@ namespace elr_API.DTO.ReqDTO
         internal static string select_request_patient_enrollment()
         {
             return $@"
-            SELECT
-                a.patient_enrollment_id,
-                a.enrollment_status,
-                a.actual_amount,
-                a.schedule_hookup ,
-                a.schedule_removal ,
-                tech.user_name AS actual_technician_name,
-                phy.user_name AS referred_physician_name,
-                l.device_id,
-                l.device_no,
-                b.patient_id,
-                b.patient_name,
-                b.dob AS patient_dob,
-                b.age AS patient_age,
-                b.phone_no AS patient_phone,
-                b.emergency_phone_no,
-                b.email_id AS patient_email,
-                b.gender AS patient_gender,
-                b.city AS patient_city,
-                b.pincode AS patient_pincode,
-                g.district_name,
-                h.state_name AS patient_state,
-                i.country_name,
-                k.test_name,
-                k.duration_in_day,
-                e.hospital_name,
-                m.patch_no,
-                m.patch_id
 
-            FROM {Tbl.patient_enrollment} a
+                     select count(*)  FROM {Tbl.patient_enrollment} a
 
-            LEFT JOIN {Tbl.patient} b
-                ON b.patient_id = a.patient_id
+                        LEFT JOIN {Tbl.patient} b
+                            ON b.patient_id = a.patient_id
 
-            LEFT JOIN {Tbl.user_master} tech
-                ON tech.user_id = a.actual_technician_id
+                        LEFT JOIN {Tbl.user_master} tech
+                            ON tech.user_id = a.actual_technician_id
 
-            LEFT JOIN {Tbl.user_master} phy
-                ON phy.user_id = a.referred_physician_id
+                        LEFT JOIN {Tbl.user_master} phy
+                            ON phy.user_id = a.referred_physician_id
 
-            LEFT JOIN {Tbl.hospital_mast} e
-                ON e.hospital_id = a.hospital_id
+                        LEFT JOIN {Tbl.hospital_mast} e
+                            ON e.hospital_id = a.hospital_id
 
-            LEFT JOIN {Tbl.district} g
-                ON g.district_id = b.district_id
+                        LEFT JOIN {Tbl.district} g
+                            ON g.district_id = b.district_id
 
-            LEFT JOIN {Tbl.state} h
-                ON h.state_id = b.state_id
+                        LEFT JOIN {Tbl.state} h
+                            ON h.state_id = b.state_id
 
-            LEFT JOIN {Tbl.country} i
-                ON i.country_id = h.country_id
+                        LEFT JOIN {Tbl.country} i
+                            ON i.country_id = h.country_id
 
-            LEFT JOIN {Tbl.test_prices} j
-                ON j.test_prices_id = a.estimated_test_prices_id
+                        LEFT JOIN {Tbl.test_prices} j
+                            ON j.test_prices_id = a.estimated_test_prices_id
 
-            LEFT JOIN {Tbl.test_mast} k
-                ON j.test_id = k.test_id
+                        LEFT JOIN {Tbl.test_mast} k
+                            ON j.test_id = k.test_id
 
-            LEFT JOIN {Tbl.device_mast} l
-                ON l.device_id = a.device_id
+                        LEFT JOIN {Tbl.device_mast} l
+                            ON l.device_id = a.device_id
 
-            LEFT JOIN {Tbl.patch_mast} m
-                ON m.patch_id = a.patch_id
+                        LEFT JOIN {Tbl.patch_mast} m
+                            ON m.patch_id = a.patch_id
 
-          WHERE
-                (
-                    @enrollment_status IS NULL
-                    OR @enrollment_status = ''
-                    OR a.enrollment_status = @enrollment_status
-                )
-                AND
-                (
-                    @search IS NULL
-                    OR @search = ''
-                    OR CONVERT(VARCHAR(50), a.patient_enrollment_id) LIKE '%' + @search + '%'
-                    OR b.patient_name LIKE '%' + @search + '%'
-                    OR b.phone_no LIKE '%' + @search + '%'
-                ) 
-                AND ( a.schedule_hookup = @date or a.schedule_removal =@date or @date='' or  @date is null)";
+                      WHERE
+                            (
+                                @enrollment_status IS NULL
+                                OR @enrollment_status = ''
+                                OR a.enrollment_status = @enrollment_status
+                            )
+                            AND
+                            (
+                                @search IS NULL
+                                OR @search = ''
+                                OR CONVERT(VARCHAR(50), a.patient_enrollment_id) LIKE '%' + @search + '%'
+                                OR b.patient_name LIKE '%' + @search + '%'
+                                OR b.phone_no LIKE '%' + @search + '%'
+                            ) 
+                            AND ( CAST(a.schedule_hookup AS DATE) = @date or  @date is null);
+
+
+
+
+                        SELECT
+                            a.patient_enrollment_id,
+                            a.enrollment_status,
+                            a.actual_amount,
+                            a.schedule_hookup ,
+                            a.schedule_removal ,
+                            tech.user_name AS actual_technician_name,
+                            phy.user_name AS referred_physician_name,
+                            l.device_id,
+                            l.device_no,
+                            b.patient_id,
+                            b.patient_name,
+                            b.dob AS patient_dob,
+                            b.age AS patient_age,
+                            b.phone_no AS patient_phone,
+                            b.emergency_phone_no,
+                            b.email_id AS patient_email,
+                            b.gender AS patient_gender,
+                            b.city AS patient_city,
+                            b.pincode AS patient_pincode,
+                            g.district_name,
+                            h.state_name AS patient_state,
+                            i.country_name,
+                            k.test_name,
+                            k.duration_in_day,
+                            e.hospital_name,
+                            m.patch_no,
+                            m.patch_id
+
+                        FROM {Tbl.patient_enrollment} a
+
+                        LEFT JOIN {Tbl.patient} b
+                            ON b.patient_id = a.patient_id
+
+                        LEFT JOIN {Tbl.user_master} tech
+                            ON tech.user_id = a.actual_technician_id
+
+                        LEFT JOIN {Tbl.user_master} phy
+                            ON phy.user_id = a.referred_physician_id
+
+                        LEFT JOIN {Tbl.hospital_mast} e
+                            ON e.hospital_id = a.hospital_id
+
+                        LEFT JOIN {Tbl.district} g
+                            ON g.district_id = b.district_id
+
+                        LEFT JOIN {Tbl.state} h
+                            ON h.state_id = b.state_id
+
+                        LEFT JOIN {Tbl.country} i
+                            ON i.country_id = h.country_id
+
+                        LEFT JOIN {Tbl.test_prices} j
+                            ON j.test_prices_id = a.estimated_test_prices_id
+
+                        LEFT JOIN {Tbl.test_mast} k
+                            ON j.test_id = k.test_id
+
+                        LEFT JOIN {Tbl.device_mast} l
+                            ON l.device_id = a.device_id
+
+                        LEFT JOIN {Tbl.patch_mast} m
+                            ON m.patch_id = a.patch_id
+
+                      WHERE
+                            (
+                                @enrollment_status IS NULL
+                                OR @enrollment_status = ''
+                                OR a.enrollment_status = @enrollment_status
+                            )
+                            AND
+                            (
+                                @search IS NULL
+                                OR @search = ''
+                                OR CONVERT(VARCHAR(50), a.patient_enrollment_id) LIKE '%' + @search + '%'
+                                OR b.patient_name LIKE '%' + @search + '%'
+                                OR b.phone_no LIKE '%' + @search + '%'
+                            ) 
+                            AND ( CAST(a.schedule_hookup AS DATE) = @date or  @date is null)";
         }
         #endregion
     }

@@ -110,5 +110,6 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrAddUpdateReportType(ReportTypeDTO obj);
 
         Task<ResponseDTO> ElrGetEventEcgSearch(EventEcgSearchReqDTO obj);
+
     }
 }

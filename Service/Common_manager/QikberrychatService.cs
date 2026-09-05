@@ -26,29 +26,29 @@ namespace elr_API.Service.Common_manager
 
                 #region Whatsapp API calling
 
-                List<Parameter> bodyparameters = new List<Parameter>();
-                bodyparameters.Add(new Parameter { type = "text", text = obj.otp.Value.ToString() });
+                //List<Parameter> bodyparameters = new List<Parameter>();
+                //bodyparameters.Add(new Parameter { type = "text", text = obj.otp.Value.ToString() });
 
 
-                WhatsappBasicReqDTO whatsappBasicReqDTO = new WhatsappBasicReqDTO();
-                whatsappBasicReqDTO.phone_no = obj.phone_no;
-                whatsappBasicReqDTO.template_name = "otp_for_logging"; ;
-                whatsappBasicReqDTO.bodyParameters = bodyparameters;
+                //WhatsappBasicReqDTO whatsappBasicReqDTO = new WhatsappBasicReqDTO();
+                //whatsappBasicReqDTO.phone_no = obj.phone_no;
+                //whatsappBasicReqDTO.template_name = "otp_for_logging"; ;
+                //whatsappBasicReqDTO.bodyParameters = bodyparameters;
 
-                await WhatsappMessageCallAPI(whatsappBasicReqDTO);
+                //await WhatsappMessageCallAPI(whatsappBasicReqDTO);
 
                 #endregion
 
 
                 #region SMS API Calling
 
-                //SMSReqDTO sMSReqDTO = new SMSReqDTO()
-                //{
-                //    to = "91" + obj.phone_no,
-                //    template_id = "1107174626427852375",
-                //    message = $@"Hello from Healthwatch Telediagnostics! Your OTP for mobile validation is {obj.otp}"
-                //};
-                //await SMSMessageCallAPI(sMSReqDTO);
+                SMSReqDTO sMSReqDTO = new SMSReqDTO()
+                {
+                    to = "91" + obj.phone_no,
+                    template_id = "1107173838787487103",
+                    message = $@"Vanakkam! Your OTP is {obj.otp} for looking in to Your Healthwatch Telediagnostics. Do NOT share it with anyone."";"
+                };
+                await SMSMessageCallAPI(sMSReqDTO);
 
                 #endregion
             }

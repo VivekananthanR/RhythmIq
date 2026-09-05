@@ -23,10 +23,20 @@ namespace elr_API.Common
 
         #region Check is valid phone number
 
+        //public static bool IsValidPhoneNumber(string number)
+        //{
+        //    string matchNumberPattern = @"^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$";
+        //    if (number != null) return Regex.IsMatch(number, matchNumberPattern);
+        //    return false;
+        //}
         public static bool IsValidPhoneNumber(string number)
         {
-            string matchNumberPattern = @"^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$";
-            if (number != null) return Regex.IsMatch(number, matchNumberPattern);
+            if (string.IsNullOrWhiteSpace(number))
+                return false;
+
+            string pattern = @"^[6-9][0-9]{9}$";
+            if (pattern != null) return Regex.IsMatch(number, pattern);
+
             return false;
         }
         #endregion

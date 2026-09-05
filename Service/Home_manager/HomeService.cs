@@ -549,7 +549,7 @@ namespace elr_API.Service.Home_manager
             {
                 query = QueuedAnomalyReqDTO.queue_anomaly_list(obj);
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, QueuedAnomalyDTO>(query, obj, ELR_db);
-                if (data == null) return new ResponseDTO(false, "No Anomaly Data");
+                //if (data == null || !data.Any()) return new ResponseDTO(false, "No Anomaly Data");
                 var response = new
                 {
                     totalCount = totalCount,
@@ -956,17 +956,17 @@ namespace elr_API.Service.Home_manager
                 query = SubStripEventDTO.in_active_sub_strip();
                 int rows = await _db.Execute(query, new { sub_strip_event_id = sub_strip_event_id, modified_by = emp_id }, ELR_db);
 
-                if (rows > 0)
-                {
-                    await _db.Execute(
-                        SubStripEventDTO.inactive_sub_strip_log(),
-                        new
-                        {
-                            sub_strip_event_id,
-                            modified_by = emp_id
-                        },
-                        ELR_db);
-                }
+                //if (rows > 0)
+                //{
+                //    await _db.Execute(
+                //        SubStripEventDTO.inactive_sub_strip_log(),
+                //        new
+                //        {
+                //            sub_strip_event_id,
+                //            modified_by = emp_id
+                //        },
+                //        ELR_db);
+                //}
                 return new ResponseDTO(rows > 0, rows > 0 ? ResponseMessage.Success : ResponseMessage.Failed);
 
             }
@@ -1156,7 +1156,7 @@ namespace elr_API.Service.Home_manager
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging(obj, ex.ToString());
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
 
@@ -1244,23 +1244,24 @@ namespace elr_API.Service.Home_manager
                     query = PushToQCDTO.update_detection();
                     await _db.Execute(query, new { detection_id = detectionById, modified_by = obj.created_by }, ELR_db);
 
-                    //// Log
-                    query = PushToQCDTO.update_detection_log();
-                    await _db.Execute(query, new
-                    {
-                        detection_id = detectionById,
-                        modified_by = obj.created_by
-                    }, ELR_db);
+                    ////// Log
+                    //query = PushToQCDTO.update_detection_log();
+                    //await _db.Execute(query, new
+                    //{
+                    //    detection_id = detectionById,
+                    //    modified_by = obj.created_by
+                    //}, ELR_db);
 
                     query = PushToQCDTO.inactive_sub_strip_finding();
                     await _db.Execute(query, new { detection_id = detectionById, modified_by = obj.created_by }, ELR_db);
+
                     // Log
-                    query = PushToQCDTO.inactive_sub_strip_finding_log();
-                    await _db.Execute(query, new
-                    {
-                        detection_id = detectionById,
-                        modified_by = obj.created_by
-                    }, ELR_db);
+                    //query = PushToQCDTO.inactive_sub_strip_finding_log();
+                    //await _db.Execute(query, new
+                    //{
+                    //    detection_id = detectionById,
+                    //    modified_by = obj.created_by
+                    //}, ELR_db);
 
                     query = PushToQCDTO.insert_sub_strip_finding();
 
@@ -1270,7 +1271,7 @@ namespace elr_API.Service.Home_manager
                             query,
                             new
                             {
-                                detection_id = detectionById,
+                                detection_id = detectionById.Value,
                                 obj.queued_events_records_id,
                                 obj.sub_strip_event_id,
                                 item.event_finding_id,
@@ -1294,7 +1295,7 @@ namespace elr_API.Service.Home_manager
                             event_finding_id = x.event_finding_id,
                             value1 = x.value1,
                             value2 = x.value2,
-                            finding_status = "Added"
+                            finding_status = "ReSubmit"
                         }).ToList()
                     });
 
@@ -1305,7 +1306,7 @@ namespace elr_API.Service.Home_manager
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging(obj, ex.ToString());
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
             return new ResponseDTO(false, ErrorMessage);
@@ -1331,21 +1332,28 @@ namespace elr_API.Service.Home_manager
             string workStatus;
             string eventStatus;
 
+            bool isFinalCompleted = false;
 
             if (obj.sub_strip_event_id == null || obj.sub_strip_event_id == 0)
             {
                 workStatus = obj.is_experienced_user ? "completed" : "partial-completed";
                 eventStatus = "completed";
+
+                isFinalCompleted = obj.is_experienced_user;
             }
             else if (totalStrips > 0 && totalStrips == completedStrips)
             {
                 workStatus = obj.is_experienced_user ? "completed" : "partial-completed";
                 eventStatus = "completed";
+
+                isFinalCompleted = obj.is_experienced_user;
             }
             else
             {
                 workStatus = "inprogress";
                 eventStatus = "processing";
+
+                isFinalCompleted = false;
             }
 
             query = EventAssignDTO.update_work_status_by_event_assign();
@@ -1355,6 +1363,7 @@ namespace elr_API.Service.Home_manager
                 {
                     event_assign_id = obj.event_assign_id,
                     work_status = workStatus,
+                    is_final_completed = isFinalCompleted,
                     modified_by = obj.created_by
                 },
                 ELR_db);
@@ -1567,7 +1576,7 @@ namespace elr_API.Service.Home_manager
                 query = PriorityCompleteReportReqDTO.detection_complete_report(obj);
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, PriorityCompleteReportDTO>(query, obj, ELR_db);
 
-                if (data == null || !data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                //if (data == null || !data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
                 foreach (var item in data)
                 {
@@ -1850,48 +1859,48 @@ namespace elr_API.Service.Home_manager
             if (!indexes.Any())
                 return null;
 
-            ecg.waveform_snippet.timestamp_ms =
-                indexes.Select(i => ecg.waveform_snippet.timestamp_ms[i]).ToList();
-
-            if (ecg.waveform_snippet.voltage_mv != null)
-                ecg.waveform_snippet.voltage_mv =
-                    indexes.Select(i => ecg.waveform_snippet.voltage_mv[i]).ToList();
+            int firstIndex = indexes.First();
 
             if (ecg.waveform_snippet.beat_positions != null && ecg.waveform_snippet.beat_labels != null)
             {
-                int firstIndex = indexes.First();
-                int lastIndex = indexes.Last();
-
                 var newBeatPositions = new List<long>();
                 var newBeatLabels = new List<string>();
 
                 for (int i = 0; i < ecg.waveform_snippet.beat_positions.Count; i++)
                 {
-                    int pos = (int)ecg.waveform_snippet.beat_positions[i];
+                    long beatPosition = ecg.waveform_snippet.beat_positions[i];
 
-                    if (pos >= firstIndex && pos <= lastIndex)
+                    if (beatPosition < 0 || beatPosition >= ecg.waveform_snippet.timestamp_ms.Count)
+                        continue;
+
+                    long beatTimestamp = ecg.waveform_snippet.timestamp_ms[(int)beatPosition];
+
+                    if (beatTimestamp >= fromMs && beatTimestamp <= toMs)
                     {
-                        newBeatPositions.Add(pos - firstIndex);
+                        newBeatPositions.Add(beatPosition - firstIndex);
 
                         if (i < ecg.waveform_snippet.beat_labels.Count)
+                        {
                             newBeatLabels.Add(ecg.waveform_snippet.beat_labels[i]);
+                        }
                     }
                 }
 
                 ecg.waveform_snippet.beat_positions = newBeatPositions;
+
                 ecg.waveform_snippet.beat_labels = newBeatLabels;
             }
 
-            ecg.timestamp = DateTimeOffset
-                .FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.First())
-                .LocalDateTime
-                .ToString("yyyy-MM-ddTHH:mm:ss.fff");
+            ecg.waveform_snippet.timestamp_ms = indexes.Select(i => ecg.waveform_snippet.timestamp_ms[i]).ToList();
 
-            ecg.end_timestamp = DateTimeOffset
-                .FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.Last())
-                .LocalDateTime
-                .ToString("yyyy-MM-ddTHH:mm:ss.fff");
+            if (ecg.waveform_snippet.voltage_mv != null)
+            {
+                ecg.waveform_snippet.voltage_mv = indexes.Select(i => ecg.waveform_snippet.voltage_mv[i]).ToList();
+            }
 
+            ecg.timestamp = DateTimeOffset.FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.First()).LocalDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+
+            ecg.end_timestamp = DateTimeOffset.FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.Last()).LocalDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
 
             return ecg;
         }
@@ -1957,7 +1966,7 @@ namespace elr_API.Service.Home_manager
                 query = FectchHistoryRespDTO.select_fetch_history_list(obj);
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, FectchHistoryRespDTO>(query, obj, ELR_db);
 
-                if (data == null || totalCount <= 0) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                //if (data == null || totalCount <= 0) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
                 var response = new
                 {
@@ -2155,6 +2164,8 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
+                if (obj.limit <= 0) return new ResponseDTO(false, "Limit must be greater than 0");
+
                 var hasFindings = obj.finding_ids != null && obj.finding_ids.Any();
 
                 var parameters = new
@@ -2165,6 +2176,7 @@ namespace elr_API.Service.Home_manager
                     obj.queued_events_records_id,
                     obj.user_id,
                     obj.finding_ids,
+                    obj.limit,
                     obj.pageNumber,
                     obj.pageSize,
                     obj.offSet,
