@@ -1,6 +1,7 @@
 ﻿using elr_API.Common;
 using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
+using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.ICommon_manager;
 using elr_API.IService.IDapper;
 using elr_API.IService.IToken;
@@ -276,6 +277,30 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(ErrorMessage);
         }
 
+
+
+        public async Task<bool> TokenValidation(TokenValidationReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            bool valid = false;
+            try
+            {
+
+                query = TokenValidationReqDTO.user_select();
+                bool check_user_valid = (await _dp.SelectQuery<dynamic>(query, obj, Elr_db)).Any();
+
+                return check_user_valid;
+            }
+            catch (Exception ex)
+            {
+                //CommonFunctions.ILogging("", ex.ToString());
+                //ErrorMessage = ResponseMessage.Please_Try_Again;
+            }
+            return false;
+        }
+
+
         //Employee Login    
         public async Task<ResponseDTO> ElrEmployeeLogin(MasterEmployeeLoginReqDTO obj)
         {
@@ -293,11 +318,6 @@ namespace elr_API.Service.User_manager
                 {
                     return new ResponseDTO(false, "Employee is not registered. Please register the Employee Details");
                 }
-
-                query = MasterEmployeeLoginReqDTO.user_logIn();
-                int row = await _dp.Execute(query, new { user_id = data.user_id }, Elr_db);
-
-                if (row <= 0) return new ResponseDTO(false, "Already login");
                 var meterboxData = await _helperService.GetMeterBoxEmployeeDetails(data.emp_code);
 
                 if (meterboxData == null) return new ResponseDTO(false, "Employee Not Found In Meterbox");
@@ -315,20 +335,33 @@ namespace elr_API.Service.User_manager
                     data.email_id = meterboxData.m_Email;
                     data.phone_no = meterboxData.m_Mobile;
                 }
-                if (obj.password == data.password)
+                if (obj.password != data.password) return new ResponseDTO(false, "Invalid Password");
+
+                Guid newLoginGuId = Guid.NewGuid();
+
+                query = $@"Update {Tbl.user_master}
+                            Set login_gu_id = @login_gu_id
+                            Where user_id = @user_id";
+
+                await _dp.Execute(query, new { login_gu_id = newLoginGuId, user_id = data.user_id }, Elr_db);
+
+                data.login_gu_id = newLoginGuId;
+
+                if (data != null)
                 {
-                    return new ResponseDTO(data);
+                    var tokenDetails = _tokenService.GetToken(data.user_id.ToString(), data.gu_id.ToString(), data.phone_no, CommonFunctions.ELR, data.login_gu_id.ToString());
+                    data.token = tokenDetails.Token;
+                    data.token_expirytime = tokenDetails.Token_ExpiryTime;
                 }
-                else
-                {
-                    return new ResponseDTO(false, "Invalid Password");
-                }
+
+                return new ResponseDTO(data);
+
             }
             catch (Exception ex)
             {
                 CommonFunctions.ILogging(obj, ex.ToString());
                 //ErrorMessage = ResponseMessage.Please_Try_Again;
-                ErrorMessage = ex.Message;
+                ErrorMessage = ex.Message.ToString();
             }
             return new ResponseDTO(false, ErrorMessage);
         }
@@ -336,12 +369,7 @@ namespace elr_API.Service.User_manager
         {
             string query = MasterEmployeeLoginReqDTO.employee_master_select();
             MasterEmployeeLoginResDTO data = (await _dp.SelectQuery<MasterEmployeeLoginResDTO>(query, obj, Elr_db)).FirstOrDefault();
-            if (data != null)
-            {
-                var tokenDetails = _tokenService.GetToken(data.user_id.ToString(), data.gu_id.ToString(), data.phone_no, CommonFunctions.ELR);
-                data.token = tokenDetails.Token;
-                data.token_expirytime = tokenDetails.Token_ExpiryTime;
-            }
+
             return data;
         }
         public async Task<ResponseDTO> ElrphysiciansList(string? physiciansName)
@@ -432,34 +460,6 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrGetPatientReportList(PatientReportReqDTO obj)
-        {
-            ErrorMessage = string.Empty;
-            string query = string.Empty;
-            try
-            {
-                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
-
-                query = PatientReportDTO.get_patient_report_list(obj);
-                var (totalCount, data) = await _dp.SelectQueryWithCount<long, PatientReportDTO>(query, obj, Elr_db);
-
-                //if (!data.Any() || data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
-
-                var result = new
-                {
-                    totalCount = totalCount,
-                    item = data,
-                };
-
-                return new ResponseDTO(result);
-            }
-            catch (Exception ex)
-            {
-                CommonFunctions.ILogging(obj, ex.Message.ToString());
-                ErrorMessage = ex.Message.ToString();
-            }
-            return new ResponseDTO(false, ErrorMessage);
-        }
 
 
     }

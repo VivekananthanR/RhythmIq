@@ -1,6 +1,9 @@
-﻿using elr_API.DTO.ReqDTO;
+﻿using elr_API.Common;
+using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
+using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.IEntrolement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace elr_API.Controllers.Entrolement
@@ -33,6 +36,18 @@ namespace elr_API.Controllers.Entrolement
             return await _enrollment.ElrValidDeviceId(device_no);
         }
         #endregion
+
+        #region HttpGet = api/Enrollment/ElrEmployeeDeviceAssignmentList?emp_id=
+
+        [HttpGet("ElrEmployeeDeviceAssignmentList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrEmployeeDeviceAssignmentList([FromHeader] string authorization)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+
+            return await _enrollment.ElrEmployeeDeviceAssignmentList(tokenClaims.id);
+        }
+        #endregion
+
 
         #region HttpGet = api/Enrollment/ElrValidPatchId?patch_no =
         [HttpGet("ElrValidPatchId")]

@@ -327,6 +327,7 @@ namespace elr_API.DTO.ReqDTO
 
         public long device_id { get; set; }
         public string device_no { get; set; }
+        public string device_status { get; set; }
         public long patch_id { get; set; }
         public string patch_no { get; set; }
 

@@ -615,6 +615,38 @@ namespace elr_API.DTO.ReqDTO
 
     }
 
+    public class EmployeeDeviceListDTO
+    {
+        public long device_id { get; set; }
+        public string device_no { get; set; }
+        public string device_status { get; set; }
+        public long current_emp_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+
+        #region Query
+        internal static string select_device()
+        {
+            return $@"
+                    SELECT COUNT(*)
+                    FROM {Tbl.device_mast} dm
+                    WHERE dm.current_emp_id = @current_emp_id;
+
+                    SELECT 
+                        dm.device_id,
+                        dm.device_no,
+                        dm.device_status,
+                        dm.current_emp_id,
+                        da.patient_enrollment_id
+                    FROM {Tbl.device_mast} dm
+                    LEFT JOIN {Tbl.patient_enrollment} da
+                        ON da.device_id = dm.device_id
+                        AND da.enrollment_status IN ('hookuped', 'monitoring')
+                    WHERE dm.current_emp_id = @current_emp_id;
+                ";
+        }
+        #endregion
+    }
+
 
 
     public class DeviceResDTO
@@ -633,7 +665,6 @@ namespace elr_API.DTO.ReqDTO
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
-        public long? patient_enrollment_id { get; set; }
 
 
         public long? from_location_id { get; set; }
@@ -642,7 +673,9 @@ namespace elr_API.DTO.ReqDTO
         public long? to_emp_id { get; set; }
         public string transfer_status { get; set; }
 
+
         #region Query
+
         internal static string insert_device()
         {
             return $@"insert into {Tbl.device_mast} (device_no,device_name,manufacturer_name,model_no,serial_no,current_emp_id,current_location_id,device_status,created_by)
@@ -664,28 +697,32 @@ namespace elr_API.DTO.ReqDTO
                         is_active = @is_active
                         where device_id = @device_id";
         }
-        internal static string select_device()
+
+        internal static string select_device_list()
         {
             return $@"SELECT
                     d.device_id,
                     d.device_no,
+                    d.device_name,
+                    d.manufacturer_name,
+                    d.model_no,
+                    d.serial_no,
                     d.current_location_id,
                     d.current_emp_id,
                     d.device_status,
-                    da.patient_enrollment_id,
-                    pe.enrollment_status
-
+                    d.created_by,
+                    d.created_datetime,
+                    d.modified_by,
+                    d.modified_datetime,
+                    d.is_active
                 FROM {Tbl.device_mast} AS d
-                INNER JOIN {Tbl.location_mast} AS l
-                    ON l.location_id = d.current_location_id
-                LEFT JOIN {Tbl.device_assignment} AS da
-                    ON da.device_id = d.device_id   
-                    AND da.assignment_status = 'Assigned'
-                LEFT JOIN {Tbl.patient_enrollment} AS pe 
-                    ON pe.patient_enrollment_id = da.patient_enrollment_id
-                WHERE d.current_emp_id = @current_emp_id
-                  AND d.is_active = 1;";
+                WHERE d.is_active = 1 and (d.device_id = @device_id or @device_id is null or @device_id = 0) 
+                                      and ( d.device_status = @device_status or @device_status is null or @device_status = '' )
+                                      and (d.device_name = @device_name or @device_name is null or @device_name = '')
+                                      AND (@device_no IS NULL OR @device_no = '' OR d.device_no = @device_no)";
         }
+
+
         internal static string update_device_status()
         {
             return $@"Update {Tbl.device_mast}
@@ -773,6 +810,7 @@ namespace elr_API.DTO.ReqDTO
         public long emp_id { get; set; }
         public long patient_enrollment_id { get; set; }
         public string assignment_status { get; set; }
+        public string device_no { get; set; }
         public string remarks { get; set; }
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
@@ -781,6 +819,8 @@ namespace elr_API.DTO.ReqDTO
         public bool is_active { get; set; }
 
         #region Query
+
+
         internal static string check_device_assignment()
         {
             return $@"
@@ -1029,10 +1069,17 @@ namespace elr_API.DTO.ReqDTO
                             -- Technician Details
                             pe.actual_technician_id,
                             u.user_name AS technician_name,
-                            u.emp_code AS technician_emp_code,
-                            u.phone_no AS technician_phone_no,
-                            u.email_id AS technician_email_id,
 
+                            CASE
+                                WHEN pe.is_patient_hookuped = 1 THEN 'Patient'
+                                ELSE 'Employee'
+                            END AS hookup_done_by,
+
+                            CASE
+                                WHEN pe.is_patient_hookuped = 1 THEN p.patient_name
+                                ELSE u.user_name
+                            END AS hookup_done_by_name,
+                
                             -- Device Details
                             d.device_id,
                             d.device_no,      
@@ -1091,6 +1138,8 @@ namespace elr_API.DTO.ReqDTO
         public string technician_name { get; set; }
         public string technician_emp_code { get; set; }
         public string technician_phone_no { get; set; }
+        public string hookup_done_by { get; set; }
+        public string hookup_done_by_name { get; set; }
 
         public long device_id { get; set; }
         public string device_no { get; set; }
@@ -1198,6 +1247,8 @@ namespace elr_API.DTO.ReqDTO
         public string device_name { get; set; }
 
         public long event_assign_id { get; set; }
+
+        public bool active { get; set; }
 
         #region Query
 
@@ -1766,10 +1817,26 @@ namespace elr_API.DTO.ReqDTO
         internal static string get_active_event()
         {
             return $@"
-                    SELECT COUNT(1)
-                    FROM {Tbl.event_assign}
-                    WHERE assigned_by = @assigned_by
-                    AND work_status = 'inprogress' ";
+                    SELECT
+                        ea.event_assign_id,
+                        ea.queued_events_records_id,
+                        qer.patient_enrollment_id,
+                        qer.enrollment_raw_data_id,
+                        qer.priority_level,
+                        qer.trigger_type,
+                        qer.bpm,
+                        qer.event_status,
+                        qer.event_file_path,
+                        qer.created_by,
+                        qer.modified_by,
+                        qer.created_datetime,
+                        qer.modified_datetime
+                    FROM {Tbl.event_assign} ea
+                    INNER JOIN {Tbl.queued_events_records} qer
+                        ON qer.queued_events_records_id = ea.queued_events_records_id
+                    WHERE ea.assigned_by = @assigned_by
+                      AND ea.work_status = 'inprogress'
+                    ORDER BY ea.event_assign_id DESC";
         }
         internal static string update_work_status()
         {
@@ -1900,7 +1967,8 @@ namespace elr_API.DTO.ReqDTO
                         sse.sub_strip_end_datetime,
                         sse.created_by,
                         sse.created_datetime,
-                        sse.is_active
+                        sse.is_active,
+                        qer.event_start_datetime
                     FROM {Tbl.sub_strip_event} sse
                     INNER JOIN {Tbl.queued_events_records} qer
                         ON sse.queued_events_records_id = qer.queued_events_records_id
@@ -1912,7 +1980,7 @@ namespace elr_API.DTO.ReqDTO
                        AND d.is_active = 1
                     WHERE pe.patient_id = @patient_id
                       AND sse.is_active = 1
-                    ORDER BY sse.created_datetime DESC
+                    ORDER BY qer.event_start_datetime DESC
                     OFFSET @offset ROWS
                     FETCH NEXT @pageSize ROWS ONLY;";
         }
@@ -2065,6 +2133,7 @@ namespace elr_API.DTO.ReqDTO
         public long event_assign_id { get; set; }
         public string sub_strip_file_path { get; set; }
         public string? sub_strip_start_datetime { get; set; }
+        public string? event_start_datetime { get; set; }
         public string? sub_strip_end_datetime { get; set; }
         public string remarks { get; set; }
         public long created_by { get; set; }
@@ -3010,6 +3079,10 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string detection_complete_report(PriorityCompleteReportReqDTO obj)
         {
+            var shortColumn = string.IsNullOrEmpty(obj.shortColumn) ? "q.event_start_datetime" : obj.shortColumn;
+
+            var orderBy = string.IsNullOrEmpty(obj.orderBy) ? "DESC" : obj.orderBy;
+
             return $@"
                     SELECT COUNT(*)
                     FROM
@@ -3069,8 +3142,9 @@ namespace elr_API.DTO.ReqDTO
                         MAX(d.picked_by)                 AS picked_by,
                         MAX(d.picked_datetime)           AS picked_datetime,
                         MAX(pe.patient_id)               AS patient_id,
-                        MAX(p.patient_name)              AS patient_name
-
+                        MAX(p.patient_name)              AS patient_name,
+                        MAX(q.event_start_datetime)      AS event_start_datetime,
+                        MAX(q.event_end_datetime)        AS event_end_datetime
                     FROM {Tbl.detection} d
                     INNER JOIN {Tbl.queued_events_records} q
                         ON q.queued_events_records_id = d.queued_events_records_id
@@ -3110,7 +3184,7 @@ namespace elr_API.DTO.ReqDTO
                             AND sd.detection_status IN ('submit','confirm-submit')
                       )
                     GROUP BY d.event_assign_id
-                    ORDER BY {obj.shortColumn} {obj.orderBy}
+                    ORDER BY {shortColumn} {orderBy}
                     OFFSET @offSet ROWS
                     FETCH NEXT @pageSize ROWS ONLY;";
         }
@@ -3123,6 +3197,8 @@ namespace elr_API.DTO.ReqDTO
         public long detection_id { get; set; }
         public long? sub_strip_event_id { get; set; }
         public long queued_events_records_id { get; set; }
+        public DateTime? event_start_datetime { get; set; }
+        public DateTime? event_end_datetime { get; set; }
         public long event_assign_id { get; set; }
         public string event_file_path { get; set; }
         public string detection_status { get; set; }

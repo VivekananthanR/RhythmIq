@@ -65,7 +65,7 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrCloseEvent(long eventAssignId, long empId);
         Task<ResponseDTO> ElrQueueNextEvent(long emp_id, long queued_events_records_id);
         Task<ResponseDTO> ElrGetNextEvent(long emp_id);
-        Task<bool> IsProcessingEvent(long emp_id);
+        Task<GetNextEventResDTO?> IsProcessingEvent(long emp_id);
         Task<GetNextEventResDTO?> GetNext_Queue_Event_Details(long queued_events_records_id);
         Task<List<FetchHistoryDTO>> GetQueueFetchHistory(long queued_events_records_id);
         Task<long> ElrsSelectIsFinalAssignId(long emp_id);
@@ -110,6 +110,8 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrAddUpdateReportType(ReportTypeDTO obj);
 
         Task<ResponseDTO> ElrGetEventEcgSearch(EventEcgSearchReqDTO obj);
+
+        Task<ResponseDTO> ElrGetPatientReportList(PatientReportReqDTO obj);
 
     }
 }

@@ -21,11 +21,9 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpGet = api/Home/ElrGetDevice 
 
-        [HttpGet("ElrGetDevice"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrGetDevice([FromHeader] string authorization, DeviceReqDTO obj)
+        [HttpPost("ElrGetDevice")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetDevice(DeviceReqDTO obj)
         {
-            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            obj.current_emp_id = tokenClaims.id;
             return await _homeService.ElrGetDevice(obj);
         }
         #endregion
@@ -532,6 +530,14 @@ namespace elr_API.Controllers.Home_manager
         public async Task<ResponseDTO> ElrGetEventEcgSearch(EventEcgSearchReqDTO obj)
         {
             return await _homeService.ElrGetEventEcgSearch(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrGetPatientReportList
+        [HttpPost("ElrGetPatientReportList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetPatientReportList(PatientReportReqDTO obj)
+        {
+            return await _homeService.ElrGetPatientReportList(obj);
         }
         #endregion
     }

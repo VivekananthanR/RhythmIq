@@ -53,7 +53,31 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<ResponseDTO> ElrEmployeeDeviceAssignmentList(long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
 
+                query = EmployeeDeviceListDTO.select_device();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, EmployeeDeviceListDTO>(query, new { current_emp_id = emp_id }, ELR_db);
+
+                var rsponse = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+
+                };
+                return new ResponseDTO(rsponse);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
 
         public async Task<ResponseDTO> ElrValidDeviceId(string device_no)
@@ -535,22 +559,22 @@ namespace elr_API.Service.Enrolment
 
                     if (deviceData == null || deviceData.device_id <= 0) return new ResponseDTO(false, $"Assigned device not found for patient enrollment id {obj.patient_enrollment_id}.");
 
-                    query = DeviceAssignmentResDTO.insert_device_assignment_history();
+                    //query = DeviceAssignmentResDTO.insert_device_assignment_history();
 
-                    int assignmentRow = await _db.Execute(
-                        query,
-                        new
-                        {
-                            device_id = deviceData.device_id,
-                            emp_id = deviceData.current_emp_id,
-                            patient_enrollment_id = obj.patient_enrollment_id,
-                            assignment_status = "processing",
-                            remarks = "Enrollment raw data uploaded and processing started",
-                            created_by = obj.created_by
-                        },
-                        ELR_db);
+                    //int assignmentRow = await _db.Execute(
+                    //    query,
+                    //    new
+                    //    {
+                    //        device_id = deviceData.device_id,
+                    //        emp_id = deviceData.current_emp_id,
+                    //        patient_enrollment_id = obj.patient_enrollment_id,
+                    //        assignment_status = "processing",
+                    //        remarks = "Enrollment raw data uploaded and processing started",
+                    //        created_by = obj.created_by
+                    //    },
+                    //    ELR_db);
 
-                    if (assignmentRow <= 0) return new ResponseDTO(false, "Raw data uploaded but processing status failed.");
+                    //if (assignmentRow <= 0) return new ResponseDTO(false, "Raw data uploaded but processing status failed.");
 
                     return new ResponseDTO(true, ResponseMessage.Saved_Successfully);
                 }

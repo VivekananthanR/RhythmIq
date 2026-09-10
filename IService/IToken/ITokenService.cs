@@ -4,6 +4,6 @@ namespace elr_API.IService.IToken
 {
     public interface ITokenService
     {
-        public TokenResDTO GetToken(string user_id, string gu_id, string phone_no, string token_type);
+        public TokenResDTO GetToken(string user_id, string gu_id, string phone_no, string token_type, string login_gu_id);
     }
 }

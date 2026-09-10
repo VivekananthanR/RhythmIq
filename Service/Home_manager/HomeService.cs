@@ -24,13 +24,14 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
-                query = DeviceResDTO.select_device();
-                var data = (await _db.SelectQuery<DeviceResDTO>(query, obj, ELR_db)).ToList();
-                if (data != null)
+                query = DeviceResDTO.select_device_list();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, DeviceResDTO>(query, obj, ELR_db);
+                var response = new
                 {
-                    return new ResponseDTO(data);
-                }
-                return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                    totalCount = totalCount,
+                    items = data
+                };
+                return new ResponseDTO(response);
             }
             catch (Exception ex)
             {
@@ -611,13 +612,13 @@ namespace elr_API.Service.Home_manager
 
             return data;
         }
-        public async Task<bool> IsProcessingEvent(long emp_id)
+        public async Task<GetNextEventResDTO?> IsProcessingEvent(long emp_id)
         {
             string query = EventAssignDTO.get_active_event();
 
-            var result = (await _db.SelectQuery<int>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+            var result = (await _db.SelectQuery<GetNextEventResDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
 
-            return result > 0;
+            return result;
         }
 
         public async Task<GetNextEventResDTO?> GetNext_Queue_Event_Details(long queued_events_records_id)
@@ -642,9 +643,14 @@ namespace elr_API.Service.Home_manager
             {
                 if (queued_events_records_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                bool active = await IsProcessingEvent(emp_id);
+                var activeEvent = await IsProcessingEvent(emp_id);
 
-                if (active) return new ResponseDTO(false, "Current event must be completed before taking next event");
+                if (activeEvent != null)
+                {
+                    activeEvent.active = true;
+
+                    return new ResponseDTO(false, "Current event must be completed before taking next event", activeEvent);
+                }
 
                 var data = await GetNext_Queue_Event_Details(queued_events_records_id);
 
@@ -755,8 +761,14 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
-                bool active = await IsProcessingEvent(emp_id);
-                if (active) return new ResponseDTO(false, "Current event must be completed before taking next event");
+                var activeEvent = await IsProcessingEvent(emp_id);
+
+                if (activeEvent != null)
+                {
+                    activeEvent.active = true;
+
+                    return new ResponseDTO(false, "Current event must be completed before taking next event", activeEvent);
+                }
 
                 long eventAssignId = await ElrsSelectIsFinalAssignId(emp_id);
 
@@ -2210,6 +2222,36 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+
+        public async Task<ResponseDTO> ElrGetPatientReportList(PatientReportReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientReportDTO.get_patient_report_list(obj);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, PatientReportDTO>(query, obj, ELR_db);
+
+
+                var result = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+
+                return new ResponseDTO(result);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
 
     }
 }

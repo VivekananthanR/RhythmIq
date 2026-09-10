@@ -211,6 +211,7 @@ public class MasterEmployeeLoginResDTO
     public DateTime? otp_expiry_time { get; set; }
     public bool is_active { get; set; }
     public bool is_logIn { get; set; }
+    public Guid? login_gu_id { get; set; }
 
     public long user_type_id { get; set; }
     public string user_type { get; set; }

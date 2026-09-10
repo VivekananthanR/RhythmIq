@@ -20,6 +20,15 @@ namespace elr_API.Controllers.User_manager
             _userService = userService;
         }
 
+
+        #region HttpPost = api/User/ElrEmployeeLogin
+        [HttpPost("ElrEmployeeLogin")]
+        public async Task<ActionResult<ResponseDTO>> ElrEmployeeLogin(MasterEmployeeLoginReqDTO obj)
+        {
+            return await _userService.ElrEmployeeLogin(obj);
+        }
+        #endregion
+
         #region HttpGet=api/User/ElrGetPatient?phone_no= 
         [HttpGet("ElrGetPatient")]
         public async Task<ActionResult<ResponseDTO>> ElrGetPatient(string phone_no)
@@ -72,15 +81,6 @@ namespace elr_API.Controllers.User_manager
         }
         #endregion
 
-        #region HttpPost = api/User/ElrEmployeeLogin
-        [HttpPost("ElrEmployeeLogin")]
-        public async Task<ActionResult<ResponseDTO>> ElrEmployeeLogin(MasterEmployeeLoginReqDTO obj)
-        {
-            return await _userService.ElrEmployeeLogin(obj);
-        }
-        #endregion
-
-
         #region HttpPost = api/User/ElrEmployeeLogOut
         [HttpPost("ElrEmployeeLogOut")]
         public async Task<ActionResult<ResponseDTO>> ElrEmployeeLogOut(long user_id)
@@ -88,9 +88,6 @@ namespace elr_API.Controllers.User_manager
             return await _userService.ElrEmployeeLogOut(user_id);
         }
         #endregion
-
-
-
 
         #region HttpPost = api/User/ElrphysiciansList?physiciansName =
         [HttpGet("ElrphysiciansList")]
@@ -124,12 +121,6 @@ namespace elr_API.Controllers.User_manager
         }
         #endregion
 
-        #region HttpPost = api/User/ElrGetPatientReportList
-        [HttpPost("ElrGetPatientReportList"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrGetPatientReportList(PatientReportReqDTO obj)
-        {
-            return await _userService.ElrGetPatientReportList(obj);
-        }
-        #endregion
+
     }
 }

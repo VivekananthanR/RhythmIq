@@ -98,6 +98,7 @@ app.UseHttpsRedirection();
 //app.UseSerilogRequestLogging();
 app.UseCors("AllowAll");
 app.UseMiddleware<CustomErrorHandlingMiddleware>();
+app.UseMiddleware<TokenValidationMiddleware>();
 
 app.UseDefaultFiles();
 

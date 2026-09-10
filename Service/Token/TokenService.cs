@@ -14,14 +14,15 @@ namespace elr_API.Service.Token
         {
             _configuration = configuration;
         }
-        public TokenResDTO GetToken(string user_id, string gu_id, string phone_no, string token_type)
+        public TokenResDTO GetToken(string user_id, string gu_id, string phone_no, string token_type, string login_gu_id)
         {
             var claims = new[]
             {
                 new Claim("id", user_id),
                 new Claim("gu_id", gu_id),
                 new Claim("phone_no", phone_no),
-                new Claim("token_type", token_type)
+                new Claim("token_type", token_type),
+                new Claim("login_gu_id", login_gu_id)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Token:Key"]));

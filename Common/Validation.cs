@@ -64,6 +64,10 @@ namespace elr_API.Common
                 {
                     throw new ArgumentException("Invalid or missing Guid claim");
                 }
+                if (!claims.ContainsKey("login_gu_id") || !Guid.TryParse(claims["login_gu_id"], out Guid login_gu_id))
+                {
+                    throw new ArgumentException("Invalid or missing LoginGuid claim");
+                }
                 if (!claims.ContainsKey("phone_no") || string.IsNullOrEmpty(claims["phone_no"]))
                 {
                     throw new ArgumentException("Invalid or missing PhoneNumber claim");
@@ -78,7 +82,8 @@ namespace elr_API.Common
                     id = id,
                     gu_id = gu_id,
                     phone_no = claims["phone_no"],
-                    token_type = claims["token_type"]
+                    token_type = claims["token_type"],
+                    login_gu_id = login_gu_id
                 };
             }
             catch (Exception ex)

@@ -29,9 +29,9 @@ namespace elr_API.Controllers.Token
             {
                 obj[item.Type] = item.Value;
             }
-            if (obj.Contains("id") && obj.Contains("gu_id") && obj.Contains("phone_no") && obj.Contains("token_type"))
+            if (obj.Contains("id") && obj.Contains("gu_id") && obj.Contains("phone_no") && obj.Contains("token_type") && obj.Contains("login_gu_id"))
             {
-                var tokenDetails = TokenService.GetToken(obj["id"].ToString(), obj["gu_id"].ToString(), obj["phone_no"].ToString(), obj["token_type"].ToString());
+                var tokenDetails = TokenService.GetToken(obj["id"].ToString(), obj["gu_id"].ToString(), obj["phone_no"].ToString(), obj["token_type"].ToString(), obj["login_gu_id"].ToString());
                 return Ok(tokenDetails);
             }
             return Ok(new ResponseDTO(false, ResponseMessage.Access_Denied));
