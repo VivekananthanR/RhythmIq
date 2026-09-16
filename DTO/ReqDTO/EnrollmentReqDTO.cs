@@ -119,7 +119,7 @@ namespace elr_API.DTO.ReqDTO
 
     public class GetPatientEnrollmentListReqDTO
     {
-        public string enrollment_status { get; set; }
+        public List<string> enrollment_status { get; set; }
         public string search { get; set; }
         public DateTime? date { get; set; }
     }
@@ -323,6 +323,8 @@ namespace elr_API.DTO.ReqDTO
         public decimal actual_amount { get; set; }
         public DateTime? schedule_hookup { get; set; }
         public DateTime? schedule_removal { get; set; }
+        public DateTime? actual_hookup { get; set; }
+        public DateTime? actual_removal { get; set; }
         public string actual_technician_name { get; set; }
 
         public long device_id { get; set; }
@@ -389,9 +391,7 @@ namespace elr_API.DTO.ReqDTO
 
                       WHERE
                             (
-                                @enrollment_status IS NULL
-                                OR @enrollment_status = ''
-                                OR a.enrollment_status = @enrollment_status
+                                @enrollment_status = '[]' OR a.enrollment_status IN (SELECT value FROM OPENJSON(@enrollment_status) )
                             )
                             AND
                             (
@@ -412,6 +412,8 @@ namespace elr_API.DTO.ReqDTO
                             a.actual_amount,
                             a.schedule_hookup ,
                             a.schedule_removal ,
+                            a.actual_hookup ,
+                            a.actual_removal ,
                             tech.user_name AS actual_technician_name,
                             phy.user_name AS referred_physician_name,
                             l.device_id,
@@ -472,9 +474,7 @@ namespace elr_API.DTO.ReqDTO
 
                       WHERE
                             (
-                                @enrollment_status IS NULL
-                                OR @enrollment_status = ''
-                                OR a.enrollment_status = @enrollment_status
+                                @enrollment_status = '[]' OR a.enrollment_status IN (SELECT value FROM OPENJSON(@enrollment_status) )
                             )
                             AND
                             (

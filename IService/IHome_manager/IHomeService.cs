@@ -112,6 +112,17 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrGetEventEcgSearch(EventEcgSearchReqDTO obj);
 
         Task<ResponseDTO> ElrGetPatientReportList(PatientReportReqDTO obj);
+        Task<ResponseDTO> ElrGetNextPatientReport(long emp_id);
+        Task<ResponseDTO> ElrGetNextPatientReportList(long patient_report_id, long emp_id);
+        Task<ResponseDTO> ElrClosePatientReport(long report_assigned_id, long emp_id);
+
+        Task<ResponseDTO> ElrAddUpdateReportGenerate(PatientReportGenerateReqDTO obj);
+
+        Task<ResponseDTO> ElrGetReportGenerateList(long patient_id);
+        Task<ResponseDTO> ElrPatientReportSearchList(PatientReportSearchReqDTO obj);
+
+
+
 
     }
 }

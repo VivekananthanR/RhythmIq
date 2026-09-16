@@ -32,7 +32,7 @@ namespace elr_API.Service.User_manager
             string query = string.Empty;
             try
             {
-                if (string.IsNullOrWhiteSpace(phone_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (string.IsNullOrWhiteSpace(phone_no) || !Validation.IsValidPhoneNumber(phone_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = PatientVerifyLoginResDTO.patient_details_select();
 
@@ -54,7 +54,7 @@ namespace elr_API.Service.User_manager
                 ErrorMessage = ex.Message;
             }
 
-            return new ResponseDTO(ErrorMessage);
+            return new ResponseDTO(false, ErrorMessage);
         }
 
         public async Task<ResponseDTO> ElrAddUpdatePatientDetails(PatientVerifyLoginResDTO obj)
@@ -185,7 +185,7 @@ namespace elr_API.Service.User_manager
                 ErrorMessage = ex.Message;
             }
 
-            return new ResponseDTO(ErrorMessage);
+            return new ResponseDTO(false, ErrorMessage);
         }
         public async Task<ResponseDTO> ElrGetEmployeeNameList(string user_name)
         {
@@ -202,7 +202,7 @@ namespace elr_API.Service.User_manager
                 CommonFunctions.ILogging("", ex.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
-            return new ResponseDTO(ErrorMessage);
+            return new ResponseDTO(false, ErrorMessage);
         }
 
         public async Task<ResponseDTO> ElrGetEmployee(string emp_code)
@@ -217,7 +217,7 @@ namespace elr_API.Service.User_manager
                 CommonFunctions.ILogging("", ex.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
-            return new ResponseDTO(ErrorMessage);
+            return new ResponseDTO(false, ErrorMessage);
         }
 
         public async Task<ResponseDTO> ElrAddUpdateEmployeeDetails(AddUpdateEmployeeDetailsReqDTO obj)
@@ -255,7 +255,7 @@ namespace elr_API.Service.User_manager
                 CommonFunctions.ILogging(obj, ex.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
-            return new ResponseDTO(ErrorMessage);
+            return new ResponseDTO(false, ErrorMessage);
         }
 
         public async Task<ResponseDTO> ElrEmployeeLogOut(long user_id)
@@ -274,7 +274,7 @@ namespace elr_API.Service.User_manager
                 CommonFunctions.ILogging("", ex.Message.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
-            return new ResponseDTO(ErrorMessage);
+            return new ResponseDTO(false, ErrorMessage);
         }
 
 

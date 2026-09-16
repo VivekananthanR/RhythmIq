@@ -4,6 +4,7 @@ using elr_API.DTO.ResDTO;
 using elr_API.IService.ICommon_manager;
 using elr_API.IService.IDapper;
 using elr_API.IService.IEntrolement;
+using System.Text.Json;
 
 namespace elr_API.Service.Enrolment
 {
@@ -138,7 +139,15 @@ namespace elr_API.Service.Enrolment
             try
             {
                 query = RequestPatientEnrollmentResDTO.select_request_patient_enrollment();
-                var (totalCount, data) = await _db.SelectQueryWithCount<long, RequestPatientEnrollmentResDTO>(query, obj, ELR_db);
+
+                var parameters = new
+                {
+                    enrollment_status = JsonSerializer.Serialize(obj.enrollment_status ?? new List<string>()),
+                    search = obj.search,
+                    date = obj.date
+                };
+
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, RequestPatientEnrollmentResDTO>(query, parameters, ELR_db);
 
                 var response = new
                 {

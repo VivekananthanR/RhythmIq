@@ -1583,7 +1583,7 @@ namespace elr_API.Service.Home_manager
             string query = string.Empty;
             try
             {
-                if (obj == null && obj.patient_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj == null || obj.patient_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = PriorityCompleteReportReqDTO.detection_complete_report(obj);
                 var (totalCount, data) = await _db.SelectQueryWithCount<long, PriorityCompleteReportDTO>(query, obj, ELR_db);
@@ -2252,6 +2252,285 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
+        public async Task<ResponseDTO> ElrGetNextPatientReport(long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+
+                query = PatientReportDTO.get_current_report();
+                var currentReport = (await _db.SelectQuery<PatientReportDTO>(query, new { emp_id = emp_id }, ELR_db)).FirstOrDefault();
+                if (currentReport != null) return new ResponseDTO(currentReport);
+
+                query = PatientReportDTO.get_next_report();
+                var nextReport = (await _db.SelectQuery<PatientReportDTO>(query, null, ELR_db)).FirstOrDefault();
+
+                query = PatientReportDTO.insert_report_assigned();
+                var assignedId = await _db.ExecuteAndGetId(query,
+                                       new
+                                       {
+                                           patient_report_id = nextReport.patient_report_id,
+                                           patient_enrollment_id = nextReport.patient_enrollment_id,
+                                           created_by = emp_id
+                                       },
+                                       ELR_db);
+
+                query = PatientReportDTO.update_report_inprogress();
+                await _db.Execute(query, new { patient_report_id = nextReport.patient_report_id, modified_by = emp_id }, ELR_db);
+
+                return new ResponseDTO(nextReport);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+
+            }
+            return new ResponseDTO(false, ErrorMessage);
+
+        }
+        public async Task<ResponseDTO> ElrClosePatientReport(long report_assigned_id, long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (report_assigned_id == 0 || emp_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientReportDTO.select_assigned_report();
+                var completedReport = (await _db.SelectQuery<PatientReportDTO>(query, new { report_assigned_id = report_assigned_id }, ELR_db)).FirstOrDefault();
+
+                if (completedReport == null)
+                {
+
+                    query = PatientReportDTO.close_patient_report_assgin();
+                    await _db.Execute(query, new { report_assigned_id = report_assigned_id, modified_by = emp_id }, ELR_db);
+
+                    query = PatientReportDTO.reset_patient_report_status();
+                    await _db.Execute(query, new { report_assigned_id = report_assigned_id, modified_by = emp_id }, ELR_db);
+
+                    return new ResponseDTO(true, ResponseMessage.Success);
+                }
+                return new ResponseDTO(false, $"Patient Report status :{completedReport.assign_status}");
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+
+        }
+
+        public async Task<ResponseDTO> ElrGetNextPatientReportList(long patient_report_id, long emp_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (patient_report_id == 0 || emp_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientReportDTO.get_current_report();
+                var currentReport = (await _db.SelectQuery<PatientReportDTO>(query, new { emp_id = emp_id }, ELR_db)).FirstOrDefault();
+                if (currentReport != null) return new ResponseDTO(currentReport);
+
+                query = PatientReportDTO.get_next_patient_report_list();
+                var reportData = (await _db.SelectQuery<PatientReportDTO>(query, new { patient_report_id = patient_report_id }, ELR_db)).FirstOrDefault();
+
+                if (reportData != null)
+                {
+                    query = PatientReportDTO.insert_report_assigned();
+                    var assignedId = await _db.ExecuteAndGetId(query, new { patient_report_id = reportData.patient_report_id, patient_enrollment_id = reportData.patient_enrollment_id, created_by = emp_id }, ELR_db);
+
+
+                    query = PatientReportDTO.update_report_inprogress();
+                    await _db.Execute(query, new { patient_report_id = reportData.patient_report_id, modified_by = emp_id }, ELR_db);
+
+                    return new ResponseDTO(true, ResponseMessage.Success);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
+
+        public async Task<ResponseDTO> ElrAddUpdateReportGenerate(PatientReportGenerateReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null || obj.report_assigned_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientReportGenerateReqDTO.check_patient_report_status();
+                bool is_completed = (await _db.SelectQuery<bool>(query, new { report_assigned_id = obj.report_assigned_id }, ELR_db)).Any();
+
+                if (is_completed == true) return new ResponseDTO(false, "Report is already completed. Cannot update.");
+
+
+
+                query = PatientReportGenerateReqDTO.existing_patient_report_generate();
+                var existingStrips = await _db.SelectQuery<PatientReportGenerateStripDTO>(query, new { patient_report_id = obj.patient_report_id }, ELR_db);
+
+                if (obj.stripIds == null || !obj.stripIds.Any())
+                {
+                    if (existingStrips != null && existingStrips.Any())
+                    {
+                        query = PatientReportGenerateReqDTO.delete_all_patient_report_generate();
+
+                        await _db.Execute(query, new { patient_report_id = obj.patient_report_id, modified_by = obj.created_by }, ELR_db);
+                    }
+
+                    // Report should go back to pending
+                    query = PatientReportGenerateReqDTO.update_patient_report_status_pending();
+
+                    await _db.Execute(query, new { patient_report_id = obj.patient_report_id, modified_by = obj.created_by }, ELR_db);
+
+                    return new ResponseDTO(true, ResponseMessage.Success);
+                }
+
+
+                foreach (var existingStrip in existingStrips)
+                {
+                    bool isAvailable = obj.stripIds.Any(x => x.queued_events_records_id == existingStrip.queued_events_records_id && x.sub_strip_event_id == existingStrip.sub_strip_event_id);
+
+                    if (!isAvailable)
+                    {
+                        query = PatientReportGenerateReqDTO.update_patient_report_generate();
+
+                        await _db.Execute(
+                            query,
+                            new
+                            {
+                                patient_report_id = obj.patient_report_id,
+                                queued_events_records_id = existingStrip.queued_events_records_id,
+                                sub_strip_event_id = existingStrip.sub_strip_event_id,
+                                modified_by = obj.created_by
+                            },
+                            ELR_db);
+                    }
+                }
+                foreach (var strip in obj.stripIds)
+                {
+                    var isExisting = existingStrips.Any(x => x.queued_events_records_id == strip.queued_events_records_id && x.sub_strip_event_id == strip.sub_strip_event_id);
+
+                    if (!isExisting)
+                    {
+                        query = PatientReportGenerateReqDTO.insert_patient_report_generate();
+
+                        await _db.Execute(
+                            query,
+                            new
+                            {
+                                patient_report_id = obj.patient_report_id,
+                                queued_events_records_id = strip.queued_events_records_id,
+                                sub_strip_event_id = strip.sub_strip_event_id,
+                                created_by = obj.created_by
+                            },
+                            ELR_db);
+                    }
+                }
+
+                query = PatientReportDTO.update_patient_report_status();
+                await _db.Execute(
+                    query,
+                    new
+                    {
+                        patient_report_id = obj.patient_report_id,
+                        created_by = obj.created_by
+                    },
+                    ELR_db);
+
+                return new ResponseDTO(true, ResponseMessage.Success);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrGetReportGenerateList(long patient_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (patient_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientReportGenerateReqDTO.get_report_generate_list();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, ReportGenerateListResDTO>(query, new { patient_id = patient_id }, ELR_db);
+
+                foreach (var item in data)
+                {
+                    query = PatientReportGenerateReqDTO.existing_patient_report_generate();
+                    item.stripList = (await _db.SelectQuery<PatientReportGenerateStripDTO>(query, new { patient_report_id = item.patient_report_id }, ELR_db)).ToList();
+
+                }
+                var result = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(result);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+
+        }
+
+        public async Task<ResponseDTO> ElrPatientReportSearchList(PatientReportSearchReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientReportSearchReqDTO.patient_report_search_list(obj);
+
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, PatientReportDTO>(query, obj, ELR_db);
+
+                foreach (var item in data)
+                {
+                    query = PatientReportGenerateReqDTO.existing_patient_report_generate();
+                    item.report_strips = (await _db.SelectQuery<PatientReportGenerateStripDTO>(query, new { patient_report_id = item.patient_report_id }, ELR_db)).ToList();
+
+                }
+
+                var result = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(result);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+
+        }
+
 
     }
 }
+

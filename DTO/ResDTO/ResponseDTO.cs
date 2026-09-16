@@ -20,14 +20,14 @@ namespace elr_API.DTO.ResDTO
         {
             Status = status;
             Message = message;
-            Data = string.Empty;
+            //Data = string.Empty;
         }
 
         public ResponseDTO(bool status, string message, object data) : this(data)
         {
             Status = status;
             Message = message;
-            Data = data;
+            //Data = data;
         }
     }
 }

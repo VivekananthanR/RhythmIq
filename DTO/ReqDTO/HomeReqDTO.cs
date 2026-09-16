@@ -1937,53 +1937,126 @@ namespace elr_API.DTO.ReqDTO
     }
     public class SubStripReqDTO
     {
+        public DateTime? from_date { get; set; }
+        public DateTime? to_date { get; set; }
         public long patient_id { get; set; }
-        public int pageNumber { get; set; }
-        public int pageSize { get; set; }
-        public int offset => (pageNumber - 1) * pageSize;
+        public int? pageNumber { get; set; }
+        public int? pageSize { get; set; }
+        public int? offset => (pageNumber - 1) * pageSize;
         public string? shortColumn { get; set; }
         public string? orderBy { get; set; }
 
         #region Query
         internal static string get_sub_strip_report(SubStripReqDTO obj)
         {
-            return $@"
-                    SELECT COUNT(1)
-                    FROM {Tbl.sub_strip_event} sse
-                    INNER JOIN {Tbl.queued_events_records} qer
-                        ON sse.queued_events_records_id = qer.queued_events_records_id
-                    INNER JOIN {Tbl.patient_enrollment} pe
-                        ON qer.patient_enrollment_id = pe.patient_enrollment_id
-                    WHERE pe.patient_id = @patient_id
-                      AND sse.is_active = 1;
+            string pagination = string.Empty;
 
-                   SELECT
-                        sse.sub_strip_event_id,
-                        sse.queued_events_records_id,
-                        sse.event_assign_id,
-                        d.detection_id,
-                        sse.sub_strip_file_path,
-                        sse.sub_strip_start_datetime,
-                        sse.sub_strip_end_datetime,
-                        sse.created_by,
-                        sse.created_datetime,
-                        sse.is_active,
-                        qer.event_start_datetime
-                    FROM {Tbl.sub_strip_event} sse
-                    INNER JOIN {Tbl.queued_events_records} qer
-                        ON sse.queued_events_records_id = qer.queued_events_records_id
-                    INNER JOIN {Tbl.patient_enrollment} pe
-                        ON qer.patient_enrollment_id = pe.patient_enrollment_id
-                    LEFT JOIN {Tbl.detection} d
-                        ON d.sub_strip_event_id = sse.sub_strip_event_id
-                       AND d.event_assign_id = sse.event_assign_id
-                       AND d.is_active = 1
-                    WHERE pe.patient_id = @patient_id
-                      AND sse.is_active = 1
-                    ORDER BY qer.event_start_datetime DESC
-                    OFFSET @offset ROWS
-                    FETCH NEXT @pageSize ROWS ONLY;";
+            if (obj.pageNumber.HasValue && obj.pageSize.HasValue)
+            {
+                pagination = @" OFFSET @offset ROWS
+                                FETCH NEXT @pageSize ROWS ONLY;";
+            }
+
+            return $@"
+                        SELECT COUNT(1)
+                        FROM {Tbl.sub_strip_event} sse
+
+                        INNER JOIN {Tbl.queued_events_records} qer
+                            ON sse.queued_events_records_id = qer.queued_events_records_id
+
+                        INNER JOIN {Tbl.patient_enrollment} pe
+                            ON qer.patient_enrollment_id = pe.patient_enrollment_id
+
+                        WHERE pe.patient_id = @patient_id
+                          AND sse.is_active = 1
+
+                          AND (@from_date IS NULL
+                               OR pe.actual_hookup >= @from_date)
+
+                          AND (@to_date IS NULL
+                               OR pe.actual_hookup < DATEADD(DAY, 1, @to_date));
+
+
+                        SELECT
+                            sse.sub_strip_event_id,
+                            sse.queued_events_records_id,
+                            sse.event_assign_id,
+                            d.detection_id,
+                            sse.sub_strip_file_path,
+                            sse.sub_strip_start_datetime,
+                            sse.sub_strip_end_datetime,
+                            sse.created_by,
+                            sse.created_datetime,
+                            sse.is_active,
+                            qer.event_start_datetime
+
+                        FROM {Tbl.sub_strip_event} sse
+
+                        INNER JOIN {Tbl.queued_events_records} qer
+                            ON sse.queued_events_records_id = qer.queued_events_records_id
+
+                        INNER JOIN {Tbl.patient_enrollment} pe
+                            ON qer.patient_enrollment_id = pe.patient_enrollment_id
+
+                        LEFT JOIN {Tbl.detection} d
+                            ON d.sub_strip_event_id = sse.sub_strip_event_id
+                           AND d.event_assign_id = sse.event_assign_id
+                           AND d.is_active = 1
+
+                        WHERE pe.patient_id = @patient_id
+                          AND sse.is_active = 1
+
+                          AND (@from_date IS NULL
+                               OR pe.actual_hookup >= @from_date)
+
+                          AND (@to_date IS NULL
+                               OR pe.actual_hookup < DATEADD(DAY, 1, @to_date))
+
+                        ORDER BY qer.event_start_datetime DESC
+
+                       {pagination};";
         }
+
+        //internal static string get_sub_strip_report(SubStripReqDTO obj)
+        //{
+        //    return $@"
+        //            SELECT COUNT(1)
+        //            FROM {Tbl.sub_strip_event} sse
+        //            INNER JOIN {Tbl.queued_events_records} qer
+        //                ON sse.queued_events_records_id = qer.queued_events_records_id
+        //            INNER JOIN {Tbl.patient_enrollment} pe
+        //                ON qer.patient_enrollment_id = pe.patient_enrollment_id
+        //            WHERE pe.patient_id = @patient_id
+        //              AND sse.is_active = 1;
+
+        //           SELECT
+        //                sse.sub_strip_event_id,
+        //                sse.queued_events_records_id,
+        //                sse.event_assign_id,
+        //                d.detection_id,
+        //                sse.sub_strip_file_path,
+        //                sse.sub_strip_start_datetime,
+        //                sse.sub_strip_end_datetime,
+        //                sse.created_by,
+        //                sse.created_datetime,
+        //                sse.is_active,
+        //                qer.event_start_datetime
+        //            FROM {Tbl.sub_strip_event} sse
+        //            INNER JOIN {Tbl.queued_events_records} qer
+        //                ON sse.queued_events_records_id = qer.queued_events_records_id
+        //            INNER JOIN {Tbl.patient_enrollment} pe
+        //                ON qer.patient_enrollment_id = pe.patient_enrollment_id
+        //            LEFT JOIN {Tbl.detection} d
+        //                ON d.sub_strip_event_id = sse.sub_strip_event_id
+        //               AND d.event_assign_id = sse.event_assign_id
+        //               AND d.is_active = 1
+        //            WHERE pe.patient_id = @patient_id
+        //              AND sse.is_active = 1
+        //            ORDER BY qer.event_start_datetime DESC
+        //            OFFSET @offset ROWS
+        //            FETCH NEXT @pageSize ROWS ONLY;";
+        //}
+
         #endregion
     }
 
@@ -2145,30 +2218,51 @@ namespace elr_API.DTO.ReqDTO
 
 
         #region Query
+        //internal static string sub_strip_files_select()
+        //{
+        //    return $@"
+        //            SELECT DISTINCT
+        //                sse.sub_strip_event_id,
+        //                sse.queued_events_records_id,
+        //                sse.event_assign_id,
+        //                sse.sub_strip_file_path,
+        //                sse.sub_strip_start_datetime,
+        //                sse.sub_strip_end_datetime,
+        //                sse.remarks,
+        //                sse.created_by,
+        //                sse.created_datetime,
+        //                sse.modified_by,
+        //                sse.modified_datetime,
+        //                sse.is_active
+        //            FROM {Tbl.sub_strip_event} sse
+        //            INNER JOIN {Tbl.sub_strip_event_finding} sef
+        //                ON sef.sub_strip_event_id = sse.sub_strip_event_id
+        //               AND sef.event_assign_id = sse.event_assign_id
+        //               AND sef.is_active = 1
+        //            WHERE sse.event_assign_id = @event_assign_id
+        //              AND sse.is_active = 1
+        //            ORDER BY sse.created_datetime;";
+        //}
         internal static string sub_strip_files_select()
         {
             return $@"
-                    SELECT DISTINCT
-                        sse.sub_strip_event_id,
-                        sse.queued_events_records_id,
-                        sse.event_assign_id,
-                        sse.sub_strip_file_path,
-                        sse.sub_strip_start_datetime,
-                        sse.sub_strip_end_datetime,
-                        sse.remarks,
-                        sse.created_by,
-                        sse.created_datetime,
-                        sse.modified_by,
-                        sse.modified_datetime,
-                        sse.is_active
-                    FROM {Tbl.sub_strip_event} sse
-                    INNER JOIN {Tbl.sub_strip_event_finding} sef
-                        ON sef.sub_strip_event_id = sse.sub_strip_event_id
-                       AND sef.event_assign_id = sse.event_assign_id
-                       AND sef.is_active = 1
-                    WHERE sse.event_assign_id = @event_assign_id
-                      AND sse.is_active = 1
-                    ORDER BY sse.created_datetime;";
+            SELECT
+                sse.sub_strip_event_id,
+                sse.queued_events_records_id,
+                sse.event_assign_id,
+                sse.sub_strip_file_path,
+                sse.sub_strip_start_datetime,
+                sse.sub_strip_end_datetime,
+                sse.remarks,
+                sse.created_by,
+                sse.created_datetime,
+                sse.modified_by,
+                sse.modified_datetime,
+                sse.is_active
+            FROM {Tbl.sub_strip_event} sse
+            WHERE sse.event_assign_id = @event_assign_id
+              AND sse.is_active = 1
+            ORDER BY sse.created_datetime;";
         }
         internal static string time_out_substrip()
         {
@@ -3069,6 +3163,8 @@ namespace elr_API.DTO.ReqDTO
 
     public class PriorityCompleteReportReqDTO
     {
+        public DateTime? from_date { get; set; }
+        public DateTime? to_date { get; set; }
         public int pageNumber { get; set; }
         public int pageSize { get; set; }
         public int offSet => (pageNumber - 1) * pageSize;
@@ -3089,12 +3185,20 @@ namespace elr_API.DTO.ReqDTO
                     (
                         SELECT d.event_assign_id
                         FROM {Tbl.detection} d
+
                         INNER JOIN {Tbl.queued_events_records} q
                             ON q.queued_events_records_id = d.queued_events_records_id
+
                         INNER JOIN {Tbl.patient_enrollment} pe
                             ON pe.patient_enrollment_id = q.patient_enrollment_id
+
                         WHERE d.is_active = 1
                           AND d.detection_status IN ('submit','confirm-submit')
+                            AND (@from_date IS NULL 
+                                   OR pe.actual_hookup >= @from_date)
+
+                              AND (@to_date IS NULL 
+                                   OR pe.actual_hookup < DATEADD(DAY, 1, @to_date))
                           AND (@patient_id = 0 OR pe.patient_id = @patient_id)
 
                           -- Parent detection must exist
@@ -3107,23 +3211,7 @@ namespace elr_API.DTO.ReqDTO
                                 AND pd.is_active = 1
                                 AND pd.detection_status IN ('submit','confirm-submit')
                           )
-                          -- All active sub strips must have detection
-                          AND
-                          (
-                              SELECT COUNT(*)
-                              FROM {Tbl.sub_strip_event} s
-                              WHERE s.event_assign_id = d.event_assign_id
-                                AND s.is_active = 1
-                          )
-                          =
-                          (
-                              SELECT COUNT(*)
-                              FROM {Tbl.detection} sd
-                              WHERE sd.event_assign_id = d.event_assign_id
-                                AND sd.sub_strip_event_id IS NOT NULL
-                                AND sd.is_active = 1
-                                AND sd.detection_status IN ('submit','confirm-submit')
-                          )
+
                         GROUP BY d.event_assign_id
                     ) A;
 
@@ -3136,7 +3224,7 @@ namespace elr_API.DTO.ReqDTO
                         MAX(d.detection_status)          AS detection_status,
                         MAX(d.remarks)                   AS remarks,
                         MAX(d.created_by)                AS created_by,
-                        MAX(d.created_datetime)          AS created_datetime,
+                        MAX(d.created_datetime)           AS created_datetime,
                         MAX(d.modified_by)               AS modified_by,
                         MAX(d.modified_datetime)         AS modified_datetime,
                         MAX(d.picked_by)                 AS picked_by,
@@ -3145,15 +3233,25 @@ namespace elr_API.DTO.ReqDTO
                         MAX(p.patient_name)              AS patient_name,
                         MAX(q.event_start_datetime)      AS event_start_datetime,
                         MAX(q.event_end_datetime)        AS event_end_datetime
+
                     FROM {Tbl.detection} d
+
                     INNER JOIN {Tbl.queued_events_records} q
                         ON q.queued_events_records_id = d.queued_events_records_id
+
                     INNER JOIN {Tbl.patient_enrollment} pe
                         ON pe.patient_enrollment_id = q.patient_enrollment_id
+
                     INNER JOIN {Tbl.patient} p
                         ON p.patient_id = pe.patient_id
+
                     WHERE d.is_active = 1
                       AND d.detection_status IN ('submit','confirm-submit')
+                          AND (@from_date IS NULL 
+                                   OR pe.actual_hookup >= @from_date)
+
+                              AND (@to_date IS NULL 
+                                   OR pe.actual_hookup < DATEADD(DAY, 1, @to_date))
                       AND (@patient_id = 0 OR pe.patient_id = @patient_id)
 
                       -- Parent detection must exist
@@ -3166,28 +3264,126 @@ namespace elr_API.DTO.ReqDTO
                             AND pd.is_active = 1
                             AND pd.detection_status IN ('submit','confirm-submit')
                       )
-                      -- All active sub strips must have detection
-                      AND
-                      (
-                          SELECT COUNT(*)
-                          FROM {Tbl.sub_strip_event} s
-                          WHERE s.event_assign_id = d.event_assign_id
-                            AND s.is_active = 1
-                      )
-                      =
-                      (
-                          SELECT COUNT(*)
-                          FROM {Tbl.detection} sd
-                          WHERE sd.event_assign_id = d.event_assign_id
-                            AND sd.sub_strip_event_id IS NOT NULL
-                            AND sd.is_active = 1
-                            AND sd.detection_status IN ('submit','confirm-submit')
-                      )
+
                     GROUP BY d.event_assign_id
-                    ORDER BY {shortColumn} {orderBy}
+
+                    ORDER BY {shortColumn} {orderBy},
+                             MAX(d.detection_id) DESC
+
                     OFFSET @offSet ROWS
                     FETCH NEXT @pageSize ROWS ONLY;";
         }
+        //internal static string detection_complete_report(PriorityCompleteReportReqDTO obj)
+        //{
+        //    var shortColumn = string.IsNullOrEmpty(obj.shortColumn) ? "q.event_start_datetime" : obj.shortColumn;
+
+        //    var orderBy = string.IsNullOrEmpty(obj.orderBy) ? "DESC" : obj.orderBy;
+
+        //    return $@"
+        //            SELECT COUNT(*)
+        //            FROM
+        //            (
+        //                SELECT d.event_assign_id
+        //                FROM {Tbl.detection} d
+        //                INNER JOIN {Tbl.queued_events_records} q
+        //                    ON q.queued_events_records_id = d.queued_events_records_id
+        //                INNER JOIN {Tbl.patient_enrollment} pe
+        //                    ON pe.patient_enrollment_id = q.patient_enrollment_id
+        //                WHERE d.is_active = 1
+        //                  AND d.detection_status IN ('submit','confirm-submit')
+        //                  AND (@patient_id = 0 OR pe.patient_id = @patient_id)
+
+        //                  -- Parent detection must exist
+        //                  AND EXISTS
+        //                  (
+        //                      SELECT 1
+        //                      FROM {Tbl.detection} pd
+        //                      WHERE pd.event_assign_id = d.event_assign_id
+        //                        AND pd.sub_strip_event_id IS NULL
+        //                        AND pd.is_active = 1
+        //                        AND pd.detection_status IN ('submit','confirm-submit')
+        //                  )
+        //                  -- All active sub strips must have detection
+        //                  AND
+        //                  (
+        //                      SELECT COUNT(*)
+        //                      FROM {Tbl.sub_strip_event} s
+        //                      WHERE s.event_assign_id = d.event_assign_id
+        //                        AND s.is_active = 1
+        //                  )
+        //                  =
+        //                  (
+        //                      SELECT COUNT(*)
+        //                      FROM {Tbl.detection} sd
+        //                      WHERE sd.event_assign_id = d.event_assign_id
+        //                        AND sd.sub_strip_event_id IS NOT NULL
+        //                        AND sd.is_active = 1
+        //                        AND sd.detection_status IN ('submit','confirm-submit')
+        //                  )
+        //                GROUP BY d.event_assign_id
+        //            ) A;
+
+
+        //            SELECT
+        //                MAX(d.detection_id)              AS detection_id,
+        //                d.event_assign_id,
+        //                MAX(d.queued_events_records_id)  AS queued_events_records_id,
+        //                MAX(q.event_file_path)           AS event_file_path,
+        //                MAX(d.detection_status)          AS detection_status,
+        //                MAX(d.remarks)                   AS remarks,
+        //                MAX(d.created_by)                AS created_by,
+        //                MAX(d.created_datetime)          AS created_datetime,
+        //                MAX(d.modified_by)               AS modified_by,
+        //                MAX(d.modified_datetime)         AS modified_datetime,
+        //                MAX(d.picked_by)                 AS picked_by,
+        //                MAX(d.picked_datetime)           AS picked_datetime,
+        //                MAX(pe.patient_id)               AS patient_id,
+        //                MAX(p.patient_name)              AS patient_name,
+        //                MAX(q.event_start_datetime)      AS event_start_datetime,
+        //                MAX(q.event_end_datetime)        AS event_end_datetime
+        //            FROM {Tbl.detection} d
+        //            INNER JOIN {Tbl.queued_events_records} q
+        //                ON q.queued_events_records_id = d.queued_events_records_id
+        //            INNER JOIN {Tbl.patient_enrollment} pe
+        //                ON pe.patient_enrollment_id = q.patient_enrollment_id
+        //            INNER JOIN {Tbl.patient} p
+        //                ON p.patient_id = pe.patient_id
+        //            WHERE d.is_active = 1
+        //              AND d.detection_status IN ('submit','confirm-submit')
+        //              AND (@patient_id = 0 OR pe.patient_id = @patient_id)
+
+        //              -- Parent detection must exist
+        //              AND EXISTS
+        //              (
+        //                  SELECT 1
+        //                  FROM {Tbl.detection} pd
+        //                  WHERE pd.event_assign_id = d.event_assign_id
+        //                    AND pd.sub_strip_event_id IS NULL
+        //                    AND pd.is_active = 1
+        //                    AND pd.detection_status IN ('submit','confirm-submit')
+        //              )
+        //              -- All active sub strips must have detection
+        //              AND
+        //              (
+        //                  SELECT COUNT(*)
+        //                  FROM {Tbl.sub_strip_event} s
+        //                  WHERE s.event_assign_id = d.event_assign_id
+        //                    AND s.is_active = 1
+        //              )
+        //              =
+        //              (
+        //                  SELECT COUNT(*)
+        //                  FROM {Tbl.detection} sd
+        //                  WHERE sd.event_assign_id = d.event_assign_id
+        //                    AND sd.sub_strip_event_id IS NOT NULL
+        //                    AND sd.is_active = 1
+        //                    AND sd.detection_status IN ('submit','confirm-submit')
+        //              )
+        //            GROUP BY d.event_assign_id
+        //            ORDER BY {shortColumn} {orderBy}
+        //            OFFSET @offSet ROWS
+        //            FETCH NEXT @pageSize ROWS ONLY;";
+        //}
 
         #endregion
 
@@ -4433,4 +4629,291 @@ namespace elr_API.DTO.ReqDTO
         }
         #endregion
     }
+    public class ReportGenerateListResDTO
+    {
+        public long patient_report_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public long report_type_id { get; set; }
+        public string report_type_name { get; set; }
+        public string report_status { get; set; }
+        public long? generate_to { get; set; }
+        public DateTime? report_started_datetime { get; set; }
+        public DateTime? report_due_datetime { get; set; }
+        public DateTime? report_generated_datetime { get; set; }
+        public DateTime? report_finalized_datetime { get; set; }
+        public long? created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long? modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+        public List<PatientReportGenerateStripDTO> stripList { get; set; }
+
+
+
+
+    }
+
+    public class PatientReportGenerateReqDTO
+    {
+        public long patient_report_id { get; set; }
+        public long report_assigned_id { get; set; }
+        public long created_by { get; set; }
+
+        public List<PatientReportGenerateStripDTO> stripIds { get; set; }
+
+
+
+        #region
+
+
+        internal static string update_patient_report_status_pending()
+        {
+            return $@"
+                    UPDATE {Tbl.patient_report}
+                    SET
+                        report_status = 'pending',
+                         modified_datetime = GETDATE(),
+                        modified_by = @modified_by
+                    WHERE patient_report_id = @patient_report_id
+                      AND is_active = 1
+                      AND report_status = 'inprogress'";
+        }
+
+        internal static string delete_all_patient_report_generate()
+        {
+            return $@"
+                    UPDATE {Tbl.patient_report_generate}
+                    SET
+                        is_active = 0,
+                        modified_datetime = GETDATE(),
+                        modified_by = @modified_by
+                    WHERE patient_report_id = @patient_report_id
+                      AND is_active = 1";
+        }
+
+        internal static string check_patient_report_status()
+        {
+            return $@"
+                SELECT report_assigned_id,patient_report_id,patient_enrollment_id,assign_status
+                FROM {Tbl.report_assigned} 
+                WHERE report_assigned_id = @report_assigned_id
+                  AND is_active = 1 AND assign_status = 'completed' AND last_activity_time IS NOT NULL";
+        }
+
+
+        internal static string get_report_generate_list()
+        {
+            return $@"
+        SELECT COUNT(*)
+        FROM {Tbl.patient_report} pr
+        INNER JOIN {Tbl.report_type} rt
+            ON rt.report_type_id = pr.report_type_id
+        INNER JOIN {Tbl.patient_enrollment} pe
+            ON pe.patient_enrollment_id = pr.patient_enrollment_id
+        WHERE pr.is_active = 1 and pr.report_status = 'inprogress'
+          AND pe.patient_id = @patient_id;
+
+
+        SELECT
+            pr.patient_report_id,
+            pr.patient_enrollment_id,
+            pr.report_type_id,
+            rt.report_type_name,
+            pr.report_status,
+            pr.assigned_to,
+            pr.report_started_datetime,
+            pr.report_due_datetime,
+            pr.report_generated_datetime,
+            pr.report_finalized_datetime,
+            pr.created_by,
+            pr.created_datetime,
+            pr.modified_by,
+            pr.modified_datetime,
+            pr.is_active
+        FROM {Tbl.patient_report} pr
+        INNER JOIN {Tbl.report_type} rt
+            ON rt.report_type_id = pr.report_type_id
+        INNER JOIN {Tbl.patient_enrollment} pe
+            ON pe.patient_enrollment_id = pr.patient_enrollment_id
+        WHERE pr.is_active = 1
+          AND pe.patient_id = @patient_id and pr.report_status = 'inprogress'
+        ORDER BY pr.created_datetime DESC;
+    ";
+        }
+
+        internal static string existing_patient_report_generate()
+        {
+            return $@"
+                SELECT
+                    queued_events_records_id,
+                    sub_strip_event_id
+                FROM {Tbl.patient_report_generate}
+                WHERE patient_report_id = @patient_report_id
+                  AND is_active = 1 order by patient_report_generate_id";
+        }
+
+        internal static string update_patient_report_generate()
+        {
+            return $@"
+                UPDATE {Tbl.patient_report_generate}
+                SET
+                    is_active = 0,
+                    modified_by = @modified_by,
+                    modified_datetime = GETDATE()
+                WHERE patient_report_id = @patient_report_id
+                  AND queued_events_records_id = @queued_events_records_id
+                  AND sub_strip_event_id = @sub_strip_event_id
+                  AND is_active = 1";
+        }
+        internal static string insert_patient_report_generate()
+        {
+            return $@"
+                INSERT INTO {Tbl.patient_report_generate}
+                (
+                    patient_report_id,
+                    queued_events_records_id,
+                    sub_strip_event_id,
+                    created_by
+                )
+                VALUES
+                (
+                    @patient_report_id,
+                    @queued_events_records_id,
+                    @sub_strip_event_id,
+                    @created_by)";
+        }
+        #endregion
+    }
+
+    public class PatientReportGenerateStripDTO
+    {
+        public long queued_events_records_id { get; set; }
+        public long sub_strip_event_id { get; set; }
+    }
+
+
+
+    public class PatientReportSearchReqDTO
+    {
+        public string type { get; set; }//all,inprogress,completed
+        public DateTime? from_date { get; set; }
+        public DateTime? to_date { get; set; }
+        public long? report_type_id { get; set; }
+        public long? patient_report_id { get; set; }
+        public long? user_id { get; set; }
+        public int limit { get; set; }
+
+        public int pageNumber { get; set; }
+        public int pageSize { get; set; }
+        public int offSet => (pageNumber - 1) * pageSize;
+        public string sortBy { get; set; }
+        public string orderBy { get; set; }
+
+
+
+        #region Query
+        internal static string patient_report_search_list(PatientReportSearchReqDTO obj)
+        {
+            string condition = $@"
+                            a.is_active = 1
+                            AND b.is_active = 1
+                            AND (@from_date IS NULL OR a.created_datetime >= @from_date)
+                            AND (@to_date IS NULL OR a.created_datetime < DATEADD(DAY, 1, @to_date))
+                            AND (@report_type_id = 0 OR a.report_type_id = @report_type_id)
+                            AND (@patient_report_id  = 0 OR a.patient_report_id = @patient_report_id)
+                            AND (@user_id  = 0 OR a.assigned_to = @user_id)
+                            AND (
+                                    ( @type = 'all' AND a.report_status in ( 'inprogress' , 'completed' ) )
+                                    OR ( @type is null AND a.report_status in ( 'inprogress' , 'completed' ) )
+                                    OR (@type = 'inprogress' AND a.report_status = 'inprogress')
+                                    OR (@type = 'completed' AND a.report_status = 'completed')
+                                )";
+
+
+            return $@"
+
+                    SELECT COUNT(*) AS totalCount
+                    from {Tbl.patient_report} a
+                    inner join {Tbl.patient_enrollment} b on a.patient_enrollment_id = b.patient_enrollment_id
+                    inner join {Tbl.patient} c on c.patient_id = b.patient_id
+                    inner join {Tbl.user_master} d on d.user_id = a.assigned_to
+                    inner join {Tbl.report_type} e on e.report_type_id = a.report_type_id
+                    where {condition};
+
+
+                        SELECT
+                            a.patient_report_id,
+                            a.patient_enrollment_id,
+                            a.report_type_id,
+                            a.report_status,
+                            a.assigned_to,
+                            a.report_due_datetime,
+                            a.report_generated_datetime,
+                            a.report_finalized_datetime,
+                            a.report_started_datetime,
+
+                            c.patient_id,
+                            c.patient_name,
+
+                            d.user_id,
+                            d.user_name,
+
+                            e.report_type_name
+
+                        FROM {Tbl.patient_report} AS a
+
+                        INNER JOIN {Tbl.patient_enrollment} AS b
+                            ON a.patient_enrollment_id = b.patient_enrollment_id
+
+                        INNER JOIN {Tbl.patient} AS c
+                            ON c.patient_id = b.patient_id
+
+                        LEFT JOIN {Tbl.user_master} AS d
+                            ON d.user_id = a.assigned_to
+
+                        INNER JOIN {Tbl.report_type} AS e
+                            ON e.report_type_id = a.report_type_id
+
+                        WHERE {condition}
+
+                        ORDER BY {obj.sortBy} {obj.orderBy}
+
+                        OFFSET @offSet ROWS
+                       
+                        FETCH NEXT
+                            CASE
+                                WHEN @limit - @offSet <= 0
+                                    THEN 0
+
+                                WHEN @limit - @offSet < @pageSize
+                                    THEN @limit - @offSet
+
+                                ELSE @pageSize
+                            END
+                        ROWS ONLY;";
+        }
+
+        #endregion
+
+
+    }
+    public class PatientReportSearchResDTO
+    {
+        public long patient_report_id { get; set; }
+        public long patient_id { get; set; }
+        public string patient_name { get; set; }
+        public long user_id { get; set; }
+        public string user_name { get; set; }
+        public DateTime? report_started_datetime { get; set; }
+        public DateTime? report_due_datetime { get; set; }
+        public DateTime? report_generated_datetime { get; set; }
+        public DateTime? report_finalized_datetime { get; set; }
+        public long report_type_id { get; set; }
+        public string report_type_name { get; set; }
+
+
+
+    }
+
+
 }

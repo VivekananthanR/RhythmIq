@@ -540,6 +540,64 @@ namespace elr_API.Controllers.Home_manager
             return await _homeService.ElrGetPatientReportList(obj);
         }
         #endregion
+
+
+        #region HttpGet = api/Home/ElrGetNextPatientReport
+        [HttpGet("ElrGetNextPatientReport"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetNextPatientReport([FromHeader] string authorization)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrGetNextPatientReport(tokenClaims.id);
+        }
+        #endregion
+
+        #region HttpGet = api/Home/ElrGetNextPatientReportList
+        [HttpGet("ElrGetNextPatientReportList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetNextPatientReportList([FromHeader] string authorization, long patient_report_id)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrGetNextPatientReportList(patient_report_id, tokenClaims.id);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrClosePatientReport
+        [HttpGet("ElrClosePatientReport"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrClosePatientReport([FromHeader] string authorization, long report_assigned_id)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            return await _homeService.ElrClosePatientReport(report_assigned_id, tokenClaims.id);
+        }
+        #endregion
+
+
+        #region HttpPost = api/Home/ElrAddUpdateReportGenerate
+        [HttpPost("ElrAddUpdateReportGenerate"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateReportGenerate([FromHeader] string authorization, PatientReportGenerateReqDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdateReportGenerate(obj);
+        }
+        #endregion
+
+        #region HttpGet = api/Home/ElrGetReportGenerateList?patient_id=
+        [HttpGet("ElrGetReportGenerateList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetReportGenerateList(long patient_id)
+        {
+            return await _homeService.ElrGetReportGenerateList(patient_id);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrPatientReportSearchList
+        [HttpPost("ElrPatientReportSearchList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrPatientReportSearchList(PatientReportSearchReqDTO obj)
+        {
+            return await _homeService.ElrPatientReportSearchList(obj);
+        }
+        #endregion
+
+
+
     }
 
 }

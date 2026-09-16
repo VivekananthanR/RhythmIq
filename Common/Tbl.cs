@@ -37,6 +37,8 @@
         public static readonly string detection = "tbl_detection";
         public static readonly string report_type = "tbl_report_type";
         public static readonly string patient_report = "tbl_patient_report";
+        public static readonly string patient_report_generate = "tbl_patient_report_generate";
+        public static readonly string report_assigned = "tbl_report_assigned";
         public static readonly string activity_log = "tbl_activity_log";
         public static readonly string activity_log_finding = "tbl_activity_log_finding";
     }
