@@ -2264,6 +2264,7 @@ namespace elr_API.DTO.ReqDTO
               AND sse.is_active = 1
             ORDER BY sse.created_datetime;";
         }
+
         internal static string time_out_substrip()
         {
             return $@"  
@@ -2812,23 +2813,45 @@ namespace elr_API.DTO.ReqDTO
                     ORDER BY sef.sub_strip_event_finding_id;";
         }
 
-        internal static string get_sub_strip_finding_list()
+        //internal static string get_sub_strip_finding_list()
+        //{
+        //    return $@"
+        //            SELECT
+        //                sef.detection_id,
+        //                sef.sub_strip_event_id,
+        //                sef.event_finding_id,
+        //                efm.finding_name,
+        //                sef.value1,
+        //                sef.value2
+        //            FROM {Tbl.sub_strip_event_finding} sef
+        //            INNER JOIN {Tbl.event_finding_mast} efm
+        //                ON efm.event_finding_id = sef.event_finding_id
+        //            WHERE sef.event_assign_id = @event_assign_id
+        //              AND sef.sub_strip_event_id = @sub_strip_event_id
+        //              AND sef.is_active = 1
+        //            ORDER BY sef.sub_strip_event_finding_id;";
+        //}
+        internal static string get_finding_sub_strip_list()
         {
             return $@"
                     SELECT
-                        sef.detection_id,
-                        sef.sub_strip_event_id,
+                        sef.event_assign_id,
                         sef.event_finding_id,
                         efm.finding_name,
+                        sef.sub_strip_event_id,
+                        sef.detection_id,
                         sef.value1,
                         sef.value2
                     FROM {Tbl.sub_strip_event_finding} sef
                     INNER JOIN {Tbl.event_finding_mast} efm
                         ON efm.event_finding_id = sef.event_finding_id
                     WHERE sef.event_assign_id = @event_assign_id
-                      AND sef.sub_strip_event_id = @sub_strip_event_id
+                      AND sef.sub_strip_event_id IS NOT NULL
                       AND sef.is_active = 1
-                    ORDER BY sef.sub_strip_event_finding_id;";
+                    ORDER BY
+                        sef.event_finding_id,
+                        sef.sub_strip_event_id,
+                        sef.sub_strip_event_finding_id;";
         }
 
         #endregion
@@ -4111,12 +4134,6 @@ namespace elr_API.DTO.ReqDTO
     }
 
 
-    public class MyProgressReqDTO
-    {
-        public string type { get; set; }
-        public bool isExperienced { get; set; }
-        public long created_by { get; set; }
-    }
 
 
     public class MyProgressDTO
@@ -4664,7 +4681,14 @@ namespace elr_API.DTO.ReqDTO
 
 
         #region
-
+        internal static string update_assigned_status()
+        {
+            return $@"update {Tbl.report_assigned}
+                    set assign_status = 'pending',
+                        modified_by = @modified_by,
+                        modified_datetime = GETDATE()
+                        where report_assigned_id = @report_assigned_id and patient_report_id = @patient_report_id AND assign_status = 'generated';";
+        }
 
         internal static string update_patient_report_status_pending()
         {
@@ -4672,11 +4696,20 @@ namespace elr_API.DTO.ReqDTO
                     UPDATE {Tbl.patient_report}
                     SET
                         report_status = 'pending',
-                         modified_datetime = GETDATE(),
+                        modified_datetime = GETDATE(),
                         modified_by = @modified_by
                     WHERE patient_report_id = @patient_report_id
                       AND is_active = 1
                       AND report_status = 'inprogress'";
+        }
+
+        internal static string update_patient_generate_report()
+        {
+            return $@"update {Tbl.patient_report_generate}
+                        set is_active = 0 ,
+                            modified_datetime = GETDATE(),
+                            modified_by = @modified_by
+                            where  patient_report_id = @patient_report_id and is_active = 1";
         }
 
         internal static string delete_all_patient_report_generate()
@@ -4687,17 +4720,19 @@ namespace elr_API.DTO.ReqDTO
                         is_active = 0,
                         modified_datetime = GETDATE(),
                         modified_by = @modified_by
-                    WHERE patient_report_id = @patient_report_id
+                    WHERE patient_report_id = @patient_report_id and report_assigned_id =@report_assigned_id
                       AND is_active = 1";
         }
 
         internal static string check_patient_report_status()
         {
             return $@"
-                SELECT report_assigned_id,patient_report_id,patient_enrollment_id,assign_status
-                FROM {Tbl.report_assigned} 
-                WHERE report_assigned_id = @report_assigned_id
-                  AND is_active = 1 AND assign_status = 'completed' AND last_activity_time IS NOT NULL";
+                SELECT top 1 *
+                FROM {Tbl.report_assigned} as a
+                inner join {Tbl.patient_report} as b
+                on a.patient_report_id = b.patient_report_id
+                WHERE a.report_assigned_id = @report_assigned_id and a.patient_report_id =@patient_report_id 
+                  AND a.is_active = 1 AND a.assign_status in ('pending' , 'completed') ";
         }
 
 
@@ -4705,39 +4740,47 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"
         SELECT COUNT(*)
-        FROM {Tbl.patient_report} pr
-        INNER JOIN {Tbl.report_type} rt
-            ON rt.report_type_id = pr.report_type_id
-        INNER JOIN {Tbl.patient_enrollment} pe
-            ON pe.patient_enrollment_id = pr.patient_enrollment_id
-        WHERE pr.is_active = 1 and pr.report_status = 'inprogress'
-          AND pe.patient_id = @patient_id;
+        from tbl_report_assigned as a
+        inner join tbl_patient_report as b
+        on a.patient_report_id = b.patient_report_id
+        inner join tbl_patient_enrollment as c
+        on c.patient_enrollment_id = a.patient_enrollment_id
+        inner join tbl_report_type as d
+        on d.report_type_id = b.report_type_id
+        inner join tbl_patient as e
+        on e.patient_id = c.patient_id
+        where e.patient_id =4 and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') ;
+       
 
 
-        SELECT
-            pr.patient_report_id,
-            pr.patient_enrollment_id,
-            pr.report_type_id,
-            rt.report_type_name,
-            pr.report_status,
-            pr.assigned_to,
-            pr.report_started_datetime,
-            pr.report_due_datetime,
-            pr.report_generated_datetime,
-            pr.report_finalized_datetime,
-            pr.created_by,
-            pr.created_datetime,
-            pr.modified_by,
-            pr.modified_datetime,
-            pr.is_active
-        FROM {Tbl.patient_report} pr
-        INNER JOIN {Tbl.report_type} rt
-            ON rt.report_type_id = pr.report_type_id
-        INNER JOIN {Tbl.patient_enrollment} pe
-            ON pe.patient_enrollment_id = pr.patient_enrollment_id
-        WHERE pr.is_active = 1
-          AND pe.patient_id = @patient_id and pr.report_status = 'inprogress'
-        ORDER BY pr.created_datetime DESC;
+          
+        select
+        a.patient_report_id,
+        a.patient_enrollment_id,
+        d.report_type_id,
+        d.report_type_name,
+        b.report_status,
+        b.generate_to,
+        b.report_started_datetime,
+        b.report_due_datetime,
+        b.report_generated_datetime,
+        b.report_finalized_datetime,
+        b.created_by,
+        b.created_datetime,
+        b.modified_by,
+        b.modified_datetime,
+        a.report_assigned_id
+        from tbl_report_assigned as a
+        inner join tbl_patient_report as b
+        on a.patient_report_id = b.patient_report_id
+        inner join tbl_patient_enrollment as c
+        on c.patient_enrollment_id = a.patient_enrollment_id
+        inner join tbl_report_type as d
+        on d.report_type_id = b.report_type_id
+        inner join tbl_patient as e
+        on e.patient_id = c.patient_id
+        where e.patient_id =4 and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') 
+       
     ";
         }
 
@@ -4748,7 +4791,7 @@ namespace elr_API.DTO.ReqDTO
                     queued_events_records_id,
                     sub_strip_event_id
                 FROM {Tbl.patient_report_generate}
-                WHERE patient_report_id = @patient_report_id
+                WHERE patient_report_id = @patient_report_id 
                   AND is_active = 1 order by patient_report_generate_id";
         }
 
@@ -4763,6 +4806,7 @@ namespace elr_API.DTO.ReqDTO
                 WHERE patient_report_id = @patient_report_id
                   AND queued_events_records_id = @queued_events_records_id
                   AND sub_strip_event_id = @sub_strip_event_id
+                  AND report_assigned_id = @report_assigned_id
                   AND is_active = 1";
         }
         internal static string insert_patient_report_generate()
@@ -4771,6 +4815,7 @@ namespace elr_API.DTO.ReqDTO
                 INSERT INTO {Tbl.patient_report_generate}
                 (
                     patient_report_id,
+                    report_assigned_id,
                     queued_events_records_id,
                     sub_strip_event_id,
                     created_by
@@ -4778,6 +4823,7 @@ namespace elr_API.DTO.ReqDTO
                 VALUES
                 (
                     @patient_report_id,
+                    @report_assigned_id,
                     @queued_events_records_id,
                     @sub_strip_event_id,
                     @created_by)";
@@ -4815,83 +4861,198 @@ namespace elr_API.DTO.ReqDTO
         internal static string patient_report_search_list(PatientReportSearchReqDTO obj)
         {
             string condition = $@"
-                            a.is_active = 1
-                            AND b.is_active = 1
-                            AND (@from_date IS NULL OR a.created_datetime >= @from_date)
-                            AND (@to_date IS NULL OR a.created_datetime < DATEADD(DAY, 1, @to_date))
-                            AND (@report_type_id = 0 OR a.report_type_id = @report_type_id)
-                            AND (@patient_report_id  = 0 OR a.patient_report_id = @patient_report_id)
-                            AND (@user_id  = 0 OR a.assigned_to = @user_id)
-                            AND (
-                                    ( @type = 'all' AND a.report_status in ( 'inprogress' , 'completed' ) )
-                                    OR ( @type is null AND a.report_status in ( 'inprogress' , 'completed' ) )
-                                    OR (@type = 'inprogress' AND a.report_status = 'inprogress')
-                                    OR (@type = 'completed' AND a.report_status = 'completed')
-                                )";
+                                a.is_active = 1
+                                AND f.is_active = 1
 
+                                AND f.assign_status IN ('generated', 'completed')
+                                AND a.report_status IN ('inprogress', 'completed')
+
+                                AND (@from_date IS NULL
+                                     OR a.created_datetime >= @from_date)
+
+                                AND (@to_date IS NULL
+                                     OR a.created_datetime < DATEADD(DAY, 1, @to_date))
+
+                                AND (@report_type_id = 0
+                                     OR a.report_type_id = @report_type_id)
+
+                                AND (@patient_report_id = 0
+                                     OR a.patient_report_id = @patient_report_id)
+
+                                AND (@user_id = 0
+                                     OR a.generate_to = @user_id)
+
+                                AND
+                                ( 
+                                        ( @type = 'all' AND a.report_status in ( 'inprogress' , 'completed' ) )
+                                       OR ( @type is null AND a.report_status in ( 'inprogress' , 'completed' ) )
+                                       OR (@type = 'inprogress' AND a.report_status = 'inprogress')
+                                       OR (@type = 'completed' AND a.report_status = 'completed')
+                                )";
 
             return $@"
 
-                    SELECT COUNT(*) AS totalCount
-                    from {Tbl.patient_report} a
-                    inner join {Tbl.patient_enrollment} b on a.patient_enrollment_id = b.patient_enrollment_id
-                    inner join {Tbl.patient} c on c.patient_id = b.patient_id
-                    inner join {Tbl.user_master} d on d.user_id = a.assigned_to
-                    inner join {Tbl.report_type} e on e.report_type_id = a.report_type_id
-                    where {condition};
+                                -- Total Count
+                                SELECT COUNT(*) AS totalCount
+
+                                FROM {Tbl.report_assigned} AS f
+
+                                INNER JOIN {Tbl.patient_report} AS a
+                                    ON f.patient_report_id = a.patient_report_id
+
+                                INNER JOIN {Tbl.patient_enrollment} AS b
+                                    ON a.patient_enrollment_id = b.patient_enrollment_id
+
+                                INNER JOIN {Tbl.patient} AS c
+                                    ON c.patient_id = b.patient_id
+
+                                LEFT JOIN {Tbl.user_master} AS d
+                                    ON d.user_id = a.generate_to
+
+                                INNER JOIN {Tbl.report_type} AS e
+                                    ON e.report_type_id = a.report_type_id
+
+                                WHERE {condition};
 
 
-                        SELECT
-                            a.patient_report_id,
-                            a.patient_enrollment_id,
-                            a.report_type_id,
-                            a.report_status,
-                            a.assigned_to,
-                            a.report_due_datetime,
-                            a.report_generated_datetime,
-                            a.report_finalized_datetime,
-                            a.report_started_datetime,
+                                -- Report List
+                                SELECT
+                                    a.patient_report_id,
+                                    a.patient_enrollment_id,
+                                    e.report_type_id,
+                                    a.report_status,
+                                    a.generate_to,
+                                    a.report_due_datetime,
+                                    a.report_generated_datetime,
+                                    a.report_finalized_datetime,
+                                    a.report_started_datetime,
 
-                            c.patient_id,
-                            c.patient_name,
+                                    c.patient_id,
+                                    c.patient_name,
 
-                            d.user_id,
-                            d.user_name,
+                                    d.user_id,
+                                    d.user_name,
 
-                            e.report_type_name
+                                    f.report_assigned_id,
+                                    f.assign_status,
 
-                        FROM {Tbl.patient_report} AS a
+                                    e.report_type_name
 
-                        INNER JOIN {Tbl.patient_enrollment} AS b
-                            ON a.patient_enrollment_id = b.patient_enrollment_id
+                                FROM {Tbl.report_assigned} AS f
 
-                        INNER JOIN {Tbl.patient} AS c
-                            ON c.patient_id = b.patient_id
+                                INNER JOIN {Tbl.patient_report} AS a
+                                    ON f.patient_report_id = a.patient_report_id
 
-                        LEFT JOIN {Tbl.user_master} AS d
-                            ON d.user_id = a.assigned_to
+                                INNER JOIN {Tbl.patient_enrollment} AS b
+                                    ON a.patient_enrollment_id = b.patient_enrollment_id
 
-                        INNER JOIN {Tbl.report_type} AS e
-                            ON e.report_type_id = a.report_type_id
+                                INNER JOIN {Tbl.patient} AS c
+                                    ON c.patient_id = b.patient_id
 
-                        WHERE {condition}
+                                LEFT JOIN {Tbl.user_master} AS d
+                                    ON d.user_id = a.generate_to
 
-                        ORDER BY {obj.sortBy} {obj.orderBy}
+                                INNER JOIN {Tbl.report_type} AS e
+                                    ON e.report_type_id = a.report_type_id
 
-                        OFFSET @offSet ROWS
-                       
-                        FETCH NEXT
-                            CASE
-                                WHEN @limit - @offSet <= 0
-                                    THEN 0
+                                WHERE {condition}
 
-                                WHEN @limit - @offSet < @pageSize
-                                    THEN @limit - @offSet
+                                ORDER BY {obj.sortBy} {obj.orderBy}
 
-                                ELSE @pageSize
-                            END
-                        ROWS ONLY;";
+                                OFFSET @offSet ROWS
+
+                                FETCH NEXT
+                                    CASE
+                                        WHEN @limit - @offSet <= 0
+                                            THEN 0
+
+                                        WHEN @limit - @offSet < @pageSize
+                                            THEN @limit - @offSet
+
+                                        ELSE @pageSize
+                                    END
+                                ROWS ONLY;";
         }
+        //internal static string patient_report_search_list(PatientReportSearchReqDTO obj)
+        //{
+        //    string condition = $@"
+        //                    a.is_active = 1
+        //                    AND b.is_active = 1
+        //                    AND (@from_date IS NULL OR a.created_datetime >= @from_date)
+        //                    AND (@to_date IS NULL OR a.created_datetime < DATEADD(DAY, 1, @to_date))
+        //                    AND (@report_type_id = 0 OR a.report_type_id = @report_type_id)
+        //                    AND (@patient_report_id  = 0 OR a.patient_report_id = @patient_report_id)
+        //                    AND (@user_id  = 0 OR a.generate_to = @user_id)
+        //                    AND (
+        //                            ( @type = 'all' AND a.report_status in ( 'inprogress' , 'completed' ) )
+        //                            OR ( @type is null AND a.report_status in ( 'inprogress' , 'completed' ) )
+        //                            OR (@type = 'inprogress' AND a.report_status = 'inprogress')
+        //                            OR (@type = 'completed' AND a.report_status = 'completed')
+        //                        )";
+
+
+        //    return $@"
+
+        //            SELECT COUNT(*) AS totalCount
+        //            from {Tbl.patient_report} a
+        //            inner join {Tbl.patient_enrollment} b on a.patient_enrollment_id = b.patient_enrollment_id
+        //            inner join {Tbl.patient} c on c.patient_id = b.patient_id
+        //            inner join {Tbl.user_master} d on d.user_id = a.generate_to
+        //            inner join {Tbl.report_type} e on e.report_type_id = a.report_type_id
+        //            where {condition};
+
+
+        //                SELECT
+        //                    a.patient_report_id,
+        //                    a.patient_enrollment_id,
+        //                    a.report_type_id,
+        //                    a.report_status,
+        //                    a.generate_to,
+        //                    a.report_due_datetime,
+        //                    a.report_generated_datetime,
+        //                    a.report_finalized_datetime,
+        //                    a.report_started_datetime,
+
+        //                    c.patient_id,
+        //                    c.patient_name,
+
+        //                    d.user_id,
+        //                    d.user_name,
+
+        //                    e.report_type_name
+
+        //                FROM {Tbl.patient_report} AS a
+
+        //                INNER JOIN {Tbl.patient_enrollment} AS b
+        //                    ON a.patient_enrollment_id = b.patient_enrollment_id
+
+        //                INNER JOIN {Tbl.patient} AS c
+        //                    ON c.patient_id = b.patient_id
+
+        //                LEFT JOIN {Tbl.user_master} AS d
+        //                    ON d.user_id = a.generate_to
+
+        //                INNER JOIN {Tbl.report_type} AS e
+        //                    ON e.report_type_id = a.report_type_id
+
+        //                WHERE {condition}
+
+        //                ORDER BY {obj.sortBy} {obj.orderBy}
+
+        //                OFFSET @offSet ROWS
+
+        //                FETCH NEXT
+        //                    CASE
+        //                        WHEN @limit - @offSet <= 0
+        //                            THEN 0
+
+        //                        WHEN @limit - @offSet < @pageSize
+        //                            THEN @limit - @offSet
+
+        //                        ELSE @pageSize
+        //                    END
+        //                ROWS ONLY;";
+        //}
 
         #endregion
 
@@ -4914,6 +5075,7 @@ namespace elr_API.DTO.ReqDTO
 
 
     }
+
 
 
 }

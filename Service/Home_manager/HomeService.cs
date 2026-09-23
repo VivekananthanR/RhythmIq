@@ -1590,17 +1590,37 @@ namespace elr_API.Service.Home_manager
 
                 //if (data == null || !data.Any()) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
+                //foreach (var item in data)
+                //{
+                //    query = FindingDTO.get_parent_finding_list();
+                //    item.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = item.event_assign_id }, ELR_db)).ToList();
+
+                //    query = SubStripEventResDTO.sub_strip_files_select();
+                //    item.sub_strip_files = (await _db.SelectQuery<SubStripEventResDTO>(query, new { event_assign_id = item.event_assign_id }, ELR_db)).ToList();
+
+                //    foreach (var strip in item.sub_strip_files)
+                //    {
+                //        query = FindingDTO.get_finding_sub_strip_list();
+                //        strip.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = strip.event_assign_id, sub_strip_event_id = strip.sub_strip_event_id }, ELR_db)).ToList();
+                //    }
+                //}
+
                 foreach (var item in data)
                 {
                     query = FindingDTO.get_parent_finding_list();
+
                     item.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = item.event_assign_id }, ELR_db)).ToList();
 
+
                     query = SubStripEventResDTO.sub_strip_files_select();
+
                     item.sub_strip_files = (await _db.SelectQuery<SubStripEventResDTO>(query, new { event_assign_id = item.event_assign_id }, ELR_db)).ToList();
+
 
                     foreach (var strip in item.sub_strip_files)
                     {
-                        query = FindingDTO.get_sub_strip_finding_list();
+                        query = FindingDTO.get_finding_sub_strip_list();
+
                         strip.finding_list = (await _db.SelectQuery<FindingDTO>(query, new { event_assign_id = strip.event_assign_id, sub_strip_event_id = strip.sub_strip_event_id }, ELR_db)).ToList();
                     }
                 }
@@ -2279,7 +2299,10 @@ namespace elr_API.Service.Home_manager
                 query = PatientReportDTO.update_report_inprogress();
                 await _db.Execute(query, new { patient_report_id = nextReport.patient_report_id, modified_by = emp_id }, ELR_db);
 
-                return new ResponseDTO(nextReport);
+                query = PatientReportDTO.current_report_assign_detatils();
+                var data = await _db.SelectQuery<PatientReportDTO>(query, new { report_assigned_id = assignedId }, ELR_db);
+
+                return new ResponseDTO(data);
 
             }
             catch (Exception ex)
@@ -2300,11 +2323,10 @@ namespace elr_API.Service.Home_manager
                 if (report_assigned_id == 0 || emp_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = PatientReportDTO.select_assigned_report();
-                var completedReport = (await _db.SelectQuery<PatientReportDTO>(query, new { report_assigned_id = report_assigned_id }, ELR_db)).FirstOrDefault();
+                var assignedReport = (await _db.SelectQuery<PatientReportDTO>(query, new { report_assigned_id = report_assigned_id }, ELR_db)).FirstOrDefault();
 
-                if (completedReport == null)
+                if (assignedReport.assign_status == "processing")
                 {
-
                     query = PatientReportDTO.close_patient_report_assgin();
                     await _db.Execute(query, new { report_assigned_id = report_assigned_id, modified_by = emp_id }, ELR_db);
 
@@ -2313,7 +2335,8 @@ namespace elr_API.Service.Home_manager
 
                     return new ResponseDTO(true, ResponseMessage.Success);
                 }
-                return new ResponseDTO(false, $"Patient Report status :{completedReport.assign_status}");
+
+                return new ResponseDTO(true, $"Report status: {assignedReport.assign_status} No action.");
 
             }
             catch (Exception ex)
@@ -2335,7 +2358,7 @@ namespace elr_API.Service.Home_manager
 
                 query = PatientReportDTO.get_current_report();
                 var currentReport = (await _db.SelectQuery<PatientReportDTO>(query, new { emp_id = emp_id }, ELR_db)).FirstOrDefault();
-                if (currentReport != null) return new ResponseDTO(currentReport);
+                if (currentReport != null) return new ResponseDTO(false, "Please complete privious report.", currentReport);
 
                 query = PatientReportDTO.get_next_patient_report_list();
                 var reportData = (await _db.SelectQuery<PatientReportDTO>(query, new { patient_report_id = patient_report_id }, ELR_db)).FirstOrDefault();
@@ -2349,8 +2372,12 @@ namespace elr_API.Service.Home_manager
                     query = PatientReportDTO.update_report_inprogress();
                     await _db.Execute(query, new { patient_report_id = reportData.patient_report_id, modified_by = emp_id }, ELR_db);
 
-                    return new ResponseDTO(true, ResponseMessage.Success);
+                    query = PatientReportDTO.current_report_assign_detatils();
+                    var data = await _db.SelectQuery<PatientReportDTO>(query, new { report_assigned_id = assignedId }, ELR_db);
+
+                    return new ResponseDTO(data);
                 }
+                return new ResponseDTO(false, "Report Already Taken.");
 
             }
             catch (Exception ex)
@@ -2373,14 +2400,13 @@ namespace elr_API.Service.Home_manager
                 if (obj == null || obj.report_assigned_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = PatientReportGenerateReqDTO.check_patient_report_status();
-                bool is_completed = (await _db.SelectQuery<bool>(query, new { report_assigned_id = obj.report_assigned_id }, ELR_db)).Any();
+                var assignData = (await _db.SelectQuery<PatientReportDTO>(query, new { report_assigned_id = obj.report_assigned_id, patient_report_id = obj.patient_report_id }, ELR_db)).FirstOrDefault();
 
-                if (is_completed == true) return new ResponseDTO(false, "Report is already completed. Cannot update.");
-
-
+                if (assignData != null && assignData.assign_status == "pending") return new ResponseDTO(false, $"Already Assign Id: {assignData.report_assigned_id},Report status: {assignData.assign_status}.");
+                if (assignData != null && assignData.assign_status == "completed") return new ResponseDTO(false, $"Already completed, Report status: {assignData.assign_status}.");
 
                 query = PatientReportGenerateReqDTO.existing_patient_report_generate();
-                var existingStrips = await _db.SelectQuery<PatientReportGenerateStripDTO>(query, new { patient_report_id = obj.patient_report_id }, ELR_db);
+                var existingStrips = await _db.SelectQuery<PatientReportGenerateStripDTO>(query, new { patient_report_id = obj.patient_report_id, report_assigned_id = obj.report_assigned_id }, ELR_db);
 
                 if (obj.stripIds == null || !obj.stripIds.Any())
                 {
@@ -2388,13 +2414,19 @@ namespace elr_API.Service.Home_manager
                     {
                         query = PatientReportGenerateReqDTO.delete_all_patient_report_generate();
 
-                        await _db.Execute(query, new { patient_report_id = obj.patient_report_id, modified_by = obj.created_by }, ELR_db);
+                        await _db.Execute(query, new { patient_report_id = obj.patient_report_id, report_assigned_id = obj.report_assigned_id, modified_by = obj.created_by }, ELR_db);
                     }
+
+                    query = PatientReportGenerateReqDTO.update_assigned_status();
+                    await _db.Execute(query, new { report_assigned_id = obj.report_assigned_id, patient_report_id = obj.patient_report_id, modified_by = obj.created_by }, ELR_db);
 
                     // Report should go back to pending
                     query = PatientReportGenerateReqDTO.update_patient_report_status_pending();
-
                     await _db.Execute(query, new { patient_report_id = obj.patient_report_id, modified_by = obj.created_by }, ELR_db);
+
+                    query = PatientReportGenerateReqDTO.update_patient_generate_report();
+                    await _db.Execute(query, new { patient_report_id = obj.patient_report_id, modified_by = obj.created_by }, ELR_db);
+
 
                     return new ResponseDTO(true, ResponseMessage.Success);
                 }
@@ -2413,6 +2445,7 @@ namespace elr_API.Service.Home_manager
                             new
                             {
                                 patient_report_id = obj.patient_report_id,
+                                report_assigned_id = obj.report_assigned_id,
                                 queued_events_records_id = existingStrip.queued_events_records_id,
                                 sub_strip_event_id = existingStrip.sub_strip_event_id,
                                 modified_by = obj.created_by
@@ -2420,6 +2453,7 @@ namespace elr_API.Service.Home_manager
                             ELR_db);
                     }
                 }
+
                 foreach (var strip in obj.stripIds)
                 {
                     var isExisting = existingStrips.Any(x => x.queued_events_records_id == strip.queued_events_records_id && x.sub_strip_event_id == strip.sub_strip_event_id);
@@ -2429,27 +2463,25 @@ namespace elr_API.Service.Home_manager
                         query = PatientReportGenerateReqDTO.insert_patient_report_generate();
 
                         await _db.Execute(
-                            query,
-                            new
-                            {
-                                patient_report_id = obj.patient_report_id,
-                                queued_events_records_id = strip.queued_events_records_id,
-                                sub_strip_event_id = strip.sub_strip_event_id,
-                                created_by = obj.created_by
-                            },
-                            ELR_db);
+                         query,
+                         new
+                         {
+                             patient_report_id = obj.patient_report_id,
+                             report_assigned_id = obj.report_assigned_id,
+                             queued_events_records_id = strip.queued_events_records_id,
+                             sub_strip_event_id = strip.sub_strip_event_id,
+                             created_by = obj.created_by
+                         },
+                         ELR_db);
                     }
                 }
+                query = PatientReportDTO.update_assign_processing_status();
+                await _db.Execute(query, new { report_assigned_id = obj.report_assigned_id, modified_by = obj.created_by }, ELR_db);
+
 
                 query = PatientReportDTO.update_patient_report_status();
-                await _db.Execute(
-                    query,
-                    new
-                    {
-                        patient_report_id = obj.patient_report_id,
-                        created_by = obj.created_by
-                    },
-                    ELR_db);
+                await _db.Execute(query, new { patient_report_id = obj.patient_report_id, created_by = obj.created_by }, ELR_db);
+
 
                 return new ResponseDTO(true, ResponseMessage.Success);
             }
@@ -2529,6 +2561,8 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
 
         }
+
+
 
 
     }

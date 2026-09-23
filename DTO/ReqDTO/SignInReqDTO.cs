@@ -450,14 +450,27 @@ public class PatientReportDTO
 
 
     #region Query
+    internal static string current_report_assign_detatils()
+    {
+        return $@" SELECT a.report_assigned_id,a.patient_report_id,a.patient_enrollment_id,p.patient_id ,p.patient_name, b.report_type_id, b.report_started_datetime, b.report_due_datetime, a.assign_status
+                   from {Tbl.report_assigned} as a
+                       inner join {Tbl.patient_report} as b
+                        on a.patient_report_id = b.patient_report_id
+                          inner join {Tbl.patient_enrollment} as c
+                        on a.patient_enrollment_id = c.patient_enrollment_id
+                            inner join {Tbl.patient} as p
+                        on c.patient_id = p.patient_id 
+                       where  a.report_assigned_id = @report_assigned_id and a.is_active = 1 ";
 
+    }
     internal static string select_assigned_report()
     {
-        return $@"select report_assigned_id,last_activity_time,assign_status from {Tbl.report_assigned} where report_assigned_id =@report_assigned_id and last_activity_time is not null and assign_status = 'completed'";
+        return $@"select report_assigned_id,last_activity_time,assign_status from {Tbl.report_assigned} where report_assigned_id =@report_assigned_id  order by report_assigned_id desc";
     }
     internal static string get_next_patient_report_list()
     {
-        return $@" SELECT
+        return $@" 
+                SELECT
                 pr.patient_report_id,
                 pr.patient_enrollment_id,
                 pr.report_type_id,
@@ -465,7 +478,7 @@ public class PatientReportDTO
                 pr.report_due_datetime,
                 pr.report_started_datetime
             FROM {Tbl.patient_report} pr
-            WHERE patient_report_id = @patient_report_id  AND pr.report_status = 'pending'
+            WHERE pr.patient_report_id = @patient_report_id  AND pr.report_status = 'pending' and pr.report_started_datetime is not null
               AND pr.is_active = 1";
     }
     internal static string reset_patient_report_status()
@@ -492,7 +505,7 @@ public class PatientReportDTO
                     set assign_status = 'pending',
                         modified_by = @modified_by,
                         modified_datetime = GETDATE()
-                        where report_assigned_id = @report_assigned_id and assign_status ='processing' and last_activity_time is null";
+                        where report_assigned_id = @report_assigned_id ";
     }
 
 
@@ -540,7 +553,7 @@ public class PatientReportDTO
                 pr.report_started_datetime
             FROM {Tbl.patient_report} pr
             WHERE pr.report_status = 'pending'
-              AND pr.is_active = 1
+              AND pr.is_active = 1 pr.report_started_datetime is not null
 
               AND NOT EXISTS
               (
@@ -568,10 +581,15 @@ public class PatientReportDTO
                     pr.report_type_id,
                     pr.report_status,
                     pr.report_due_datetime,
-                    pr.report_started_datetime
+                    pr.report_started_datetime,
+                    p.patient_id
                 FROM {Tbl.report_assigned} ra
                 INNER JOIN {Tbl.patient_report} pr
                     ON ra.patient_report_id = pr.patient_report_id
+                inner join {Tbl.patient_enrollment} as pe
+                    on pe.patient_enrollment_id = pr.patient_enrollment_id
+                inner join {Tbl.patient} as p
+                    on p.patient_id = pe.patient_id
                 WHERE ra.created_by = @emp_id
                   AND ra.assign_status = 'processing'
                   AND ra.is_active = 1
@@ -587,7 +605,17 @@ public class PatientReportDTO
                 generate_to = @created_by,
                 report_generated_datetime = GETDATE()
             WHERE patient_report_id = @patient_report_id
-              AND is_active = 1 and report_status = 'pending'";
+              AND is_active = 1";
+    }
+    internal static string update_assign_processing_status()
+    {
+        return $@"
+            UPDATE {Tbl.report_assigned}
+            SET assign_status = 'generated',
+                 modified_by = @modified_by,
+                modified_datetime = GETDATE()
+            WHERE report_assigned_id = @report_assigned_id
+              AND is_active = 1 and assign_status = 'processing'";
     }
 
     internal static string get_patient_report_list(PatientReportReqDTO obj)
@@ -630,14 +658,14 @@ public class PatientReportDTO
                 SELECT COUNT(*) as totalCount
                 FROM {Tbl.patient_report} AS pr
                 INNER JOIN {Tbl.patient_enrollment} AS pe
-                    ON pr.patient_enrollment_id = pe.patient_enrollment_id
+                    ON pr.patient_enrollment_id = pe.patient_enrollment_id 
                 INNER JOIN {Tbl.patient} AS p
                     ON pe.patient_id = p.patient_id
                 INNER JOIN {Tbl.report_type} AS rt
                     ON pr.report_type_id = rt.report_type_id
                 LEFT JOIN {Tbl.user_master} AS c
                     ON pe.referred_physician_id = c.user_id
-                WHERE pr.is_active = 1
+                WHERE pr.is_active = 1 and pr.report_started_datetime is not null
                   AND pe.is_active = 1 and  pr.report_status NOT IN ('completed', 'inprogress');
 
 
@@ -648,20 +676,19 @@ public class PatientReportDTO
                     p.patient_name,
                     pr.report_due_datetime,
                     pr.report_started_datetime,
-                    pe.actual_hookup,
                     pe.patient_enrollment_id,
                     rt.report_type_name,
                     c.user_name AS referred_physician_name
-                FROM {Tbl.patient_report} AS pr
+                FROM {Tbl.patient_report} AS pr 
                 INNER JOIN {Tbl.patient_enrollment} AS pe
-                    ON pr.patient_enrollment_id = pe.patient_enrollment_id
+                    ON pr.patient_enrollment_id = pe.patient_enrollment_id 
                 INNER JOIN {Tbl.patient} AS p
                     ON pe.patient_id = p.patient_id
                 INNER JOIN {Tbl.report_type} AS rt
                     ON pr.report_type_id = rt.report_type_id
                 LEFT JOIN {Tbl.user_master} AS c
                     ON pe.referred_physician_id = c.user_id
-                WHERE pr.is_active = 1
+                WHERE pr.is_active = 1 and pr.report_started_datetime is not null
                   AND pe.is_active = 1 and pr.report_status NOT IN ('completed', 'inprogress')
                 ORDER BY {sortBy} {orderBy}
                 OFFSET @offset ROWS

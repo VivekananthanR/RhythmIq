@@ -2,6 +2,7 @@ using elr_API.IService.ICommon_manager;
 using elr_API.IService.IDapper;
 using elr_API.IService.IEntrolement;
 using elr_API.IService.IHome_manager;
+using elr_API.IService.IReport_template;
 using elr_API.IService.IToken;
 using elr_API.IService.IUser_manager;
 using elr_API.Service.Background_services;
@@ -10,6 +11,7 @@ using elr_API.Service.Dapper;
 using elr_API.Service.Enrolment;
 using elr_API.Service.Exception_handler;
 using elr_API.Service.Home_manager;
+using elr_API.Service.Report_template;
 using elr_API.Service.Token;
 using elr_API.Service.User_manager;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -75,6 +77,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IHelperService, HelperService>();
 builder.Services.AddScoped<IEnrollment, Enrollment>();
 builder.Services.AddScoped<IHomeService, HomeService>();
+builder.Services.AddScoped<IReportTemplateService, ReportTemplateService>();
 builder.Services.AddScoped<IQikberrychatService, QikberrychatService>();
 #endregion
 

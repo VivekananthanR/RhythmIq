@@ -1,0 +1,643 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Urgent Notification Report</title>
+    <style>
+        :root {
+            --red: #E64A3B;
+            --ink: #222;
+            --label: #4a4a4a;
+            --muted: #8a8a8a;
+            --line: #333; /* Standardized to #333 for crisp PDF rendering */
+            --chart-bg: #ffffff;
+            --border-color: #333; /* Standardized to #333 */
+            --header-bg: #F4F8FA;
+            --text-dark: #111827;
+            --avg-red: #D9766B;
+            --grid-line: #E5E9ED;
+            --grid-text: #6B7280;
+            --brand-blue: rgb(31 105 172);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: #e9e9e9;
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--ink);
+        }
+
+        /* ---------- PAGE ---------- */
+        .page {
+            height: 297mm;
+            overflow: hidden;
+            background: #fff;
+            position: relative;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
+            margin: 0 auto;
+            max-width: 210mm; /* A4 width */
+        }
+
+        .main-content {
+            padding-top: 8mm;
+            padding-left: 8mm;
+            padding-right: 8mm;
+        }
+
+        /* ---------- HEADER ---------- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .report-title {
+            font-family: "Times New Roman", serif;
+            font-size: 18px;
+            font-style: italic;
+            font-weight: bold;
+            color: black;
+        }
+
+        .logo-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-right {
+            text-align: right;
+            padding-top: 2px;
+        }
+
+            .header-right .title {
+                font-size: 16px;
+                font-weight: 700;
+                color: var(--ink);
+            }
+
+                .header-right .title em {
+                    font-family: Georgia, 'Times New Roman', serif;
+                    font-style: italic;
+                    font-weight: 400;
+                }
+
+            .header-right .subtitle {
+                font-size: 12px;
+                color: var(--ink);
+                margin-top: 1px;
+            }
+
+        .ecg-link {
+            color: var(--border-color);
+            margin-left: 5px;
+        }
+
+        .page-heading {
+            font-size: 19px;
+            margin: 18px 0 10px;
+        }
+
+
+        /* ---------- INFO FIELDS ---------- */
+        .row {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 2px;
+        }
+
+        .field {
+            display: flex;
+            align-items: center;
+            border: 1px solid #333; /* Standardized Border */
+            border-radius: 18px;
+            border-top-right-radius: 0px;
+            border-bottom-right-radius: 0px;
+            overflow: hidden;
+            height: 25px;
+            background: #fff;
+        }
+
+        .label {
+            height: 25px;
+            display: flex;
+            align-items: center;
+            background: rgb(242 249 253);
+            padding: 0 10px;
+            white-space: nowrap;
+            font-size: 12px;
+            color: #111;
+            min-width: max-content;
+        }
+
+        .value {
+            flex: 1;
+            font-size: 12px;
+            padding: 0 8px;
+        }
+
+        canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+        }
+
+        .w33 {
+            flex: 1;
+        }
+
+        .w50 {
+            flex: 1.5;
+        }
+
+        .w100 {
+            flex: 3;
+        }
+
+        /* ---------- ECG EVENT STRIPS ---------- */
+        .ecg-container {
+            margin-top: 20px;
+        }
+
+        .ecg-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            margin-bottom: 16px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        .ecg-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .ecg-channels {
+            padding: 10px 6px 6px 6px;
+        }
+
+        .ecg-channel-row {
+            display: flex;
+            align-items: stretch;
+            gap: 4px;
+        }
+
+            .ecg-channel-row canvas {
+                flex: 1;
+                width: 100%;
+                display: block;
+            }
+
+        .ecg-card-info-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 12px 14px;
+            font-size: 11px;
+            line-height: 1.45;
+            color: var(--text-dark);
+            background: #fff;
+        }
+
+            .ecg-card-info-footer strong {
+                font-weight: 700;
+            }
+
+        .end-of-summary {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 93px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            font-size: 10px;
+            color: var(--border-color);
+        }
+
+            .end-of-summary::before,
+            .end-of-summary::after {
+                content: "";
+                width: 28px;
+                height: 1px;
+                background: var(--border-color);
+                flex: 0 0 auto;
+            }
+
+        /* ---------- FOOTER ---------- */
+        .footer {
+            position: absolute;
+            left: 7mm;
+            right: 7mm;
+            bottom: 5mm;
+            width: auto;
+        }
+
+        .footer-line {
+            height: 1px;
+            background: #000;
+            width: 100%;
+            margin: 0;
+        }
+
+        .footer-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 22px;
+            padding: 0;
+            font-size: 10px;
+            color: #111;
+        }
+
+        .footer-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: 7px;
+        }
+
+        .footer-text {
+            font-size: 10px;
+            color: #111;
+            line-height: 1.35;
+            max-width: 600px;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            body {
+                background: #fff;
+            }
+
+            .page {
+                box-shadow: none;
+                margin: 0;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page" id="page1">
+        <div class="main-content">
+
+            <div>
+                <div class="header">
+                    <div class="logo-row">
+                        <img width="260" height="39" src="https://www.chchealthwatch.com/images/Healthwatch_logo.webp"
+                             alt="Healthwatch Logo Left" />
+                    </div>
+                    <div class="logo-row">
+                        <img width="150" height="35" src="http://localhost:83/assets/rhythm-iq-logo.png"
+                             alt="Healthwatch Logo Right" />
+                    </div>
+                </div>
+                <div style="display: flex;justify-content: space-between;margin-top:-6px">
+                    <div class="page-heading">Urgent Notification Report</div>
+                    <div class="header-right">
+                        <div class="title">
+                            <span style="font-weight: 400;">ELR Study </span><i class="report-title">Report</i>
+                        </div>
+                        <div class="subtitle">Ambulatory ECG Monitoring</div>
+                    </div>
+                </div>
+
+                <!-- Patient Grid Container -->
+                <div class="container" id="formContainer"></div>
+
+                <!-- ECG Strip Container -->
+                <div class="ecg-container" id="ecgContainer"></div>
+            </div>
+
+        </div>
+
+        <div class="end-of-summary">End of Summary</div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-line"></div>
+            <div class="footer-top">
+                <span class="footer-title">Urgent Notification Report</span>
+                <span class="footer-page-num">Page 1 of 1</span>
+            </div>
+            <div class="footer-line"></div>
+            <div class="footer-bottom">
+                <img width="50" height="20" style="padding-right:3px"
+                     src='https://elr.chcpharmacy.com/assets/server-image.png' />
+                <div class="footer-text">
+                    NOTICE: This report contains algorithmically processed data for clinical evaluation. All findings must be reviewed and verified by a licensed physician prior to patient management. © Healthwatch Telediagnostics Private Limited. All rights reserved. Confidential.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+                // Form Fields Generation
+                const rows = [
+                    [
+                        { label: "Enrollment No", value: "", width: "w33" },
+                        { label: "Patient ID", value: "", width: "w33" },
+                        { label: "Mobile No", value: "", width: "w33" }
+                    ],
+                    [
+                        { label: "Patient Name", value: "", width: "w50" },
+                        { label: "Total Study Duration (days)", value: "", width: "w50" }
+                    ],
+                    [
+                        { label: "Referring Physician", value: "", width: "w50" },
+                        { label: "Center ID", value: "", width: "w50" }
+                    ],
+                    [
+                        { label: "Supervising Physician", value: "", width: "w100" }
+                    ],
+                    [
+                        { label: "Date of Report", value: "", width: "w100" }
+                    ],
+                    [
+                        { label: "Referring Facility", value: "", width: "w50" },
+                        { label: "Location", value: "", width: "w50" }
+                    ]
+                ];
+
+                const container = document.getElementById("formContainer");
+                rows.forEach(r => {
+                    const row = document.createElement("div"); row.className = "row";
+                    r.forEach(f => {
+                        const field = document.createElement("div"); field.className = `field ${f.width}`;
+                        field.innerHTML = `<div class="label">${f.label}</div><div class="value">${f.value}</div>`;
+                        row.appendChild(field);
+                    });
+                    container.appendChild(row);
+                });
+
+                // -----------------------------------------------------------
+                // ECG STRIP GENERATION LOGIC
+                // -----------------------------------------------------------
+                (async function () {
+
+                    function buildCard(ev) {
+                        const card = document.createElement('div');
+                        card.className = 'ecg-card';
+                        card.innerHTML = `
+                            <div class="ecg-card-header">
+                                <span>2. ${ev.datetime} <a class="ecg-link" target="_blank" href="http://192.168.97.99:83/">
+                                    <svg width="10" height="10" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;">
+                                        <path d="M17.1506 9.59262C16.9268 9.59262 16.7122 9.68151 16.554 9.83975C16.3958 9.99798 16.3069 10.2126 16.3069 10.4364V13.8328C16.3061 14.4888 16.0452 15.1177 15.5813 15.5816C15.1175 16.0454 14.4886 16.3064 13.8326 16.3071H4.16741C3.51142 16.3064 2.8825 16.0454 2.41864 15.5816C1.95478 15.1177 1.69386 14.4888 1.69312 13.8328V4.16766C1.69386 3.51166 1.95478 2.88275 2.41864 2.41889C2.8825 1.95503 3.51142 1.6941 4.16741 1.69336H7.56386C7.78763 1.69336 8.00224 1.60446 8.16048 1.44623C8.31871 1.288 8.40761 1.07339 8.40761 0.849609C8.40761 0.625833 8.31871 0.411222 8.16048 0.252988C8.00224 0.0947542 7.78763 0.00585938 7.56386 0.00585938H4.16741C3.06403 0.00716196 2.00622 0.446054 1.22602 1.22626C0.44581 2.00647 0.00691781 3.06428 0.00561523 4.16766V13.8328C0.00691781 14.9362 0.44581 15.994 1.22602 16.7742C2.00622 17.5544 3.06403 17.9933 4.16741 17.9946H13.8326C14.9359 17.9933 15.9938 17.5544 16.774 16.7742C17.5542 15.994 17.9931 14.9362 17.9944 13.8328V10.4364C17.9944 10.2126 17.9055 9.99798 17.7472 9.83975C17.589 9.68151 17.3744 9.59262 17.1506 9.59262Z" fill="black"/>
+                                        <path d="M17.1327 7.12885e-08H11.8874C11.6664 -4.22992e-05 11.4543 0.0865808 11.2965 0.241258C11.1387 0.395936 11.0479 0.606326 11.0436 0.827227C11.0348 1.30078 11.4332 1.6875 11.9064 1.6875H15.1172L8.39741 8.40938C8.23919 8.56761 8.1503 8.78221 8.1503 9.00598C8.1503 9.22974 8.23919 9.44435 8.39741 9.60258C8.55564 9.7608 8.77024 9.84969 8.99401 9.84969C9.21778 9.84969 9.43238 9.7608 9.59061 9.60258L16.3125 2.88281V6.10523C16.3125 6.32901 16.4014 6.54362 16.5596 6.70186C16.7178 6.86009 16.9325 6.94898 17.1562 6.94898C17.38 6.94898 17.5946 6.86009 17.7529 6.70186C17.9111 6.54362 18 6.32901 18 6.10523V0.866953C18 0.753074 17.9775 0.64031 17.934 0.535103C17.8904 0.429897 17.8265 0.334309 17.7459 0.2538C17.6654 0.173292 17.5698 0.10944 17.4646 0.065892C17.3593 0.0223442 17.2466 -4.61086e-05 17.1327 7.12885e-08Z" fill="black"/>
+                                    </svg>
+                                </a></span>
+                                <span style="font-weight:normal">HR: ${ev.hr} bpm</span>
+                            </div>
+                            <div class="ecg-channels">
+                                <div class="ecg-channel-row">
+                                    <canvas class="ecg-canvas-1"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Merged footer box directly inside the card -->
+                            <div class="ecg-card-info-footer">
+                                <div><strong>Date:</strong> 11-08-2026 at 10:15:30 IST</div>
+                                <div><strong>HR:</strong> 178bpm</div>
+                                <div><strong>Findings:</strong> Urgent - Atrial Fibrillation</div>
+                                <div><strong>Event type:</strong> Patient triggered</div>
+                                <div><strong>Symptoms:</strong> Short of breath</div>
+                                <div><strong>Activity:</strong> Light activity</div>
+                            </div>
+                        `;
+                        return card;
+                    }
+
+                    // Standard ECG plotter (Draws on a given canvas)
+                    function drawECG(canvas, waveformData, showRhythmStrip = false) {
+                        // Force a minimum pixel ratio of 4 for print/PDF clarity
+                        const dpr = Math.max(window.devicePixelRatio || 1, 4);
+                        const width = canvas.parentElement.clientWidth;
+                        const height = 150; // Optimized height for stacked channels
+
+                        canvas.width = width * dpr;
+                        canvas.height = height * dpr;
+                        canvas.style.width = width + 'px';
+                        canvas.style.height = height + 'px';
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                        ctx.clearRect(0, 0, width, height);
+
+                        const marginLeft = 25, marginRight = 5;
+                        const marginTop = 20, marginBottom = showRhythmStrip ? 35 : 15;
+                        const plotW = Math.max(0, canvas.parentElement.clientWidth - marginLeft - marginRight);
+                        const plotH = height - marginTop - marginBottom;
+
+                        const voltages = waveformData.voltage_mv || [];
+                        const timestamps = waveformData.timestamp_ms || [];
+                        const samplingRate = waveformData.sampling_rate || 256;
+                        const totalPoints = voltages.length;
+                        const durationSec = totalPoints / samplingRate;
+
+                        if (totalPoints === 0) {
+                            ctx.font = '10px Arial, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillStyle = '#6B7280';
+                            ctx.fillText("No ECG data available.", marginLeft + (plotW / 2), marginTop + (plotH / 2));
+                            return;
+                        }
+
+                        const pxPerSec = plotW / (durationSec || 10);
+                        const pxPer_mV = plotH / 3;
+
+                        // Minor Grid (Light Blue)
+                        ctx.strokeStyle = '#DCEBF7';
+                        ctx.lineWidth = 1;
+                        const minorStepX = 0.04 * pxPerSec;
+                        const minorStepY = 0.1 * pxPer_mV;
+                        for (let x = marginLeft; x <= width - marginRight; x += minorStepX) {
+                            ctx.beginPath(); ctx.moveTo(x, marginTop); ctx.lineTo(x, height - marginBottom); ctx.stroke();
+                        }
+                        for (let y = marginTop; y <= height - marginBottom; y += minorStepY) {
+                            ctx.beginPath(); ctx.moveTo(marginLeft, y); ctx.lineTo(width - marginRight, y); ctx.stroke();
+                        }
+
+                        // Major Grid Lines
+                        ctx.strokeStyle = '#B7D6ED';
+                        ctx.lineWidth = 0.8;
+                        const majorStepX = 0.2 * pxPerSec;
+                        const majorStepY = 0.5 * pxPer_mV;
+                        for (let x = marginLeft; x <= width - marginRight; x += majorStepX) {
+                            ctx.beginPath(); ctx.moveTo(x, marginTop); ctx.lineTo(x, height - marginBottom); ctx.stroke();
+                        }
+                        for (let y = marginTop; y <= height - marginBottom; y += majorStepY) {
+                            ctx.beginPath(); ctx.moveTo(marginLeft, y); ctx.lineTo(width - marginRight, y); ctx.stroke();
+                        }
+
+                        // Y-Axis Labels
+                        ctx.fillStyle = 'black';
+                        ctx.font = '8px Arial, sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.textBaseline = 'middle';
+                        const midY = marginTop + (plotH / 2);
+
+                        [1.0, 0.5, 0, -0.5, -1.0].forEach(v => {
+                            const y = midY - (v * pxPer_mV);
+                            if (Math.abs(v) !== 0.5) ctx.fillText(v.toFixed(1), marginLeft - 4, y);
+                        });
+
+                        // X-Axis START AND END TIMESTAMP LABELS ONLY
+                        ctx.fillStyle = '#000000';
+                        ctx.font = '8px Arial, sans-serif';
+                        ctx.textBaseline = 'bottom';
+
+                        const getTimeLabel = (dataIdx, offsetSec) => {
+                            if (timestamps.length > dataIdx) {
+                                const date = new Date(timestamps[dataIdx]);
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const mins = String(date.getMinutes()).padStart(2, '0');
+                                const secs = String(date.getSeconds()).padStart(2, '0');
+                                const deciseconds = Math.floor(date.getMilliseconds() / 100);
+                                return `${hours}:${mins}:${secs}.${deciseconds}`;
+                            }
+                            return offsetSec.toFixed(1) + "s";
+                        };
+
+                        // Start Time
+                        ctx.textAlign = 'left';
+                        ctx.fillText(getTimeLabel(0, 0), marginLeft, marginTop - 4);
+
+                        // End Time
+                        const lastIndex = totalPoints > 0 ? totalPoints - 1 : 0;
+                        ctx.textAlign = 'right';
+                        ctx.fillText(getTimeLabel(lastIndex, durationSec), marginLeft + plotW, marginTop - 4);
+
+                        // Plot Main Signal (Updated color and stroke thickness)
+                        ctx.strokeStyle = '#3370a8'; // Consistently crisp blue
+                        ctx.lineWidth = 1;
+                        ctx.lineJoin = 'round';
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        for (let i = 0; i < totalPoints; i++) {
+                            const x = marginLeft + (i / samplingRate) * pxPerSec;
+                            const y = midY - (voltages[i] * pxPer_mV);
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+
+                        // Bottom Rhythm Strip (only if specified)
+                        if (showRhythmStrip) {
+                            const stripTop = height - 25;
+                            const stripBottom = height - 5;
+                            const stripMidY = stripTop + (stripBottom - stripTop) / 2;
+
+                            const hlStart = marginLeft + plotW * 0.40;
+                            const hlEnd = marginLeft + plotW * 0.60;
+                            ctx.fillStyle = 'rgba(120, 170, 220, 0.4)';
+                            ctx.fillRect(hlStart, stripTop - 2, hlEnd - hlStart, (stripBottom - stripTop) + 4);
+
+                            ctx.strokeStyle = '#999';
+                            ctx.lineWidth = 0.8;
+                            ctx.beginPath(); ctx.moveTo(marginLeft, stripMidY); ctx.lineTo(width - marginRight, stripMidY); ctx.stroke();
+
+                            for (let x = marginLeft; x <= width - marginRight; x += pxPerSec) {
+                                ctx.beginPath(); ctx.moveTo(x, stripMidY - 3); ctx.lineTo(x, stripMidY + 3); ctx.stroke();
+                            }
+
+                            // Rhythm Strip Signal (Updated color and stroke thickness)
+                            ctx.strokeStyle = '#3370a8';
+                            ctx.lineWidth = 1.0;
+                            ctx.lineJoin = 'round';
+                            ctx.lineCap = 'round';
+                            ctx.beginPath();
+                            for (let i = 0; i < totalPoints; i++) {
+                                const x = marginLeft + (i / samplingRate) * pxPerSec;
+                                const y = stripMidY - (voltages[i] * 5); // scaled down for mini-strip
+                                if (i === 0) ctx.moveTo(x, y);
+                                else ctx.lineTo(x, y);
+                            }
+                            ctx.stroke();
+                        }
+                    }
+
+                    // Fetch and render single Cut Strip on Page 1
+                    async function initCutStrip() {
+                        try {
+                            let actualWaveform = null;
+                            const jsonUrl = 'http://localhost:5163/WeatherForecast/GetEcgData';
+
+                            try {
+                                const res = await fetch(jsonUrl);
+                                if (res.ok) {
+                                    const rawData = await res.json();
+                                    actualWaveform = rawData.waveform_snippet || rawData.waveform || rawData;
+                                }
+                            } catch (e) {
+                                console.warn("Could not fetch JSON from URL. Falling back to generated simulated data.", e);
+                            }
+
+                            // Fail-safe: if the API was unreachable or returned an empty voltage array, mock the signal
+                            if (!actualWaveform || !actualWaveform.voltage_mv || actualWaveform.voltage_mv.length === 0) {
+                                const pts = Math.floor(256 * 10);
+                                actualWaveform = {
+                                    sampling_rate: 256,
+                                    voltage_mv: Array.from({length: pts}, (_, i) => Math.sin(i * 0.15) * 0.4 + (Math.random()*0.08)),
+                                    timestamp_ms: Array.from({length: pts}, (_, i) => Date.now() + (i * 3.9))
+                                };
+                            }
+
+                            const eventData = {
+                                number: 2,
+                                datetime: "11-08-2026 | 10:15:30 AM",
+                                hr: 178,
+                                waveform: actualWaveform
+                            };
+
+                            const ecgContainer = document.getElementById('ecgContainer');
+                            const card = buildCard(eventData);
+                            ecgContainer.appendChild(card);
+
+                            const canvas1 = card.querySelector('canvas.ecg-canvas-1');
+
+                            const draw = () => {
+                                drawECG(canvas1, eventData.waveform, true);
+                            }
+                            draw();
+
+                            let resizeTimer;
+                            window.addEventListener('resize', () => {
+                                clearTimeout(resizeTimer);
+                                resizeTimer = setTimeout(draw, 100);
+                            });
+
+                        } catch (error) {
+                            console.error("Failed to fetch or parse ECG Data:", error);
+                        }
+                    }
+
+                    initCutStrip();
+                })();
+    </script>
+</body>
+
+</html>

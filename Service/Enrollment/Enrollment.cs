@@ -540,7 +540,7 @@ namespace elr_API.Service.Enrolment
                 if (obj.file_name != null && obj.file_name.Length > 0)
                 {
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
-                    if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
+                    //if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
                     var fileName = $"{obj.file_name.FileName}";
 
