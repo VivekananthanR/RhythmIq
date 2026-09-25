@@ -2831,28 +2831,51 @@ namespace elr_API.DTO.ReqDTO
         //              AND sef.is_active = 1
         //            ORDER BY sef.sub_strip_event_finding_id;";
         //}
+
         internal static string get_finding_sub_strip_list()
         {
             return $@"
-                    SELECT
-                        sef.event_assign_id,
-                        sef.event_finding_id,
-                        efm.finding_name,
-                        sef.sub_strip_event_id,
-                        sef.detection_id,
-                        sef.value1,
-                        sef.value2
-                    FROM {Tbl.sub_strip_event_finding} sef
-                    INNER JOIN {Tbl.event_finding_mast} efm
-                        ON efm.event_finding_id = sef.event_finding_id
-                    WHERE sef.event_assign_id = @event_assign_id
-                      AND sef.sub_strip_event_id IS NOT NULL
-                      AND sef.is_active = 1
-                    ORDER BY
-                        sef.event_finding_id,
-                        sef.sub_strip_event_id,
-                        sef.sub_strip_event_finding_id;";
+        SELECT
+            sef.event_assign_id,
+            sef.event_finding_id,
+            efm.finding_name,
+            sef.sub_strip_event_id,
+            sef.detection_id,
+            sef.value1,
+            sef.value2
+        FROM {Tbl.sub_strip_event_finding} sef
+        INNER JOIN {Tbl.event_finding_mast} efm
+            ON efm.event_finding_id = sef.event_finding_id
+        WHERE sef.event_assign_id = @event_assign_id
+          AND sef.sub_strip_event_id = @sub_strip_event_id
+          AND sef.is_active = 1
+        ORDER BY
+            sef.event_finding_id,
+            sef.sub_strip_event_id,
+            sef.sub_strip_event_finding_id;";
         }
+        //internal static string get_finding_sub_strip_list()
+        //{
+        //    return $@"
+        //            SELECT
+        //                sef.event_assign_id,
+        //                sef.event_finding_id,
+        //                efm.finding_name,
+        //                sef.sub_strip_event_id,
+        //                sef.detection_id,
+        //                sef.value1,
+        //                sef.value2
+        //            FROM {Tbl.sub_strip_event_finding} sef
+        //            INNER JOIN {Tbl.event_finding_mast} efm
+        //                ON efm.event_finding_id = sef.event_finding_id
+        //            WHERE sef.event_assign_id = @event_assign_id
+        //              AND sef.sub_strip_event_id IS NOT NULL
+        //              AND sef.is_active = 1
+        //            ORDER BY
+        //                sef.event_finding_id,
+        //                sef.sub_strip_event_id,
+        //                sef.sub_strip_event_finding_id;";
+        //}
 
         #endregion
     }
@@ -4147,21 +4170,66 @@ namespace elr_API.DTO.ReqDTO
         public List<MyProgressChartDTO> Chart { get; set; }
 
         #region Query
+        //internal static string GetProgressSummary(string type)
+        //{
+        //    return $@"
+        //        SELECT
+        //            COUNT(*) EventsSubmitted,
+        //            {GetProductivity(type)} Productivity
+        //        FROM {Tbl.queued_events_records} q
+        //        INNER JOIN {Tbl.event_assign} ea
+        //            ON ea.queued_events_records_id=q.queued_events_records_id
+        //        WHERE
+        //            q.completed_by=@assigned_by
+        //            AND q.completed_datetime IS NOT NULL
+        //            AND ea.is_final_completed=1
+        //            AND {GetDateFilter(type)}";
+        //}
+
+
+
         internal static string GetProgressSummary(string type)
         {
             return $@"
-                SELECT
-                    COUNT(*) EventsSubmitted,
-                    {GetProductivity(type)} Productivity
-                FROM {Tbl.queued_events_records} q
-                INNER JOIN {Tbl.event_assign} ea
-                    ON ea.queued_events_records_id=q.queued_events_records_id
-                WHERE
-                    q.completed_by=@assigned_by
-                    AND q.completed_datetime IS NOT NULL
-                    AND ea.is_final_completed=1
-                    AND {GetDateFilter(type)}";
+        SELECT
+            COUNT(DISTINCT q.queued_events_records_id) EventsSubmitted,
+            {GetProductivity(type)} Productivity
+        FROM {Tbl.queued_events_records} q
+        WHERE
+            q.completed_by = @assigned_by
+            AND q.completed_datetime IS NOT NULL
+            AND EXISTS
+            (
+                SELECT 1
+                FROM {Tbl.event_assign} ea
+                WHERE ea.queued_events_records_id = q.queued_events_records_id
+                  AND ea.is_final_completed = 1
+            )
+            AND {GetDateFilter(type)}";
         }
+
+
+        //internal static string GetDateFilter(string type)
+        //{
+        //    switch (type.ToLower())
+        //    {
+        //        default:
+        //            return @"
+        //        CAST(q.completed_datetime AS DATE) = CAST(GETDATE() AS DATE)";
+
+        //        case "week":
+        //            return @"
+        //        q.completed_datetime >= DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7, CAST(GETDATE() AS DATE))
+        //        AND q.completed_datetime < DATEADD(DAY, 7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7), CAST(GETDATE() AS DATE))";
+
+        //        case "month":
+        //            return @"
+        //        q.completed_datetime >= DATEADD(WEEK, -3,DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7, CAST(GETDATE() AS DATE)))
+        //        AND q.completed_datetime < DATEADD(DAY, 7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7), CAST(GETDATE() AS DATE))";
+        //    }
+        //}
+
+
 
         internal static string GetDateFilter(string type)
         {
@@ -4169,38 +4237,487 @@ namespace elr_API.DTO.ReqDTO
             {
                 default:
                     return @"
-                CAST(q.completed_datetime AS DATE) = CAST(GETDATE() AS DATE)";
+                    CAST(q.completed_datetime AS DATE)
+                    = CAST(GETDATE() AS DATE)";
 
                 case "week":
                     return @"
-                q.completed_datetime >= DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7, CAST(GETDATE() AS DATE))
-                AND q.completed_datetime < DATEADD(DAY, 7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7), CAST(GETDATE() AS DATE))";
+                    q.completed_datetime >=
+                    DATEADD(
+                        DAY,
+                        -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+                        CAST(GETDATE() AS DATE)
+                    )
+                    AND q.completed_datetime <
+                    DATEADD(
+                        DAY,
+                        7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7),
+                        CAST(GETDATE() AS DATE)
+                    )";
 
                 case "month":
                     return @"
-                q.completed_datetime >= DATEADD(WEEK, -3,DATEADD(DAY, -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7, CAST(GETDATE() AS DATE)))
-                AND q.completed_datetime < DATEADD(DAY, 7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7), CAST(GETDATE() AS DATE))";
+                    q.completed_datetime >=
+                    DATEADD(
+                        WEEK,
+                        -3,
+                        DATEADD(
+                            DAY,
+                            -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+                            CAST(GETDATE() AS DATE)
+                        )
+                    )
+                    AND q.completed_datetime <
+                    DATEADD(
+                        DAY,
+                        7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7),
+                        CAST(GETDATE() AS DATE)
+                    )";
             }
         }
+
+
+        //internal static string GetProductivity(string type)
+        //{
+        //    switch (type.ToLower())
+        //    {
+        //        case "week":
+        //            return "CAST(COUNT(*)/7.0 AS DECIMAL(10,2))";
+
+        //        case "month":
+        //            return "CAST(COUNT(*)/28.0 AS DECIMAL(10,2))";
+
+        //        default:
+        //            return "CAST(COUNT(*) AS DECIMAL(10,2))";
+        //    }
+        //}
+
+
+        //internal static string GetProductivity(string type)
+        //{
+        //    switch (type.ToLower())
+        //    {
+        //        case "week":
+        //            return "CAST(COUNT(*) / 7.0 AS DECIMAL(10,2))";
+
+        //        case "month":
+        //            return "CAST(COUNT(*) / 28.0 AS DECIMAL(10,2))";
+
+        //        default:
+        //            return "CAST(COUNT(*) AS DECIMAL(10,2))";
+        //    }
+        //}
+
         internal static string GetProductivity(string type)
         {
             switch (type.ToLower())
             {
                 case "week":
-                    return "CAST(COUNT(*)/7.0 AS DECIMAL(10,2))";
+                    return "CAST(COUNT(DISTINCT q.queued_events_records_id) / 7.0 AS DECIMAL(10,2))";
 
                 case "month":
-                    return "CAST(COUNT(*)/28.0 AS DECIMAL(10,2))";
+                    return "CAST(COUNT(DISTINCT q.queued_events_records_id) / 28.0 AS DECIMAL(10,2))";
+
+                default:
+                    return "CAST(COUNT(DISTINCT q.queued_events_records_id) AS DECIMAL(10,2))";
+            }
+        }
+
+
+
+        internal static string GetProgressChart(string type)
+        {
+            switch (type.ToLower())
+            {
+                // =========================
+                // WEEK
+                // =========================
+                case "week":
+
+                    return $@"
+                WITH Days AS
+                (
+                    SELECT 1 DayNo, 'Monday' Label
+                    UNION ALL SELECT 2, 'Tuesday'
+                    UNION ALL SELECT 3, 'Wednesday'
+                    UNION ALL SELECT 4, 'Thursday'
+                    UNION ALL SELECT 5, 'Friday'
+                    UNION ALL SELECT 6, 'Saturday'
+                    UNION ALL SELECT 7, 'Sunday'
+                )
+
+                SELECT
+                    d.Label,
+                    ISNULL(COUNT(DISTINCT q.queued_events_records_id), 0) Events
+
+                FROM Days d
+
+                LEFT JOIN {Tbl.queued_events_records} q
+                    ON
+                    (
+                        CASE DATEPART(WEEKDAY, q.completed_datetime)
+                            WHEN 2 THEN 1
+                            WHEN 3 THEN 2
+                            WHEN 4 THEN 3
+                            WHEN 5 THEN 4
+                            WHEN 6 THEN 5
+                            WHEN 7 THEN 6
+                            WHEN 1 THEN 7
+                        END
+                    ) = d.DayNo
+
+                    AND q.completed_by = @assigned_by
+                    AND q.completed_datetime IS NOT NULL
+                    AND {GetDateFilter(type)}
+
+                    AND EXISTS
+                    (
+                        SELECT 1
+                        FROM {Tbl.event_assign} ea
+                        WHERE ea.queued_events_records_id =
+                              q.queued_events_records_id
+                          AND ea.is_final_completed = 1
+                    )
+
+                GROUP BY
+                    d.DayNo,
+                    d.Label
+
+                ORDER BY
+                    d.DayNo";
+
+
+                // =========================
+                // MONTH
+                // =========================
+                case "month":
+
+                    return $@"
+                WITH Weeks AS
+                (
+                    SELECT 1 WeekNo, 'Week 1' Label
+                    UNION ALL SELECT 2, 'Week 2'
+                    UNION ALL SELECT 3, 'Week 3'
+                    UNION ALL SELECT 4, 'Week 4'
+                ),
+
+                StartDate AS
+                (
+                    SELECT
+                        DATEADD
+                        (
+                            WEEK,
+                            -3,
+                            DATEADD
+                            (
+                                DAY,
+                                -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+                                CAST(GETDATE() AS DATE)
+                            )
+                        ) AS StartDate
+                )
+
+                SELECT
+                    w.Label,
+                    ISNULL(COUNT(DISTINCT q.queued_events_records_id), 0) Events
+
+                FROM Weeks w
+
+                CROSS JOIN StartDate s
+
+                LEFT JOIN {Tbl.queued_events_records} q
+                    ON q.completed_by = @assigned_by
+                    AND q.completed_datetime IS NOT NULL
+
+                    AND q.completed_datetime >= s.StartDate
+
+                    AND q.completed_datetime <
+                        DATEADD(DAY, 28, s.StartDate)
+
+                    AND DATEDIFF
+                    (
+                        DAY,
+                        s.StartDate,
+                        CAST(q.completed_datetime AS DATE)
+                    ) / 7 = w.WeekNo - 1
+
+                    AND EXISTS
+                    (
+                        SELECT 1
+                        FROM {Tbl.event_assign} ea
+                        WHERE ea.queued_events_records_id =
+                              q.queued_events_records_id
+                          AND ea.is_final_completed = 1
+                    )
+
+                GROUP BY
+                    w.WeekNo,
+                    w.Label
+
+                ORDER BY
+                    w.WeekNo";
+
+
+                // =========================
+                // DAY
+                // =========================
+                default:
+
+                    return $@"
+                WITH Hours AS
+                (
+                    SELECT 0 Hr
+
+                    UNION ALL
+
+                    SELECT Hr + 1
+                    FROM Hours
+                    WHERE Hr < 23
+                )
+
+                SELECT
+                    RIGHT('00' + CAST(h.Hr AS VARCHAR), 2) + ':00' Label,
+                    ISNULL(COUNT(DISTINCT q.queued_events_records_id), 0) Events
+
+                FROM Hours h
+
+                LEFT JOIN {Tbl.queued_events_records} q
+                    ON DATEPART(HOUR, q.completed_datetime) = h.Hr
+
+                    AND q.completed_by = @assigned_by
+                    AND q.completed_datetime IS NOT NULL
+                    AND {GetDateFilter(type)}
+
+                    AND EXISTS
+                    (
+                        SELECT 1
+                        FROM {Tbl.event_assign} ea
+                        WHERE ea.queued_events_records_id =
+                              q.queued_events_records_id
+                          AND ea.is_final_completed = 1
+                    )
+
+                GROUP BY
+                    h.Hr
+
+                ORDER BY
+                    h.Hr
+
+                OPTION(MAXRECURSION 24)";
+            }
+        }
+
+
+        //internal static string GetProgressChart(string type)
+        //{
+        //    switch (type.ToLower())
+        //    {
+        //        case "week":
+
+        //            return $@"
+        //        WITH Days AS
+        //        (
+        //            SELECT 1 DayNo,'Monday' Label
+        //            UNION ALL SELECT 2,'Tuesday'
+        //            UNION ALL SELECT 3,'Wednesday'
+        //            UNION ALL SELECT 4,'Thursday'
+        //            UNION ALL SELECT 5,'Friday'
+        //            UNION ALL SELECT 6,'Saturday'
+        //            UNION ALL SELECT 7,'Sunday'
+        //        )
+
+        //        SELECT
+        //            d.Label,
+        //            ISNULL(COUNT(q.queued_events_records_id),0) Events
+        //        FROM Days d
+
+        //        LEFT JOIN {Tbl.queued_events_records} q
+        //            ON
+        //            (
+        //                CASE DATEPART(WEEKDAY,q.completed_datetime)
+        //                    WHEN 2 THEN 1
+        //                    WHEN 3 THEN 2
+        //                    WHEN 4 THEN 3
+        //                    WHEN 5 THEN 4
+        //                    WHEN 6 THEN 5
+        //                    WHEN 7 THEN 6
+        //                    WHEN 1 THEN 7
+        //                END
+        //            )=d.DayNo
+        //            AND q.completed_by=@assigned_by
+        //            AND q.completed_datetime IS NOT NULL
+        //            AND {GetDateFilter(type)}
+
+        //        LEFT JOIN {Tbl.event_assign} ea
+        //            ON ea.queued_events_records_id=q.queued_events_records_id
+        //            AND ea.is_final_completed=1
+
+        //        GROUP BY d.DayNo,d.Label
+        //        ORDER BY d.DayNo";
+
+        //        case "month":
+
+        //            return $@"
+        //        WITH Weeks AS
+        //        (
+        //            SELECT 1 WeekNo,'Week 1' Label
+        //            UNION ALL SELECT 2,'Week 2'
+        //            UNION ALL SELECT 3,'Week 3'
+        //            UNION ALL SELECT 4,'Week 4'
+        //        )
+
+        //        SELECT
+        //            w.Label,
+        //            ISNULL(COUNT(q.queued_events_records_id),0) Events
+        //        FROM Weeks w
+
+        //        LEFT JOIN {Tbl.queued_events_records} q
+        //            ON
+        //            (
+        //                CASE DATEDIFF
+        //                (
+        //                    WEEK,
+        //                    q.completed_datetime,
+        //                    DATEADD
+        //                    (
+        //                        DAY,
+        //                        -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+        //                        CAST(GETDATE() AS DATE)
+        //                    )
+        //                )
+        //                    WHEN 0 THEN 1
+        //                    WHEN 1 THEN 2
+        //                    WHEN 2 THEN 3
+        //                    WHEN 3 THEN 4
+        //                END
+        //            ) = w.WeekNo
+        //            AND q.completed_by = @assigned_by
+        //            AND q.completed_datetime IS NOT NULL
+        //            AND {GetDateFilter(type)}
+
+        //        LEFT JOIN {Tbl.event_assign} ea
+        //            ON ea.queued_events_records_id=q.queued_events_records_id
+        //            AND ea.is_final_completed=1
+
+        //        GROUP BY w.WeekNo,w.Label
+        //        ORDER BY w.WeekNo";
+
+        //        default:
+
+        //            return $@"
+        //        WITH Hours AS
+        //        (
+        //            SELECT 0 Hr
+        //            UNION ALL
+        //            SELECT Hr+1
+        //            FROM Hours
+        //            WHERE Hr<23
+        //        )
+
+        //        SELECT
+        //            RIGHT('00'+CAST(h.Hr AS VARCHAR),2)+':00' Label,
+        //            ISNULL(COUNT(q.queued_events_records_id),0) Events
+        //        FROM Hours h
+
+        //        LEFT JOIN {Tbl.queued_events_records} q
+        //            ON DATEPART(HOUR,q.completed_datetime)=h.Hr
+        //            AND q.completed_by=@assigned_by
+        //            AND q.completed_datetime IS NOT NULL
+        //            AND {GetDateFilter(type)}
+
+        //        LEFT JOIN {Tbl.event_assign} ea
+        //            ON ea.queued_events_records_id=q.queued_events_records_id
+        //            AND ea.is_final_completed=1
+
+        //        GROUP BY h.Hr
+        //        ORDER BY h.Hr
+        //        OPTION(MAXRECURSION 24)";
+        //    }
+        //}
+
+
+        internal static string GetReportProgressSummary(string type)
+        {
+            return $@"
+        SELECT
+            COUNT(*) EventsSubmitted,
+            {GetReportProductivity(type)} Productivity
+        FROM {Tbl.report_assigned} ra
+        WHERE
+            ra.completed_by = @assigned_by
+            AND ra.completed_datetime IS NOT NULL
+            AND ra.assign_status = 'completed'
+            AND ra.is_active = 1
+            AND {GetReportDateFilter(type)}";
+        }
+
+        internal static string GetReportDateFilter(string type)
+        {
+            switch (type.ToLower())
+            {
+                default:
+                    return @"
+                CAST(ra.completed_datetime AS DATE)
+                = CAST(GETDATE() AS DATE)";
+
+                case "week":
+                    return @"
+                ra.completed_datetime >=
+                DATEADD(
+                    DAY,
+                    -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+                    CAST(GETDATE() AS DATE)
+                )
+                AND ra.completed_datetime <
+                DATEADD(
+                    DAY,
+                    7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7),
+                    CAST(GETDATE() AS DATE)
+                )";
+
+                case "month":
+                    return @"
+                ra.completed_datetime >=
+                DATEADD(
+                    WEEK,
+                    -3,
+                    DATEADD(
+                        DAY,
+                        -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+                        CAST(GETDATE() AS DATE)
+                    )
+                )
+                AND ra.completed_datetime <
+                DATEADD(
+                    DAY,
+                    7 - ((DATEPART(WEEKDAY, GETDATE()) + 5) % 7),
+                    CAST(GETDATE() AS DATE)
+                )";
+            }
+        }
+
+        internal static string GetReportProductivity(string type)
+        {
+            switch (type.ToLower())
+            {
+                case "week":
+                    return "CAST(COUNT(*) / 7.0 AS DECIMAL(10,2))";
+
+                case "month":
+                    return "CAST(COUNT(*) / 28.0 AS DECIMAL(10,2))";
 
                 default:
                     return "CAST(COUNT(*) AS DECIMAL(10,2))";
             }
         }
 
-        internal static string GetProgressChart(string type)
+        internal static string GetReportProgressChart(string type)
         {
             switch (type.ToLower())
             {
+                // =========================
+                // WEEK
+                // =========================
                 case "week":
 
                     return $@"
@@ -4217,13 +4734,13 @@ namespace elr_API.DTO.ReqDTO
 
                 SELECT
                     d.Label,
-                    ISNULL(COUNT(q.queued_events_records_id),0) Events
+                    ISNULL(COUNT(ra.report_assigned_id),0) Events
                 FROM Days d
 
-                LEFT JOIN {Tbl.queued_events_records} q
+                LEFT JOIN {Tbl.report_assigned} ra
                     ON
                     (
-                        CASE DATEPART(WEEKDAY,q.completed_datetime)
+                        CASE DATEPART(WEEKDAY,ra.completed_datetime)
                             WHEN 2 THEN 1
                             WHEN 3 THEN 2
                             WHEN 4 THEN 3
@@ -4232,18 +4749,24 @@ namespace elr_API.DTO.ReqDTO
                             WHEN 7 THEN 6
                             WHEN 1 THEN 7
                         END
-                    )=d.DayNo
-                    AND q.completed_by=@assigned_by
-                    AND q.completed_datetime IS NOT NULL
-                    AND {GetDateFilter(type)}
+                    ) = d.DayNo
 
-                LEFT JOIN {Tbl.event_assign} ea
-                    ON ea.queued_events_records_id=q.queued_events_records_id
-                    AND ea.is_final_completed=1
+                    AND ra.completed_by=@assigned_by
+                    AND ra.completed_datetime IS NOT NULL
+                    AND ra.assign_status='completed'
+                    AND ra.is_active=1
+                    AND {GetReportDateFilter(type)}
 
-                GROUP BY d.DayNo,d.Label
-                ORDER BY d.DayNo";
+                GROUP BY
+                    d.DayNo,
+                    d.Label
 
+                ORDER BY
+                    d.DayNo";
+
+                // =========================
+                // MONTH
+                // =========================
                 case "month":
 
                     return $@"
@@ -4257,20 +4780,20 @@ namespace elr_API.DTO.ReqDTO
 
                 SELECT
                     w.Label,
-                    ISNULL(COUNT(q.queued_events_records_id),0) Events
+                    ISNULL(COUNT(ra.report_assigned_id),0) Events
                 FROM Weeks w
 
-                LEFT JOIN {Tbl.queued_events_records} q
+                LEFT JOIN {Tbl.report_assigned} ra
                     ON
                     (
                         CASE DATEDIFF
                         (
                             WEEK,
-                            q.completed_datetime,
+                            ra.completed_datetime,
                             DATEADD
                             (
                                 DAY,
-                                -(DATEPART(WEEKDAY, GETDATE()) + 5) % 7,
+                                -(DATEPART(WEEKDAY,GETDATE()) + 5) % 7,
                                 CAST(GETDATE() AS DATE)
                             )
                         )
@@ -4280,24 +4803,32 @@ namespace elr_API.DTO.ReqDTO
                             WHEN 3 THEN 4
                         END
                     ) = w.WeekNo
-                    AND q.completed_by = @assigned_by
-                    AND q.completed_datetime IS NOT NULL
-                    AND {GetDateFilter(type)}
 
-                LEFT JOIN {Tbl.event_assign} ea
-                    ON ea.queued_events_records_id=q.queued_events_records_id
-                    AND ea.is_final_completed=1
+                    AND ra.completed_by=@assigned_by
+                    AND ra.completed_datetime IS NOT NULL
+                    AND ra.assign_status='completed'
+                    AND ra.is_active=1
+                    AND {GetReportDateFilter(type)}
 
-                GROUP BY w.WeekNo,w.Label
-                ORDER BY w.WeekNo";
+                GROUP BY
+                    w.WeekNo,
+                    w.Label
 
+                ORDER BY
+                    w.WeekNo";
+
+                // =========================
+                // DAY
+                // =========================
                 default:
 
                     return $@"
                 WITH Hours AS
                 (
                     SELECT 0 Hr
+
                     UNION ALL
+
                     SELECT Hr+1
                     FROM Hours
                     WHERE Hr<23
@@ -4305,21 +4836,23 @@ namespace elr_API.DTO.ReqDTO
 
                 SELECT
                     RIGHT('00'+CAST(h.Hr AS VARCHAR),2)+':00' Label,
-                    ISNULL(COUNT(q.queued_events_records_id),0) Events
+                    ISNULL(COUNT(ra.report_assigned_id),0) Events
                 FROM Hours h
 
-                LEFT JOIN {Tbl.queued_events_records} q
-                    ON DATEPART(HOUR,q.completed_datetime)=h.Hr
-                    AND q.completed_by=@assigned_by
-                    AND q.completed_datetime IS NOT NULL
-                    AND {GetDateFilter(type)}
+                LEFT JOIN {Tbl.report_assigned} ra
+                    ON DATEPART(HOUR,ra.completed_datetime)=h.Hr
+                    AND ra.completed_by=@assigned_by
+                    AND ra.completed_datetime IS NOT NULL
+                    AND ra.assign_status='completed'
+                    AND ra.is_active=1
+                    AND {GetReportDateFilter(type)}
 
-                LEFT JOIN {Tbl.event_assign} ea
-                    ON ea.queued_events_records_id=q.queued_events_records_id
-                    AND ea.is_final_completed=1
+                GROUP BY
+                    h.Hr
 
-                GROUP BY h.Hr
-                ORDER BY h.Hr
+                ORDER BY
+                    h.Hr
+
                 OPTION(MAXRECURSION 24)";
             }
         }

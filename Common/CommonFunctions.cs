@@ -29,7 +29,7 @@ namespace elr_API.Common
             }
             else
             {
-                return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_13Aug; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
 
             }
         }

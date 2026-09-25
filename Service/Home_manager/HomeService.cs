@@ -2107,14 +2107,53 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<ResponseDTO> ElrMyProgress(long emp_id, string type)
+        //public async Task<ResponseDTO> ElrMyProgress(long emp_id, string type, string progress_type)
+        //{
+        //    ErrorMessage = string.Empty;
+        //    string query = string.Empty;
+        //    try
+        //    {
+
+        //        query = MyProgressDTO.GetProgressSummary(type);
+        //        var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
+
+        //        if (summary == null)
+        //        {
+        //            summary = new MyProgressDTO
+        //            {
+        //                EventsSubmitted = 0,
+        //                Productivity = 0,
+        //                Chart = new List<MyProgressChartDTO>()
+        //            };
+        //        }
+        //        query = MyProgressDTO.GetProgressChart(type);
+        //        summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
+
+        //        return new ResponseDTO(summary);
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        CommonFunctions.ILogging("", ex.Message.ToString());
+        //        ErrorMessage = ex.Message.ToString();
+
+        //    }
+        //    return new ResponseDTO(false, ErrorMessage);
+        //}
+        public async Task<ResponseDTO> ElrMyProgress(long emp_id, string type, string progress_type)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-
-                query = MyProgressDTO.GetProgressSummary(type);
+                if (progress_type.ToLower() == "report")
+                {
+                    query = MyProgressDTO.GetReportProgressSummary(type);
+                }
+                else
+                {
+                    query = MyProgressDTO.GetProgressSummary(type);
+                }
                 var summary = (await _db.SelectQuery<MyProgressDTO>(query, new { assigned_by = emp_id }, ELR_db)).FirstOrDefault();
 
                 if (summary == null)
@@ -2126,7 +2165,15 @@ namespace elr_API.Service.Home_manager
                         Chart = new List<MyProgressChartDTO>()
                     };
                 }
-                query = MyProgressDTO.GetProgressChart(type);
+                if (progress_type.ToLower() == "report")
+                {
+                    query = MyProgressDTO.GetReportProgressChart(type);
+                }
+                else
+                {
+                    query = MyProgressDTO.GetProgressChart(type);
+                }
+
                 summary.Chart = (await _db.SelectQuery<MyProgressChartDTO>(query, new { assigned_by = emp_id }, ELR_db)).ToList();
 
                 return new ResponseDTO(summary);
@@ -2136,8 +2183,8 @@ namespace elr_API.Service.Home_manager
             {
                 CommonFunctions.ILogging("", ex.Message.ToString());
                 ErrorMessage = ex.Message.ToString();
-
             }
+
             return new ResponseDTO(false, ErrorMessage);
         }
 

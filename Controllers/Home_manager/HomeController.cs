@@ -499,10 +499,10 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpGet = api/Home/ElrMyProgress?type =
         [HttpGet("ElrMyProgress"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrMyProgress([FromHeader] string authorization, string type)
+        public async Task<ActionResult<ResponseDTO>> ElrMyProgress([FromHeader] string authorization, string type, string progress_type)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
-            return await _homeService.ElrMyProgress(tokenClaims.id, type);
+            return await _homeService.ElrMyProgress(tokenClaims.id, type, progress_type);
         }
         #endregion
 

@@ -104,7 +104,7 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> ElrGetByIdFetchHistory(long queued_events_records_id);
         Task<byte[]> ElrFetchHistoryExcel(FectchHistoryReqDTO obj);
 
-        Task<ResponseDTO> ElrMyProgress(long emp_id, string type);
+        Task<ResponseDTO> ElrMyProgress(long emp_id, string type, string progress_type);
 
         Task<ResponseDTO> ElrGetReportType();
         Task<ResponseDTO> ElrAddUpdateReportType(ReportTypeDTO obj);
