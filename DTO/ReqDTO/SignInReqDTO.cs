@@ -553,7 +553,7 @@ public class PatientReportDTO
                 pr.report_started_datetime
             FROM {Tbl.patient_report} pr
             WHERE pr.report_status = 'pending'
-              AND pr.is_active = 1 pr.report_started_datetime is not null
+              AND pr.is_active = 1 and  pr.report_started_datetime is not null
 
               AND NOT EXISTS
               (
