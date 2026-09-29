@@ -16,16 +16,16 @@ namespace elr_API.IService.IHome_manager
         Task<ResponseDTO> AddUpdateMenu(MenuDTO obj);
 
 
-        Task<ResponseDTO> GetCountry(CountryDTO obj);
-        Task<List<CountryDTO>> CountryList(CountryDTO obj);
+        Task<ResponseDTO> GetCountry();
+        //Task<List<CountryDTO>> CountryList(CountryDTO obj);
         Task<ResponseDTO> AddUpdateCountry(CountryDTO obj);
 
-        Task<ResponseDTO> GetState(StateDTO obj);
-        Task<List<StateDTO>> StateList(StateDTO obj);
+        Task<ResponseDTO> GetState();
+        //Task<List<StateDTO>> StateList(StateDTO obj);
         Task<ResponseDTO> AddUpdateState(StateDTO obj);
 
-        Task<ResponseDTO> GetDistrict(DistrictDTO obj);
-        Task<List<DistrictDTO>> DistrictList(DistrictDTO obj);
+        Task<ResponseDTO> GetDistrict();
+        //Task<List<DistrictDTO>> DistrictList(DistrictDTO obj);
         Task<ResponseDTO> AddUpdateDistrict(DistrictDTO obj);
 
         Task<ResponseDTO> GetUserType(UserTypeDTO obj);
@@ -41,9 +41,9 @@ namespace elr_API.IService.IHome_manager
         //Task<List<AddUpdateTestDTO>> TestList(AddUpdateTestDTO obj);
         Task<ResponseDTO> AddUpdateTest(AddUpdateTestDTO obj);
 
-        Task<ResponseDTO> ElrGetTestPrices(AddUpdateTestPricesDTO obj);
+        Task<ResponseDTO> ElrGetTestPrices();
         Task<ResponseDTO> ElrGetTestPriceByDays(AddUpdateTestPricesDTO obj);
-        Task<List<AddUpdateTestPricesDTO>> TestPricesList(AddUpdateTestPricesDTO obj);
+        //Task<List<AddUpdateTestPricesDTO>> TestPricesList(AddUpdateTestPricesDTO obj);
         Task<ResponseDTO> AddUpdateTestPrices(AddUpdateTestPricesDTO obj);
 
         Task<ResponseDTO> ElrSymtomsTypeList();

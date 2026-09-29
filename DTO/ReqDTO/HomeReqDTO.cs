@@ -72,15 +72,15 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string select_country()
         {
-            return $@"SELECT
+            return $@"
+                    select count(1) as totalCount from {Tbl.country} where is_active = 1;
+                  SELECT
                     country_id,
                     country_code,
                     country_name,
                     is_active
                   FROM tbl_country
-                  WHERE is_active = 1
-                  AND (@country_id  = 0   OR country_id   = @country_id)
-                  AND (@search_text IS NULL OR country_name LIKE '%' + @search_text + '%')";
+                  WHERE is_active = 1";
         }
 
         #endregion
@@ -122,19 +122,16 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string select_state()
         {
-            return $@"SELECT
+            return $@"
+                   select count(1) as totalCount from {Tbl.state} where is_active = 1;
+                   SELECT
                     s.state_id,
                     s.state_code,
                     s.country_id,
                     s.state_name,
-                    s.is_active,
-                    c.country_name
+                    s.is_active
                   FROM tbl_state s
-                  LEFT JOIN tbl_country c ON c.country_id = s.country_id
-                  WHERE s.is_active = 1
-                  AND (@state_id   = 0    OR s.state_id   = @state_id)
-                  AND (@country_id = 0    OR s.country_id = @country_id)
-                  AND (@search_text IS NULL OR s.state_name LIKE '%' + @search_text + '%')";
+                  WHERE s.is_active = 1 ";
         }
 
         #endregion
@@ -178,23 +175,17 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string select_district()
         {
-            return $@"SELECT
+            return $@"
+                    select count(1) as totalCount from {Tbl.district} where is_active = 1;
+            
+                    SELECT
                     d.district_id,
                     d.district_code,
                     d.state_id,
                     d.district_name,
-                    d.is_active,
-                    s.state_name,
-                    s.country_id,
-                    c.country_name
+                    d.is_active
                   FROM tbl_district d
-                  LEFT JOIN tbl_state   s ON s.state_id   = d.state_id
-                  LEFT JOIN tbl_country c ON c.country_id = s.country_id
-                  WHERE d.is_active = 1
-                  AND (@district_id = 0    OR d.district_id = @district_id)
-                  AND (@state_id    = 0    OR d.state_id    = @state_id)
-                  AND (@country_id  = 0    OR s.country_id  = @country_id)
-                  AND (@search_text IS NULL OR d.district_name LIKE '%' + @search_text + '%')";
+                 where d.is_active = 1 ";
         }
 
         #endregion
@@ -394,9 +385,7 @@ namespace elr_API.DTO.ReqDTO
                   FROM {Tbl.test_prices} tp
                   LEFT JOIN {Tbl.test_mast} tm  ON tm.test_id       = tp.test_id
                   LEFT JOIN {Tbl.location_mast} lm ON lm.location_id = tp.location_id
-                  WHERE tp.is_active = 1
-                  AND   (@test_id      = 0 OR tp.test_id      = @test_id)
-                  AND   (@location_id  = 0 OR tp.location_id  = @location_id)";
+                  WHERE tp.is_active = 1";
         }
 
         #endregion
@@ -5260,14 +5249,21 @@ namespace elr_API.DTO.ReqDTO
         internal static string check_patient_report_status()
         {
             return $@"
-                SELECT top 1 *
-                FROM {Tbl.report_assigned} as a
-                inner join {Tbl.patient_report} as b
-                on a.patient_report_id = b.patient_report_id
-                WHERE a.report_assigned_id = @report_assigned_id and a.patient_report_id =@patient_report_id 
-                  AND a.is_active = 1 AND a.assign_status in ('pending' , 'completed') ";
+        SELECT TOP 1
+            a.report_assigned_id,
+            a.patient_report_id,
+            a.assign_status,
+            a.created_by as report_assign_to,
+            a.modified_by,
+            a.is_active
+        FROM {Tbl.report_assigned} AS a
+        INNER JOIN {Tbl.patient_report} AS b
+            ON a.patient_report_id = b.patient_report_id
+        WHERE a.report_assigned_id = @report_assigned_id
+          AND a.patient_report_id = @patient_report_id
+          AND a.is_active = 1
+          AND a.assign_status IN ('pending', 'processing', 'completed')";
         }
-
 
         internal static string get_report_generate_list()
         {

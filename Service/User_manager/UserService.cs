@@ -380,8 +380,15 @@ namespace elr_API.Service.User_manager
             {
                 string? search = string.IsNullOrWhiteSpace(physiciansName) ? null : physiciansName.Trim();
                 query = AddUpdateEmployeeDetailsReqDTO.select_physicians_list();
-                var data = (await _dp.SelectQuery<AddUpdateEmployeeDetailsReqDTO>(query, new { user_name = search }, Elr_db)).ToList();
-                return new ResponseDTO(data);
+                var (totalCount, data) = await _dp.SelectQueryWithCount<long, AddUpdateEmployeeDetailsReqDTO>(query, new { user_name = search }, Elr_db);
+
+                var response = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+
+                return new ResponseDTO(response);
             }
             catch (Exception ex)
             {
@@ -399,8 +406,14 @@ namespace elr_API.Service.User_manager
             {
                 string? search = string.IsNullOrWhiteSpace(technicians_name) ? null : technicians_name.Trim();
                 query = AddUpdateEmployeeDetailsReqDTO.select_technicians_list();
-                var data = (await _dp.SelectQuery<AddUpdateEmployeeDetailsReqDTO>(query, new { user_name = search }, Elr_db)).ToList();
-                return new ResponseDTO(data);
+                var (totalCount, data) = await _dp.SelectQueryWithCount<long, AddUpdateEmployeeDetailsReqDTO>(query, new { user_name = search }, Elr_db);
+
+                var response = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(response);
             }
             catch (Exception ex)
             {

@@ -291,6 +291,11 @@ public class AddUpdateEmployeeDetailsReqDTO
     internal static string select_physicians_list()
     {
         return $@"
+                    select count(1) as totalCount from {Tbl.user_master} 
+                        WHERE is_active = 1
+                      AND user_type_id = 5
+                      AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%');
+
                     SELECT
                         user_id,
                         user_name,
@@ -299,13 +304,18 @@ public class AddUpdateEmployeeDetailsReqDTO
                         is_active
                     FROM {Tbl.user_master}
                     WHERE is_active = 1
-                      AND user_type_id = 2
+                      AND user_type_id = 5
                       AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%')
                     ORDER BY user_name ASC";
     }
     internal static string select_technicians_list()
     {
         return $@"
+                    select count(1) as totalCount from {Tbl.user_master}
+                    where is_active = 1
+                      AND user_type_id = 4
+                      AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%');
+
                     SELECT
                         user_id,
                         user_name,
@@ -313,7 +323,7 @@ public class AddUpdateEmployeeDetailsReqDTO
                         is_active
                     FROM {Tbl.user_master}
                     WHERE is_active = 1
-                      AND user_type_id = 1
+                      AND user_type_id = 4
                       AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%')
                     ORDER BY user_name ASC";
     }
@@ -443,6 +453,8 @@ public class PatientReportDTO
     public long report_assigned_id { get; set; }
     public DateTime? last_activity_time { get; set; }
     public string assign_status { get; set; }
+
+    public long? report_assign_to { get; set; }
 
     public List<PatientReportGenerateStripDTO> report_strips { get; set; }
 

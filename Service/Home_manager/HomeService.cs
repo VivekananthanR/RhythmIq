@@ -135,17 +135,33 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> GetCountry(CountryDTO obj)
+        public async Task<ResponseDTO> GetCountry()
         {
             ErrorMessage = string.Empty;
-            try { return new ResponseDTO(await CountryList(obj)); }
-            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            string query = string.Empty;
+            try
+            {
+                query = CountryDTO.select_country();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, CountryDTO>(query, null, ELR_db);
+                var response = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message;
+            }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<List<CountryDTO>> CountryList(CountryDTO obj)
-        {
-            return (await _db.SelectQuery<CountryDTO>(CountryDTO.select_country(), obj, ELR_db)).ToList();
-        }
+
+        //public async Task<List<CountryDTO>> CountryList(CountryDTO obj)
+        //{
+        //    return (await _db.SelectQuery<CountryDTO>(CountryDTO.select_country(), obj, ELR_db)).ToList();
+        //}
         public async Task<ResponseDTO> AddUpdateCountry(CountryDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -160,17 +176,32 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> GetState(StateDTO obj)
+        public async Task<ResponseDTO> GetState()
         {
             ErrorMessage = string.Empty;
-            try { return new ResponseDTO(await StateList(obj)); }
-            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            string query = string.Empty;
+            try
+            {
+                query = StateDTO.select_state();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, StateDTO>(query, null, ELR_db);
+                var response = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message;
+            }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<List<StateDTO>> StateList(StateDTO obj)
-        {
-            return (await _db.SelectQuery<StateDTO>(StateDTO.select_state(), obj, ELR_db)).ToList();
-        }
+        //public async Task<List<StateDTO>> StateList(StateDTO obj)
+        //{
+        //    return (await _db.SelectQuery<StateDTO>(StateDTO.select_state(), obj, ELR_db)).ToList();
+        //}
         public async Task<ResponseDTO> AddUpdateState(StateDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -185,17 +216,32 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> GetDistrict(DistrictDTO obj)
+        public async Task<ResponseDTO> GetDistrict()
         {
             ErrorMessage = string.Empty;
-            try { return new ResponseDTO(await DistrictList(obj)); }
-            catch (Exception ex) { CommonFunctions.ILogging(obj, ex.ToString()); ErrorMessage = ex.Message; }
+            string query = string.Empty;
+            try
+            {
+                query = DistrictDTO.select_district();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, DistrictDTO>(query, null, ELR_db);
+                var response = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message;
+            }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<List<DistrictDTO>> DistrictList(DistrictDTO obj)
-        {
-            return (await _db.SelectQuery<DistrictDTO>(DistrictDTO.select_district(), obj, ELR_db)).ToList();
-        }
+        //public async Task<List<DistrictDTO>> DistrictList(DistrictDTO obj)
+        //{
+        //    return (await _db.SelectQuery<DistrictDTO>(DistrictDTO.select_district(), obj, ELR_db)).ToList();
+        //}
         public async Task<ResponseDTO> AddUpdateDistrict(DistrictDTO obj)
         {
             ErrorMessage = string.Empty;
@@ -364,13 +410,15 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrGetTestPrices(AddUpdateTestPricesDTO obj)
+        public async Task<ResponseDTO> ElrGetTestPrices()
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                return new ResponseDTO(await TestPricesList(obj));
+                query = AddUpdateTestPricesDTO.select_test_prices();
+                var data = (await _db.SelectQuery<AddUpdateTestPricesDTO>(query, null, ELR_db)).ToList();
+                return new ResponseDTO(data);
             }
             catch (Exception ex)
             {
@@ -380,12 +428,6 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<List<AddUpdateTestPricesDTO>> TestPricesList(AddUpdateTestPricesDTO obj)
-        {
-            string query = AddUpdateTestPricesDTO.select_test_prices();
-            var data = (await _db.SelectQuery<AddUpdateTestPricesDTO>(query, obj, ELR_db)).ToList();
-            return data;
-        }
 
         public async Task<ResponseDTO> ElrGetTestPriceByDays(AddUpdateTestPricesDTO obj)
         {
@@ -509,7 +551,7 @@ namespace elr_API.Service.Home_manager
                 if (obj.event_processed_file != null && obj.event_processed_file.Length > 0)
                 {
                     var extention = Path.GetExtension(obj.event_processed_file.FileName).ToLowerInvariant();
-                    if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
+                    //if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
                     var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:ddMMyyyyHHmmssfff}{extention}";
 
@@ -577,7 +619,7 @@ namespace elr_API.Service.Home_manager
                 if (obj.file_name != null && obj.file_name.Length > 0)
                 {
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
-                    if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
+                    //if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
 
                     var fileName = $"{obj.patient_enrollment_id}-{DateTime.Now:ddMMyyyyHHmmssfff}{extention}";
 
@@ -2451,6 +2493,7 @@ namespace elr_API.Service.Home_manager
 
                 if (assignData != null && assignData.assign_status == "pending") return new ResponseDTO(false, $"Already Assign Id: {assignData.report_assigned_id},Report status: {assignData.assign_status}.");
                 if (assignData != null && assignData.assign_status == "completed") return new ResponseDTO(false, $"Already completed, Report status: {assignData.assign_status}.");
+                if (assignData != null && assignData.assign_status == "processing" && assignData.report_assign_to.Value != obj.created_by) return new ResponseDTO(false, "Action Not Allowed: This report is being processed by another employee.");
 
                 query = PatientReportGenerateReqDTO.existing_patient_report_generate();
                 var existingStrips = await _db.SelectQuery<PatientReportGenerateStripDTO>(query, new { patient_report_id = obj.patient_report_id, report_assigned_id = obj.report_assigned_id }, ELR_db);

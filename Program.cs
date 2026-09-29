@@ -15,6 +15,7 @@ using elr_API.Service.Report_template;
 using elr_API.Service.Token;
 using elr_API.Service.User_manager;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -106,11 +107,14 @@ app.UseMiddleware<TokenValidationMiddleware>();
 app.UseDefaultFiles();
 
 app.UseStaticFiles();
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".edf"] = "application/octet-stream";
 
 app.UseStaticFiles(new StaticFileOptions()
 {
     FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"Resources")),
-    RequestPath = new PathString("/Resources")
+    RequestPath = new PathString("/Resources"),
+    ContentTypeProvider = provider
 });
 
 app.UseAuthentication();

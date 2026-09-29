@@ -68,10 +68,10 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/GetCountry
-        [HttpPost("GetCountry")]
-        public async Task<ActionResult<ResponseDTO>> GetCountry(CountryDTO obj)
+        [HttpGet("GetCountry")]
+        public async Task<ActionResult<ResponseDTO>> GetCountry()
         {
-            return await _homeService.GetCountry(obj);
+            return await _homeService.GetCountry();
         }
         #endregion
 
@@ -84,10 +84,10 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/GetState
-        [HttpPost("GetState")]
-        public async Task<ActionResult<ResponseDTO>> GetState(StateDTO obj)
+        [HttpGet("GetState")]
+        public async Task<ActionResult<ResponseDTO>> GetState()
         {
-            return await _homeService.GetState(obj);
+            return await _homeService.GetState();
         }
         #endregion
 
@@ -100,10 +100,10 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/GetDistrict
-        [HttpPost("GetDistrict")]
-        public async Task<ActionResult<ResponseDTO>> GetDistrict(DistrictDTO obj)
+        [HttpGet("GetDistrict")]
+        public async Task<ActionResult<ResponseDTO>> GetDistrict()
         {
-            return await _homeService.GetDistrict(obj);
+            return await _homeService.GetDistrict();
         }
         #endregion
 
@@ -178,10 +178,10 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost = api/Home/ElrGetTestPrices
-        [HttpGet("ElrGetTestPrices")]
-        public async Task<ActionResult<ResponseDTO>> ElrGetTestPrices(AddUpdateTestPricesDTO obj)
+        [HttpGet("ElrGetTestPrices"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetTestPrices()
         {
-            return await _homeService.ElrGetTestPrices(obj);
+            return await _homeService.ElrGetTestPrices();
         }
         #endregion
 

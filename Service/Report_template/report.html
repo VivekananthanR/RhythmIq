@@ -576,7 +576,7 @@
                              alt="Healthwatch Logo Left" />
                     </div>
                     <div class="logo-row">
-                        <img width="200" height="30" src="http://192.168.97.99:83/assets/chc-rhythmIQ.png"
+                        <img width="200" height="30" src="http://192.168.97.55:83/assets/chc-rhythmIQ.png"
                              alt="Healthwatch Logo Right" />
                     </div>
                 </div>
@@ -1060,7 +1060,7 @@ function formatDateTime(dateString) {
                         const encodedPayload = encodeURIComponent(btoa(JSON.stringify(payload)));
 
                         // 3. Append to the target URL (e.g., as a 'data' parameter)
-                        const targetUrl = `http://192.168.97.99:83/?qpdata=${encodedPayload}`;
+                        const targetUrl = `http://192.168.97.55:83/?qpdata=${encodedPayload}`;
 
                         card.innerHTML = `
         <div class="ecg-card-header">
