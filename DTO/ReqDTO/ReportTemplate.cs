@@ -10,6 +10,8 @@ namespace elr_API.DTO.ReqDTO
 
     public class PatientReportPdfDTO
     {
+        public string ecg_base_url { get; set; }
+
         public PatientPdfDTO patient_details { get; set; }
 
         public EventSummaryPdfDTO event_summary { get; set; }
@@ -1162,7 +1164,7 @@ namespace elr_API.DTO.ReqDTO
                         ON sse.queued_events_records_id = qe.queued_events_records_id
 
                     WHERE
-                        pr.patient_report_id = 42
+                        pr.patient_report_id = @patient_report_id
 
                         AND pr.report_status IN ('inprogress', 'completed')
 
@@ -1212,7 +1214,7 @@ namespace elr_API.DTO.ReqDTO
         #region Query 
         internal static string patient_evnet_count()
         {
-            return $@"select count(*) from {Tbl.queued_events_records} where patient_enrollment_id = @patient_enrollment_id";
+            return $@"select count(*) from {Tbl.queued_events_records} where patient_enrollment_id = @patient_enrollment_id and is_active = 1 and completed_by is not null and completed_datetime is not null";
         }
         #endregion
     }

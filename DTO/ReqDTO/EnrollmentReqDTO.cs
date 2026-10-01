@@ -320,6 +320,7 @@ namespace elr_API.DTO.ReqDTO
     {
         public long patient_enrollment_id { get; set; }
         public string enrollment_status { get; set; }
+        public string payment_status { get; set; }
         public decimal actual_amount { get; set; }
         public DateTime? schedule_hookup { get; set; }
         public DateTime? schedule_removal { get; set; }
@@ -357,7 +358,7 @@ namespace elr_API.DTO.ReqDTO
                      select count(*)  FROM {Tbl.patient_enrollment} a
 
                         LEFT JOIN {Tbl.patient} b
-                            ON b.patient_id = a.patient_id
+                            ON b.patient_id = a.patient_id 
 
                         LEFT JOIN {Tbl.user_master} tech
                             ON tech.user_id = a.actual_technician_id
@@ -401,7 +402,28 @@ namespace elr_API.DTO.ReqDTO
                                 OR b.patient_name LIKE '%' + @search + '%'
                                 OR b.phone_no LIKE '%' + @search + '%'
                             ) 
-                            AND ( CAST(a.schedule_hookup AS DATE) = @date or  @date is null);
+                              AND
+                                (
+                                    @date IS NULL
+
+                                    OR
+                                    (
+                                        a.enrollment_status IN ('requested', 'hookuped')
+                                        AND CAST(a.schedule_hookup AS DATE) = @date
+                                    )
+
+                                    OR
+                                    (
+                                        a.enrollment_status = 'monitoring'
+                                        AND CAST(a.actual_removal AS DATE) = @date
+                                    )
+
+                                    OR
+                                    (
+                                        a.enrollment_status = 'completed'
+                                        AND CAST(a.actual_removal AS DATE) = @date
+                                    )
+                                ) and a.is_active = 1;
 
 
 
@@ -410,6 +432,7 @@ namespace elr_API.DTO.ReqDTO
                             a.patient_enrollment_id,
                             a.enrollment_status,
                             a.actual_amount,
+                            a.payment_status,
                             a.schedule_hookup ,
                             a.schedule_removal ,
                             a.actual_hookup ,
@@ -440,7 +463,7 @@ namespace elr_API.DTO.ReqDTO
                         FROM {Tbl.patient_enrollment} a
 
                         LEFT JOIN {Tbl.patient} b
-                            ON b.patient_id = a.patient_id
+                            ON b.patient_id = a.patient_id 
 
                         LEFT JOIN {Tbl.user_master} tech
                             ON tech.user_id = a.actual_technician_id
@@ -484,7 +507,29 @@ namespace elr_API.DTO.ReqDTO
                                 OR b.patient_name LIKE '%' + @search + '%'
                                 OR b.phone_no LIKE '%' + @search + '%'
                             ) 
-                            AND ( CAST(a.schedule_hookup AS DATE) = @date or  @date is null)";
+                           AND
+                                (
+                                    @date IS NULL
+
+                                    OR
+                                    (
+                                        a.enrollment_status IN ('requested', 'hookuped')
+                                        AND CAST(a.schedule_hookup AS DATE) = @date
+                                    )
+
+                                    OR
+                                    (
+                                        a.enrollment_status = 'monitoring'
+                                        AND CAST(a.actual_removal AS DATE) = @date
+                                    )
+
+                                    OR
+                                    (
+                                        a.enrollment_status = 'completed'
+                                        AND CAST(a.actual_removal AS DATE) = @date
+                                    )
+                                )
+                                AND a.is_active = 1";
         }
         #endregion
     }

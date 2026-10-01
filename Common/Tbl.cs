@@ -20,6 +20,7 @@
         public static readonly string patient = "tbl_patient";
 
         public static readonly string patient_enrollment = "tbl_patient_enrollment";
+        public static readonly string payment_details = "tbl_payment_details";
         public static readonly string test_mast = "tbl_test_mast";
         public static readonly string test_prices = "tbl_test_prices";
         public static readonly string symptoms_type = "tbl_symptoms_type";

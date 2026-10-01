@@ -12,7 +12,6 @@
             --muted: #8a8a8a;
             --line: #d1d5db;
             --chart-bg: #ffffff;
-
             --border-color: #d1d5db;
             --header-bg: #F4F8FA;
             --text-dark: #111827;
@@ -48,7 +47,7 @@
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
         }
 
         .report-title {
@@ -572,11 +571,12 @@
             <div>
                 <div class="header">
                     <div class="logo-row">
-                        <img width="260" height="39" src="https://www.chchealthwatch.com/images/Healthwatch_logo.webp"
-                             alt="Healthwatch Logo Left" />
+                        <img width="150" height="35" style="height: 35px; width: auto;"
+                             src="http://192.168.97.55:83/assets/rhythm-iq-logo.png" alt="Rhythm IQ Logo Left" />
                     </div>
                     <div class="logo-row">
-                        <img width="200" height="30" src="http://192.168.97.55:83/assets/chc-rhythmIQ.png"
+                        <img width="223" height="35" style="height: 35px; width: auto;"
+                             src="https://www.chchealthwatch.com/images/Healthwatch_logo.webp"
                              alt="Healthwatch Logo Right" />
                     </div>
                 </div>
@@ -584,7 +584,7 @@
                     <div class="page-heading">24-hour Summary</div>
                     <div class="header-right">
                         <div class="title">
-                            <span style="font-family: sans-serif; font-weight:normal">ELR Study </span><i class="report-title">Report</i>
+                            <span style="font-family: sans-serif; font-weight:normal">MCT Study </span><i class="report-title">Report</i>
                         </div>
                         <div class="subtitle">Ambulatory ECG Monitoring</div>
                     </div>
@@ -604,7 +604,8 @@
                     </div>
                     <div class="hr-legend">
                         <span style="display:inline-flex; align-items:center; gap: 8px;">
-                            <span class="legend-line"><span class="legend-red-line"></span></span> Event Strip bounds (Min/Max & Average HR)
+                            <span class="legend-line"><span class="legend-red-line"></span></span> Event Strip bounds
+                            (Min/Max & Average HR)
                         </span>
                     </div>
                 </div>
@@ -670,7 +671,8 @@
 
                             <div class="box" style="margin-top: 14px;">
                                 <div class="box-title-row with-line box_padding" style="margin-bottom: 0;">
-                                    <span class="af-burden" style="font-size: 16px; color: black; -webkit-text-stroke: 0px;">
+                                    <span class="af-burden"
+                                          style="font-size: 16px; color: black; -webkit-text-stroke: 0px;">
                                         <strong class="af-burden"><strong> Pause </strong> </strong>
                                     </span>
                                     <span class="val pause_longest_duration" style="font-weight: normal; "></span>
@@ -686,22 +688,29 @@
                                     <div class="leader box_padding_desc" style="margin-top: 6px;">
                                         <span class="lbl">AM:</span>
                                         <span class="dots"></span>
-                                        <span class="num" style="width: 50px; text-align: center;  font-weight: normal;" id="pause_am">-</span>
+                                        <span class="num" style="width: 50px; text-align: center;  font-weight: normal;"
+                                              id="pause_am">-</span>
                                         <span class="dots" style="flex: 0 0 30px;"></span>
-                                        <span class="num" style="width: 80px; text-align: right;  font-weight: normal;" id="pause_am_longest_duration">-</span>
-                                    </div>                      <div class="leader box_padding_desc" style="margin-top: 8px;">
+                                        <span class="num" style="width: 80px; text-align: right;  font-weight: normal;"
+                                              id="pause_am_longest_duration">-</span>
+                                    </div>
+                                    <div class="leader box_padding_desc" style="margin-top: 8px;">
                                         <span class="lbl">PM:</span>
                                         <span class="dots"></span>
-                                        <span class="num" style="width: 50px; text-align: center;  font-weight: normal;" id="pause_pm">-</span>
+                                        <span class="num" style="width: 50px; text-align: center;  font-weight: normal;"
+                                              id="pause_pm">-</span>
                                         <span class="dots" style="flex: 0 0 30px;"></span>
-                                        <span class="num" style="width: 80px; text-align: right;  font-weight: normal;" id="pause_pm_longest_duration">-</span>
+                                        <span class="num" style="width: 80px; text-align: right;  font-weight: normal;"
+                                              id="pause_pm_longest_duration">-</span>
                                     </div>
                                     <div class="leader box_padding_desc" style="margin-top: 8px;">
                                         <span class="lbl">Total:</span>
                                         <span class="dots"></span>
-                                        <span class="num" style="width: 50px; text-align: center;  font-weight: normal;" id="pause_total">-</span>
+                                        <span class="num" style="width: 50px; text-align: center;  font-weight: normal;"
+                                              id="pause_total">-</span>
                                         <span class="dots" style="flex: 0 0 30px;"></span>
-                                        <span class="num pause_longest_duration" style="width: 80px; text-align: right;  font-weight: normal;">-</span>
+                                        <span class="num pause_longest_duration"
+                                              style="width: 80px; text-align: right;  font-weight: normal;">-</span>
                                     </div>
                                 </div>
                             </div>
@@ -716,13 +725,16 @@
                             </div>
                             <div style="padding-bottom: 10px;">
                                 <div class="leader box_padding_desc" style="margin-top: 8px;">
-                                    <span class="lbl">AF Episodes:</span><span class="dots"></span><span class="num" id="af_count"></span>
+                                    <span class="lbl">AF Episodes:</span><span class="dots"></span><span class="num"
+                                                                                                         id="af_count"></span>
                                 </div>
                                 <div class="leader box_padding_desc" style="margin-top: 8px;">
-                                    <span class="lbl">AF High HR:</span><span class="dots"></span><span class="num" id="af_hr"><span>bpm</span></span>
+                                    <span class="lbl">AF High HR:</span><span class="dots"></span><span class="num"
+                                                                                                        id="af_hr"><span>bpm</span></span>
                                 </div>
                                 <div class="leader box_padding_desc" style="margin-top: 8px;">
-                                    <span class="lbl">Longest AF:</span><span class="dots"></span><span class="num" id="longest_af"></span>
+                                    <span class="lbl">Longest AF:</span><span class="dots"></span><span class="num"
+                                                                                                        id="longest_af"></span>
                                 </div>
                             </div>
                         </div>
@@ -796,7 +808,8 @@
                                     <span class="dots"></span>
                                     <span class="num" style="width: 50px; text-align: center;" id="pac_count"></span>
                                     <span class="dots" style="flex: 0 0 30px;"></span>
-                                    <span class="num" style="width: 50px; text-align: right;" id="pac_total_burden2"></span>
+                                    <span class="num" style="width: 50px; text-align: right;"
+                                          id="pac_total_burden2"></span>
                                 </div>
                             </div>
                         </div>
@@ -819,7 +832,7 @@
                 <div class="footer-text">
                     NOTICE: This report contains algorithmically processed data for clinical
                     evaluation. All findings must be reviewed and verified by a
-                    licensed physician prior to patient management. © Healthwatch Telediagnostics Private Limited. All
+                    licensed physician prior to patient management. © 2026 CHC MediTech Private Limited. All
                     rights reserved. Confidential.
                 </div>
             </div>
@@ -828,205 +841,205 @@
 
     <!-- MAIN LOGIC SCRIPT -->
     <script>
-const REPORT_DATA = /*{{REPORT_DATA}}*/ null;
-                
-                // -------------------------------------------------------------
-                // Populate Top Info Tables
-                // -------------------------------------------------------------
-                const patient = REPORT_DATA?.patient_details || {};
-                const eventSummary = REPORT_DATA?.event_summary || {};
-                const arrhythmia = REPORT_DATA?.arrhythmias_present || {};
-                const aF_Burden = REPORT_DATA?.aF_Burden || {};
-                const pvc = REPORT_DATA?.pvc || {};
-                const pac = REPORT_DATA?.pac || {};
-                const pause = REPORT_DATA?.pause || {};
+        const REPORT_DATA = /*{{REPORT_DATA}}*/ null;
+      
+        // -------------------------------------------------------------
+        // Populate Top Info Tables
+        // -------------------------------------------------------------
+        const patient = REPORT_DATA?.patient_details || {};
+        const eventSummary = REPORT_DATA?.event_summary || {};
+        const arrhythmia = REPORT_DATA?.arrhythmias_present || {};
+        const aF_Burden = REPORT_DATA?.aF_Burden || {};
+        const pvc = REPORT_DATA?.pvc || {};
+        const pac = REPORT_DATA?.pac || {};
+        const pause = REPORT_DATA?.pause || {};
 
-                document.getElementById("auto_event_count").innerText = eventSummary.auto_event_count;
-                document.getElementById("total_event_strip_count").innerText = eventSummary.total_event_strip_count;
+        document.getElementById("auto_event_count").innerText = eventSummary.auto_event_count;
+        document.getElementById("total_event_strip_count").innerText = eventSummary.total_event_strip_count;
 
-                document.getElementById('arrhythmiaAF').innerText = arrhythmia.af || 'None Found';
-                document.getElementById('arrhythmiaSVT').innerText = arrhythmia.svt || 'None Found';
-                document.getElementById('arrhythmiaPause').innerText = arrhythmia.pause || 'None Found';
-                document.getElementById('arrhythmiaHeartBlock').innerText = arrhythmia.heart_block || 'None Found';
-                document.getElementById('arrhythmiaVT').innerText = arrhythmia.vt || 'None Found';
+        document.getElementById('arrhythmiaAF').innerText = arrhythmia.af || 'None Found';
+        document.getElementById('arrhythmiaSVT').innerText = arrhythmia.svt || 'None Found';
+        document.getElementById('arrhythmiaPause').innerText = arrhythmia.pause || 'None Found';
+        document.getElementById('arrhythmiaHeartBlock').innerText = arrhythmia.heart_block || 'None Found';
+        document.getElementById('arrhythmiaVT').innerText = arrhythmia.vt || 'None Found';
 
-                document.getElementById('longest_af').innerText = aF_Burden.longest_af;
-                document.getElementById('af_percentage').innerText = aF_Burden.burden;
-                document.getElementById('af_count').innerText = aF_Burden.episode_count;
-                document.getElementById('af_hr').innerText = aF_Burden.high_hr;
+        document.getElementById('longest_af').innerText = aF_Burden.longest_af;
+        document.getElementById('af_percentage').innerText = aF_Burden.burden;
+        document.getElementById('af_count').innerText = aF_Burden.episode_count;
+        document.getElementById('af_hr').innerText = aF_Burden.high_hr;
 
-                document.getElementById('pvc_am').innerText = pvc.am;
-                document.getElementById('pvc_am_burden').innerText = pvc.am_burden;
-                document.getElementById('pvc_pm').innerText = pvc.pm;
-                document.getElementById('pvc_pm_burden').innerText = pvc.pm_burden;
-                document.getElementById('pvc_count').innerText = pvc.total;
-                document.querySelectorAll('.pvc_burden1').forEach(element => { element.textContent = pvc.total_burden || 0; });
+        document.getElementById('pvc_am').innerText = pvc.am;
+        document.getElementById('pvc_am_burden').innerText = pvc.am_burden;
+        document.getElementById('pvc_pm').innerText = pvc.pm;
+        document.getElementById('pvc_pm_burden').innerText = pvc.pm_burden;
+        document.getElementById('pvc_count').innerText = pvc.total;
+        document.querySelectorAll('.pvc_burden1').forEach(element => { element.textContent = pvc.total_burden || 0; });
 
-                document.getElementById('pac_am').innerText = pac.am;
-                document.getElementById('pac_am_burden').innerText = pac.am_burden;
-                document.getElementById('pac_pm').innerText = pac.pm;
-                document.getElementById('pac_pm_burden').innerText = pac.pm_burden;
-                document.getElementById('pac_count').innerText = pac.total;
-                document.getElementById('pac_total_burden1').innerText = pac.total_burden;
-                document.getElementById('pac_total_burden2').innerText = pac.total_burden;
+        document.getElementById('pac_am').innerText = pac.am;
+        document.getElementById('pac_am_burden').innerText = pac.am_burden;
+        document.getElementById('pac_pm').innerText = pac.pm;
+        document.getElementById('pac_pm_burden').innerText = pac.pm_burden;
+        document.getElementById('pac_count').innerText = pac.total;
+        document.getElementById('pac_total_burden1').innerText = pac.total_burden;
+        document.getElementById('pac_total_burden2').innerText = pac.total_burden;
 
-                document.getElementById('pause_am').innerText = pause.am;
-                document.getElementById('pause_am_longest_duration').innerText = pause.am_longest_duration;
-                document.getElementById('pause_pm').innerText = pause.pm;
-                document.getElementById('pause_pm_longest_duration').innerText = pause.pm_longest_duration;
-                document.getElementById('pause_total').innerText = pause.total;
-                document.querySelectorAll('.pause_longest_duration').forEach(element => { element.textContent = pvc.longest_duration || 0; });
+        document.getElementById('pause_am').innerText = pause.am;
+        document.getElementById('pause_am_longest_duration').innerText = pause.am_longest_duration;
+        document.getElementById('pause_pm').innerText = pause.pm;
+        document.getElementById('pause_pm_longest_duration').innerText = pause.pm_longest_duration;
+        document.getElementById('pause_total').innerText = pause.total;
+        document.querySelectorAll('.pause_longest_duration').forEach(element => { element.textContent = pvc.longest_duration || 0; });
 
-                const rows = [
-                    [
-                        { label: "Enrollment No", value: patient.patient_enrollment_id || "", width: "w33" },
-                        { label: "Patient ID", value: patient.patient_id || "", width: "w33" },
-                        { label: "Mobile No", value: patient.phone_no || "", width: "w33" }
-                    ],
-                    [
-                        { label: "Patient Name", value: patient.patient_name || "", width: "w50" },
-                        { label: "Total Study Duration (days)", value: patient.duration_in_day || "", width: "w25" }
-                    ],
-                    [
-                        { label: "Referring Physician", value: patient.doctor_name || "", width: "w100" }
-                    ],
-                    [
-                        { label: "Supervising Physician", value: patient.superviser_name || "", width: "w100" }
-                    ],
-                    [
-                        { label: "Duration of recording › Start", value: formatDateTime(patient.report_started_datetime) || "", width: "w50" },
-                        { label: "End", value: formatDateTime(patient.report_due_datetime) || "", width: "w50" }
-                    ],
-                    [
-                        { label: "Referring Facility", value: "", width: "w40" },
-                        { label: "Location", value: "", width: "w30" },
-                        { label: "Center ID", value: "", width: "w30" }
-                    ]
+        const rows = [
+            [
+                { label: "Enrollment No", value: patient.patient_enrollment_id || "", width: "w33" },
+                { label: "Patient ID", value: patient.patient_id || "", width: "w33" },
+                { label: "Mobile No", value: patient.phone_no || "", width: "w33" }
+            ],
+            [
+                { label: "Patient Name", value: patient.patient_name || "", width: "w50" },
+                { label: "Total Study Duration (days)", value: patient.duration_in_day || "", width: "w25" }
+            ],
+            [
+                { label: "Referring Physician", value: patient.doctor_name || "", width: "w100" }
+            ],
+            [
+                { label: "Supervising Physician", value: patient.superviser_name || "", width: "w100" }
+            ],
+            [
+                { label: "Duration of recording › Start", value: formatDateTime(patient.report_started_datetime) || "", width: "w50" },
+                { label: "End", value: formatDateTime(patient.report_due_datetime) || "", width: "w50" }
+            ],
+            [
+                { label: "Referring Facility", value: "", width: "w40" },
+                { label: "Location", value: "", width: "w30" },
+                { label: "Center ID", value: "", width: "w30" }
+            ]
+        ];
+
+        const container = document.getElementById("formContainer");
+        rows.forEach(r => {
+            const row = document.createElement("div"); row.className = "row";
+            r.forEach(f => {
+                const field = document.createElement("div"); field.className = `field ${f.width}`;
+                field.innerHTML = `<div class="label">${f.label}</div><div class="value">${f.value}</div>`;
+                row.appendChild(field);
+            });
+            container.appendChild(row);
+        });
+        function formatDateTime(dateString) {
+            if (!dateString) return "";
+
+            const date = new Date(dateString);
+
+            const day = String(date.getDate()).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const year = date.getFullYear();
+
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            const seconds = String(date.getSeconds()).padStart(2, "0");
+
+            return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+        }
+        // -------------------------------------------------------------
+        // Core Async Render Logic
+        // -------------------------------------------------------------
+        (async function () {
+
+            let eventsDataForGraph = [];
+
+            // ---------------- Utility functions ----------------
+            function formatCustomDateTime(dateString) {
+                if (!dateString || dateString === 'N/A') return 'N/A';
+                let date;
+                if (/^\d+$/.test(dateString)) date = new Date(parseInt(dateString, 10));
+                else date = new Date(dateString);
+
+                if (isNaN(date.getTime())) return dateString;
+
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const mins = String(date.getMinutes()).padStart(2, '0');
+                const secs = String(date.getSeconds()).padStart(2, '0');
+                return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
+            }
+
+            function getMinutesFromMidnight(dateString) {
+                if (!dateString || dateString === 'N/A') return 0;
+                let date;
+                if (/^\d+$/.test(dateString)) date = new Date(parseInt(dateString, 10));
+                else date = new Date(dateString);
+
+                if (isNaN(date.getTime())) return 0;
+                return (date.getHours() * 60) + date.getMinutes() + (date.getSeconds() / 60);
+            }
+
+            function calculateBPMStats(voltages, samplingRate) {
+                if (!voltages || voltages.length === 0) return { min: 0, max: 0, avg: 0 };
+
+                let sum = 0; for (let i = 0; i < voltages.length; i++) sum += voltages[i];
+                let mean = sum / voltages.length;
+
+                let maxDev = 0;
+                for (let i = 0; i < voltages.length; i++) {
+                    let dev = voltages[i] - mean;
+                    if (dev > maxDev) maxDev = dev;
+                }
+
+                let threshold = mean + (maxDev * 0.6);
+                let peaks = [];
+                let lastPeakIdx = -1;
+                let minPeakDist = samplingRate * 0.3;
+
+                for (let i = 0; i < voltages.length; i++) {
+                    if (voltages[i] > threshold) {
+                        if (lastPeakIdx === -1 || (i - lastPeakIdx) > minPeakDist) {
+                            peaks.push(i);
+                            lastPeakIdx = i;
+                        } else if (voltages[i] > voltages[lastPeakIdx]) {
+                            peaks[peaks.length - 1] = i;
+                            lastPeakIdx = i;
+                        }
+                    }
+                }
+
+                if (peaks.length < 2) return { min: 0, max: 0, avg: 0 };
+
+                let bpms = [];
+                for (let i = 1; i < peaks.length; i++) {
+                    let r_r_sec = (peaks[i] - peaks[i - 1]) / samplingRate;
+                    if (r_r_sec > 0) bpms.push(60 / r_r_sec);
+                }
+
+                return {
+                    min: Math.round(Math.min(...bpms)),
+                    max: Math.round(Math.max(...bpms)),
+                    avg: Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length)
+                };
+            }
+
+            // ---------------- UI Builders ----------------
+            function createPatientRow() {
+                const patientFields = [
+                    { label: "Patient", value: patient.patient_name, width: "w33" },
+                    { label: "Patient ID", value: patient.patient_id, width: "w33" },
+                    { label: "Date", value: "", width: "w33" }
                 ];
-
-                const container = document.getElementById("formContainer");
-                rows.forEach(r => {
-                    const row = document.createElement("div"); row.className = "row";
-                    r.forEach(f => {
-                        const field = document.createElement("div"); field.className = `field ${f.width}`;
-                        field.innerHTML = `<div class="label">${f.label}</div><div class="value">${f.value}</div>`;
-                        row.appendChild(field);
-                    });
-                    container.appendChild(row);
+                const row = document.createElement('div'); row.className = 'row';
+                patientFields.forEach(f => {
+                    const field = document.createElement('div'); field.className = `field ${f.width}`;
+                    field.innerHTML = `<div class="label">${f.label}</div><div class="value">${f.value}</div>`;
+                    row.appendChild(field);
                 });
-function formatDateTime(dateString) {
-    if (!dateString) return "";
+                return row;
+            }
 
-    const date = new Date(dateString);
-
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
-
-    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
-}
-                // -------------------------------------------------------------
-                // Core Async Render Logic
-                // -------------------------------------------------------------
-                (async function () {
-
-                    let eventsDataForGraph = [];
-
-                    // ---------------- Utility functions ----------------
-                    function formatCustomDateTime(dateString) {
-                        if (!dateString || dateString === 'N/A') return 'N/A';
-                        let date;
-                        if (/^\d+$/.test(dateString)) date = new Date(parseInt(dateString, 10));
-                        else date = new Date(dateString);
-
-                        if (isNaN(date.getTime())) return dateString;
-
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = date.getFullYear();
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const mins = String(date.getMinutes()).padStart(2, '0');
-                        const secs = String(date.getSeconds()).padStart(2, '0');
-                        return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
-                    }
-
-                    function getMinutesFromMidnight(dateString) {
-                        if (!dateString || dateString === 'N/A') return 0;
-                        let date;
-                        if (/^\d+$/.test(dateString)) date = new Date(parseInt(dateString, 10));
-                        else date = new Date(dateString);
-
-                        if (isNaN(date.getTime())) return 0;
-                        return (date.getHours() * 60) + date.getMinutes() + (date.getSeconds() / 60);
-                    }
-
-                    function calculateBPMStats(voltages, samplingRate) {
-                        if (!voltages || voltages.length === 0) return { min: 0, max: 0, avg: 0 };
-
-                        let sum = 0; for(let i=0; i<voltages.length; i++) sum+=voltages[i];
-                        let mean = sum/voltages.length;
-
-                        let maxDev = 0;
-                        for(let i=0; i<voltages.length; i++) {
-                            let dev = voltages[i] - mean;
-                            if(dev > maxDev) maxDev = dev;
-                        }
-
-                        let threshold = mean + (maxDev * 0.6);
-                        let peaks = [];
-                        let lastPeakIdx = -1;
-                        let minPeakDist = samplingRate * 0.3;
-
-                        for (let i = 0; i < voltages.length; i++) {
-                            if (voltages[i] > threshold) {
-                                if (lastPeakIdx === -1 || (i - lastPeakIdx) > minPeakDist) {
-                                    peaks.push(i);
-                                    lastPeakIdx = i;
-                                } else if (voltages[i] > voltages[lastPeakIdx]) {
-                                    peaks[peaks.length - 1] = i;
-                                    lastPeakIdx = i;
-                                }
-                            }
-                        }
-
-                        if (peaks.length < 2) return { min: 0, max: 0, avg: 0 };
-
-                        let bpms = [];
-                        for (let i = 1; i < peaks.length; i++) {
-                            let r_r_sec = (peaks[i] - peaks[i-1]) / samplingRate;
-                            if (r_r_sec > 0) bpms.push(60 / r_r_sec);
-                        }
-
-                        return {
-                            min: Math.round(Math.min(...bpms)),
-                            max: Math.round(Math.max(...bpms)),
-                            avg: Math.round(bpms.reduce((a,b)=>a+b,0) / bpms.length)
-                        };
-                    }
-
-                    // ---------------- UI Builders ----------------
-                    function createPatientRow() {
-                        const patientFields = [
-                            { label: "Patient", value: patient.patient_name, width: "w33" },
-                            { label: "Patient ID", value: patient.patient_id, width: "w33" },
-                            { label: "Date", value: formatDateTime(patient.created_datetime), width: "w33" }
-                        ];
-                        const row = document.createElement('div'); row.className = 'row';
-                        patientFields.forEach(f => {
-                            const field = document.createElement('div'); field.className = `field ${f.width}`;
-                            field.innerHTML = `<div class="label">${f.label}</div><div class="value">${f.value}</div>`;
-                            row.appendChild(field);
-                        });
-                        return row;
-                    }
-
-                    function createFooter(pageNum, totalPages) {
-                        const footer = document.createElement('div'); footer.className = 'footer';
-                        footer.innerHTML = `
+            function createFooter(pageNum, totalPages) {
+                const footer = document.createElement('div'); footer.className = 'footer';
+                footer.innerHTML = `
                             <div class="footer-line"></div>
                             <div class="footer-top">
                                 <span class="footer-title">24-hour Summary</span>
@@ -1037,32 +1050,32 @@ function formatDateTime(dateString) {
                                 <img width="60" height="25" style="padding-right:3px"
                                     src='https://elr.chcpharmacy.com/assets/server-image.png' />
                                 <div class="footer-text">
-                                    NOTICE: This report contains algorithmically processed data for clinical evaluation. All findings must be reviewed and verified by a licensed physician prior to patient management. © Healthwatch Telediagnostics Private Limited. All rights reserved. Confidential.
+                                    NOTICE: This report contains algorithmically processed data for clinical evaluation. All findings must be reviewed and verified by a licensed physician prior to patient management. © 2026 CHC MediTech Private Limited. All rights reserved. Confidential.
                                 </div>
                             </div>`;
-                        return footer;
-                    }
+                return footer;
+            }
 
-                    function buildCard(ev) {
-                        const card = document.createElement('div');
-                        card.className = 'ecg-card';
+            function buildCard(ev) {
+                const card = document.createElement('div');
+                card.className = 'ecg-card';
 
-                        // 1. Bundle the required data into a single object
-                        const payload = {
-                            patient_id: ev.patientId || "",
-                            patient_enrollment_id: ev.enrollmentId || "",
-                            event_file_path: ev.filePath || "",
-                            finding_list: ev.findingList || [],
-                            trigger_type: ev.trigger_type || ""
-                        };
+                // 1. Bundle the required data into a single object
+                const payload = {
+                    patient_id: ev.patientId || "",
+                    patient_enrollment_id: ev.enrollmentId || "",
+                    event_file_path: ev.filePath || "",
+                    finding_list: ev.findingList || [],
+                    trigger_type: ev.trigger_type || ""
+                };
 
-                        // 2. Stringify -> Base64 Encode -> URL Encode
-                        const encodedPayload = encodeURIComponent(btoa(JSON.stringify(payload)));
+                // 2. Stringify -> Base64 Encode -> URL Encode
+                const encodedPayload = encodeURIComponent(btoa(JSON.stringify(payload)));
 
-                        // 3. Append to the target URL (e.g., as a 'data' parameter)
-                        const targetUrl = `http://192.168.97.55:83/?qpdata=${encodedPayload}`;
+                // 3. Append to the target URL (e.g., as a 'data' parameter)
+                const targetUrl = `http://192.168.97.55:83/?qpdata=${encodedPayload}`;
 
-                        card.innerHTML = `
+                card.innerHTML = `
         <div class="ecg-card-header">
             <span>${ev.number}. ${formatCustomDateTime(ev.datetime)} <a class="ecg-link" target="_blank" href="${targetUrl}">
             <svg width="8" height="8" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1090,488 +1103,558 @@ function formatDateTime(dateString) {
             <div class="col-right"><strong>Activity:</strong> ${ev.movement}</div>
         </div>
     `;
-                        return card;
+                return card;
+            }
+            function drawECG(canvas, waveformData) {
+                const dpr = Math.max(window.devicePixelRatio || 1, 4);
+                const width = canvas.parentElement.clientWidth;
+                const height = 180;
+
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+
+                const ctx = canvas.getContext('2d');
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                ctx.clearRect(0, 0, width, height);
+
+                // Equal margins on left and right since Y-axis amplitude points are removed
+                const marginLeft = 6, marginRight = 6, marginTop = 20, marginBottom = 45;
+                const plotW = Math.max(0, width - marginLeft - marginRight);
+                const plotH = height - marginTop - marginBottom;
+
+                const voltages = waveformData.voltage_mv || [];
+                const timestamps = waveformData.timestamp_ms || [];
+                const samplingRate = waveformData.sampling_rate || 256;
+                const totalPoints = voltages.length;
+                const durationSec = totalPoints / samplingRate;
+
+                if (totalPoints === 0) {
+                    ctx.fillStyle = '#000000';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('No ECG data available in response.', width / 2, height / 2);
+                    return;
+                }
+
+                const pxPerSec = plotW / (durationSec || 10);
+                const midY = marginTop + (plotH / 2);
+
+                // Standard ECG paper square grid (1mm x 1mm and 5mm x 5mm proportional)
+                const smallStepX = 0.04 * pxPerSec;
+                const smallStepY = smallStepX;
+                const bigStepX = smallStepX * 5;
+                const bigStepY = smallStepY * 5;
+
+                const gridLeft = marginLeft, gridRight = width - marginRight;
+                const gridTop = marginTop, gridBottom = height - marginBottom;
+
+                // 1. Grid Background (Pure white)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(gridLeft, gridTop, plotW, plotH);
+
+                // 2. Minor Grid (Light pink/salmon-red medical ECG paper theme)
+                ctx.strokeStyle = '#ffb2b2';
+                ctx.lineWidth = 0.5;
+                for (let x = gridLeft; x <= gridRight; x += smallStepX) {
+                    ctx.beginPath();
+                    ctx.moveTo(Math.round(x) + 0.5, gridTop);
+                    ctx.lineTo(Math.round(x) + 0.5, gridBottom);
+                    ctx.stroke();
+                }
+                for (let y = gridTop; y <= gridBottom; y += smallStepY) {
+                    ctx.beginPath();
+                    ctx.moveTo(gridLeft, Math.round(y) + 0.5);
+                    ctx.lineTo(gridRight, Math.round(y) + 0.5);
+                    ctx.stroke();
+                }
+
+                // 3. Major Grid (Vivid medical red)
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 0.8;
+                for (let x = gridLeft; x <= gridRight; x += bigStepX) {
+                    ctx.beginPath();
+                    ctx.moveTo(Math.round(x) + 0.5, gridTop);
+                    ctx.lineTo(Math.round(x) + 0.5, gridBottom);
+                    ctx.stroke();
+                }
+                for (let y = gridTop; y <= gridBottom; y += bigStepY) {
+                    ctx.beginPath();
+                    ctx.moveTo(gridLeft, Math.round(y) + 0.5);
+                    ctx.lineTo(gridRight, Math.round(y) + 0.5);
+                    ctx.stroke();
+                }
+
+                // 4. Grid Outer Border
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 0.85;
+                ctx.strokeRect(gridLeft, gridTop, plotW, plotH);
+
+                // 5. Y-Axis Amplitude Points removed per request
+
+                // 6. X-Axis Timestamp Labels (Black)
+                ctx.fillStyle = '#000000';
+                ctx.font = '8px Arial, sans-serif';
+                ctx.textBaseline = 'bottom';
+
+                function formatTimeLabel(index) {
+                    if (timestamps.length > index) {
+                        const date = new Date(timestamps[index]);
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const mins = String(date.getMinutes()).padStart(2, '0');
+                        const secs = String(date.getSeconds()).padStart(2, '0');
+                        const deciseconds = Math.floor(date.getMilliseconds() / 100);
+                        return `${hours}:${mins}:${secs}.${deciseconds}`;
                     }
-                    function drawECG(canvas, waveformData) {
-                        const dpr = Math.max(window.devicePixelRatio || 1, 4);
-                        const width = canvas.parentElement.clientWidth;
-                        const height = 180;
+                    return '';
+                }
 
-                        canvas.width = width * dpr;
-                        canvas.height = height * dpr;
-                        canvas.style.width = width + 'px';
-                        canvas.style.height = height + 'px';
+                ctx.textAlign = 'left';
+                ctx.fillText(formatTimeLabel(0), gridLeft, marginTop - 4);
+                ctx.textAlign = 'right';
+                ctx.fillText(formatTimeLabel(totalPoints - 1), gridRight, marginTop - 4);
 
-                        const ctx = canvas.getContext('2d');
-                        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                        ctx.clearRect(0, 0, width, height);
+                // Dynamic voltage range & compression so waveform is fully shown within container
+                let minV = Infinity, maxV = -Infinity;
+                for (let i = 0; i < totalPoints; i++) {
+                    const v = voltages[i];
+                    if (v < minV) minV = v;
+                    if (v > maxV) maxV = v;
+                }
+                if (!isFinite(minV)) { minV = -1; maxV = 1; }
 
-                        const marginLeft = 25, marginRight = 5, marginTop = 20, marginBottom = 45;
-                        const plotW = Math.max(0, width - marginLeft - marginRight);
-                        const plotH = height - marginTop - marginBottom;
+                const signalCenter = (Math.abs((maxV + minV) / 2) > 1.5) ? ((maxV + minV) / 2) : 0;
+                let maxDev = 0;
+                for (let i = 0; i < totalPoints; i++) {
+                    const dev = Math.abs(voltages[i] - signalCenter);
+                    if (dev > maxDev) maxDev = dev;
+                }
 
-                        const voltages = waveformData.voltage_mv || [];
-                        const timestamps = waveformData.timestamp_ms || [];
-                        const samplingRate = waveformData.sampling_rate || 256;
-                        const totalPoints = voltages.length;
-                        const durationSec = totalPoints / samplingRate;
+                // Compress waveform vertically to fit with clean margin inside grid container
+                const padY = 16;
+                const halfH = (plotH / 2) - padY;
+                const scaleY = halfH / Math.max(maxDev, 2.0);
 
-                        if (totalPoints === 0) {
-                            ctx.fillStyle = '#000000';
-                            ctx.font = '12px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText('No ECG data available in response.', width / 2, height / 2);
-                            return;
+                // 7. Main ECG Waveform (Clean thin line like Image 1, fully compressed inside container)
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(gridLeft, gridTop, plotW, plotH);
+                ctx.clip();
+
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 0.75;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+
+                for (let i = 0; i < totalPoints; i++) {
+                    const x = gridLeft + (i / samplingRate) * pxPerSec;
+                    const y = midY - (voltages[i] - signalCenter) * scaleY;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.restore();
+
+                // 8. Bottom Rhythm / Mini-strip
+                const stripTop = height - 30;
+                const stripBottom = height - 5;
+                const stripH = stripBottom - stripTop;
+                const stripMidY = stripTop + stripH / 2;
+                const hlStart = gridLeft + plotW * 0.35;
+                const hlEnd = gridLeft + plotW * 0.65;
+
+                // Mini-strip background container
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(gridLeft, stripTop, plotW, stripH);
+
+                // Highlight section (soft red/pink tint like Image 2)
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+                ctx.fillRect(hlStart, stripTop, hlEnd - hlStart, stripH);
+
+                // Mini-strip outer border
+                ctx.strokeStyle = '#d1d5db';
+                ctx.lineWidth = 0.8;
+                ctx.strokeRect(gridLeft, stripTop, plotW, stripH);
+
+                // Center baseline
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 0.6;
+                ctx.beginPath();
+                ctx.moveTo(gridLeft, stripMidY);
+                ctx.lineTo(gridRight, stripMidY);
+                ctx.stroke();
+
+                // Ticks along the baseline
+                ctx.strokeStyle = '#cccccc';
+                ctx.lineWidth = 0.6;
+                const tickSpacing = pxPerSec;
+                for (let x = gridLeft; x <= gridRight; x += tickSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, stripMidY - 3);
+                    ctx.lineTo(x, stripMidY + 3);
+                    ctx.stroke();
+                }
+
+                // Mini-strip Waveform (Clean thin line, compressed inside mini-strip)
+                const miniPadY = 3;
+                const miniHalfH = (stripH / 2) - miniPadY;
+                const miniScaleY = miniHalfH / Math.max(maxDev, 2.0);
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(gridLeft, stripTop, plotW, stripH);
+                ctx.clip();
+
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 0.65;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                for (let i = 0; i < totalPoints; i++) {
+                    const x = gridLeft + (i / samplingRate) * pxPerSec;
+                    const y = stripMidY - (voltages[i] - signalCenter) * miniScaleY;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // ---------------- NEW AGGREGATED HR EVENT GRAPH RENDER ----------------
+            function renderEventSummaryGraph(fetchedDataPoints) {
+                const canvas = document.getElementById('hrCanvas');
+                const ctx = canvas.getContext('2d');
+                const wrap = canvas.parentElement;
+
+                function draw() {
+                    const dpr = Math.max(window.devicePixelRatio || 1, 4);
+                    const width = wrap.getBoundingClientRect().width;
+                    const height = 130;
+
+                    canvas.width = width * dpr;
+                    canvas.height = height * dpr;
+                    canvas.style.width = width + 'px';
+                    canvas.style.height = height + 'px';
+                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    ctx.clearRect(0, 0, width, height);
+
+                    const marginLeft = 28, marginRight = 10, marginTop = 10, marginBottom = 18;
+                    const chartW = width - marginLeft - marginRight;
+                    const chartH = height - marginTop - marginBottom;
+                    const yMinVal = 0, yMaxVal = 200, yStep = 40;
+
+                    ctx.strokeStyle = '#E5E9ED';
+                    ctx.lineWidth = 1;
+                    ctx.fillStyle = '#000000';
+                    ctx.font = '9px -apple-system, Helvetica, Arial, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+
+                    for (let v = yMinVal; v <= yMaxVal; v += yStep) {
+                        const y = marginTop + chartH * (1 - (v - yMinVal) / (yMaxVal - yMinVal));
+                        ctx.beginPath();
+                        ctx.moveTo(marginLeft, y);
+                        ctx.lineTo(width - marginRight, y);
+                        ctx.stroke();
+                        ctx.fillText(String(v), marginLeft - 6, y);
+                    }
+
+                    const gapX = 15;
+                    const plotW = chartW - (gapX * 2);
+
+                    ctx.fillStyle = '#000000';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+
+                    for (let h = 0; h < 24; h += 2) {
+                        const x = marginLeft + gapX + plotW * (h * 60 / 1440);
+                        let label;
+                        if (h === 0) label = '12AM';
+                        else if (h < 12) label = h + 'AM';
+                        else if (h === 12) label = '12PM';
+                        else label = (h - 12) + 'PM';
+                        ctx.fillText(label, x, marginTop + chartH + 6);
+                    }
+
+                    if (fetchedDataPoints && fetchedDataPoints.length > 0) {
+
+                        fetchedDataPoints.sort((a, b) => a.startMins - b.startMins);
+
+                        // Overlap Removal Logic - Aggregates points that are less than ~3.5 pixels apart
+                        let aggregated = [];
+                        const MIN_GAP_MINS = (3.5 / plotW) * 1440;
+
+                        let currentBin = null;
+                        for (let d of fetchedDataPoints) {
+                            if (d.min === 0 && d.max === 0) continue;
+
+                            if (!currentBin) {
+                                currentBin = { ...d, sumAvg: d.avg, count: 1 };
+                            } else {
+                                if (d.startMins - currentBin.startMins < MIN_GAP_MINS) {
+                                    currentBin.min = Math.min(currentBin.min, d.min);
+                                    currentBin.max = Math.max(currentBin.max, d.max);
+                                    currentBin.sumAvg += d.avg;
+                                    currentBin.count++;
+                                } else {
+                                    currentBin.avg = currentBin.sumAvg / currentBin.count;
+                                    aggregated.push(currentBin);
+                                    currentBin = { ...d, sumAvg: d.avg, count: 1 };
+                                }
+                            }
+                        }
+                        if (currentBin) {
+                            currentBin.avg = currentBin.sumAvg / currentBin.count;
+                            aggregated.push(currentBin);
                         }
 
-                        const pxPerSec = plotW / (durationSec || 10);
-                        const pxPer_mV = plotH / 3;
-                        const midY = marginTop + (plotH / 2);
+                        // Update Stats using aggregated clean data
+                        const minValues = aggregated.map(e => e.min);
+                        const maxValues = aggregated.map(e => e.max);
+                        const avgSum = aggregated.reduce((sum, e) => sum + e.avg, 0);
 
-                        const smallStepX = 0.04 * pxPerSec, smallStepY = 0.1 * pxPer_mV;
-                        const bigStepX = smallStepX * 5, bigStepY = smallStepY * 5;
+                        const minStr = minValues.length > 0 ? Math.min(...minValues) : '--';
+                        const maxStr = maxValues.length > 0 ? Math.max(...maxValues) : '--';
+                        const avgStr = aggregated.length > 0 ? Math.round(avgSum / aggregated.length) : '--';
 
-                        const gridLeft = marginLeft, gridRight = width - marginRight;
-                        const gridTop = marginTop, gridBottom = height - marginBottom;
+                        document.getElementById('statAvg').textContent = `Average HR: ${avgStr}bpm`;
+                        document.getElementById('statMin').textContent = `Minimum Strip HR: ${minStr}bpm`;
+                        document.getElementById('statMax').textContent = `Maximum Strip HR: ${maxStr}bpm`;
 
-                        ctx.strokeStyle = '#D5EAF7';
-                        ctx.lineWidth = 0.5;
-                        for (let x = gridLeft; x <= gridRight; x += smallStepX) {
-                            ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, gridTop); ctx.lineTo(Math.round(x) + 0.5, gridBottom); ctx.stroke();
-                        }
-                        for (let y = gridTop; y <= gridBottom; y += smallStepY) {
-                            ctx.beginPath(); ctx.moveTo(gridLeft, Math.round(y) + 0.5); ctx.lineTo(gridRight, Math.round(y) + 0.5); ctx.stroke();
-                        }
+                        // Draw Min/Max vertical black lines with horizontal caps
+                        ctx.strokeStyle = '#4a4a4a';
+                        ctx.lineWidth = 1.2;
+                        ctx.lineCap = 'butt';
 
-                        ctx.strokeStyle = '#A9D0E8';
-                        ctx.lineWidth = 0.8;
-                        for (let x = gridLeft; x <= gridRight; x += bigStepX) {
-                            ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, gridTop); ctx.lineTo(Math.round(x) + 0.5, gridBottom); ctx.stroke();
-                        }
-                        for (let y = gridTop; y <= gridBottom; y += bigStepY) {
-                            ctx.beginPath(); ctx.moveTo(gridLeft, Math.round(y) + 0.5); ctx.lineTo(gridRight, Math.round(y) + 0.5); ctx.stroke();
-                        }
+                        const capHalf = 2.5;
 
-                        ctx.fillStyle = '#000000';
-                        ctx.font = '8px Arial, sans-serif';
-                        ctx.textAlign = 'right';
-                        ctx.textBaseline = 'middle';
+                        aggregated.forEach(d => {
+                            let x = marginLeft + gapX + plotW * (d.startMins / 1440);
+                            let yMaxPix = marginTop + chartH * (1 - (Math.min(d.max, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
+                            let yMinPix = marginTop + chartH * (1 - (Math.min(d.min, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
 
-                        const yLabels = [1.0, 0.5, 0, -0.5, -1.0];
-                        yLabels.forEach(value => {
-                            const y = midY - (value * pxPer_mV);
-                            ctx.fillText(value.toFixed(1), marginLeft - 4, y);
+                            ctx.beginPath();
+                            ctx.moveTo(x, yMinPix);
+                            ctx.lineTo(x, yMaxPix);
+
+                            ctx.moveTo(x - capHalf, yMaxPix);
+                            ctx.lineTo(x + capHalf, yMaxPix);
+
+                            ctx.moveTo(x - capHalf, yMinPix);
+                            ctx.lineTo(x + capHalf, yMinPix);
+                            ctx.stroke();
                         });
 
-                        ctx.fillStyle = '#000000';
-                        ctx.font = '8px Arial, sans-serif';
-                        ctx.textBaseline = 'bottom';
-
-                        function formatTimeLabel(index) {
-                            if (timestamps.length > index) {
-                                const date = new Date(timestamps[index]);
-                                const hours = String(date.getHours()).padStart(2, '0');
-                                const mins = String(date.getMinutes()).padStart(2, '0');
-                                const secs = String(date.getSeconds()).padStart(2, '0');
-                                const deciseconds = Math.floor(date.getMilliseconds() / 100);
-                                return `${hours}:${mins}:${secs}.${deciseconds}`;
-                            }
-                            return "";
-                        }
-
-                        ctx.textAlign = 'left';
-                        ctx.fillText(formatTimeLabel(0), marginLeft, marginTop - 4);
-                        ctx.textAlign = 'right';
-                        ctx.fillText(formatTimeLabel(totalPoints - 1), width - marginRight, marginTop - 4);
-
-                        ctx.strokeStyle = 'rgb(31 105 172)';
-                        ctx.lineWidth = 1.3;
+                        // Draw the continuous red line connecting all event averages
+                        ctx.strokeStyle = '#D9766B';
+                        ctx.lineWidth = 1.5;
                         ctx.lineJoin = 'round';
                         ctx.lineCap = 'round';
                         ctx.beginPath();
 
-                        for (let i = 0; i < totalPoints; i++) {
-                            const x = marginLeft + (i / samplingRate) * pxPerSec;
-                            const y = midY - (voltages[i] * pxPer_mV);
-                            if (i === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                        }
-                        ctx.stroke();
+                        aggregated.forEach((d, i) => {
+                            let x = marginLeft + gapX + plotW * (d.startMins / 1440);
+                            let yAvgPix = marginTop + chartH * (1 - (Math.min(d.avg, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
 
-                        const stripTop = height - 30;
-                        const stripBottom = height - 5;
-                        const stripMidY = stripTop + (stripBottom - stripTop) / 2;
-                        const hlStart = marginLeft + plotW * 0.35;
-                        const hlEnd = marginLeft + plotW * 0.65;
-
-                        ctx.fillStyle = 'rgba(120, 170, 220, 0.4)';
-                        ctx.fillRect(hlStart, stripTop - 2, hlEnd - hlStart, (stripBottom - stripTop) + 4);
-
-                        ctx.strokeStyle = '#999999';
-                        ctx.lineWidth = 0.8;
-                        ctx.beginPath();
-                        ctx.moveTo(marginLeft, stripMidY);
-                        ctx.lineTo(width - marginRight, stripMidY);
-                        ctx.stroke();
-
-                        const tickSpacing = pxPerSec;
-                        for (let x = marginLeft; x <= width - marginRight; x += tickSpacing) {
-                            ctx.beginPath(); ctx.moveTo(x, stripMidY - 3); ctx.lineTo(x, stripMidY + 3); ctx.stroke();
-                        }
-
-                        ctx.strokeStyle = 'rgb(31 105 172)';
-                        ctx.lineWidth = 1.0;
-                        ctx.beginPath();
-                        for (let i = 0; i < totalPoints; i++) {
-                            const x = marginLeft + (i / samplingRate) * pxPerSec;
-                            const y = stripMidY - (voltages[i] * 6);
-                            if (i === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                        }
-                        ctx.stroke();
-                    }
-
-                    // ---------------- NEW AGGREGATED HR EVENT GRAPH RENDER ----------------
-                    function renderEventSummaryGraph(fetchedDataPoints) {
-                        const canvas = document.getElementById('hrCanvas');
-                        const ctx = canvas.getContext('2d');
-                        const wrap = canvas.parentElement;
-
-                        function draw() {
-                            const dpr = Math.max(window.devicePixelRatio || 1, 4);
-                            const width = wrap.getBoundingClientRect().width;
-                            const height = 130;
-
-                            canvas.width = width * dpr;
-                            canvas.height = height * dpr;
-                            canvas.style.width = width + 'px';
-                            canvas.style.height = height + 'px';
-                            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                            ctx.clearRect(0, 0, width, height);
-
-                            const marginLeft = 28, marginRight = 10, marginTop = 10, marginBottom = 18;
-                            const chartW = width - marginLeft - marginRight;
-                            const chartH = height - marginTop - marginBottom;
-                            const yMinVal = 0, yMaxVal = 200, yStep = 40;
-
-                            ctx.strokeStyle = '#E5E9ED';
-                            ctx.lineWidth = 1;
-                            ctx.fillStyle = '#000000';
-                            ctx.font = '9px -apple-system, Helvetica, Arial, sans-serif';
-                            ctx.textAlign = 'right';
-                            ctx.textBaseline = 'middle';
-
-                            for (let v = yMinVal; v <= yMaxVal; v += yStep) {
-                                const y = marginTop + chartH * (1 - (v - yMinVal) / (yMaxVal - yMinVal));
-                                ctx.beginPath();
-                                ctx.moveTo(marginLeft, y);
-                                ctx.lineTo(width - marginRight, y);
-                                ctx.stroke();
-                                ctx.fillText(String(v), marginLeft - 6, y);
-                            }
-
-                            const gapX = 15;
-                            const plotW = chartW - (gapX * 2);
-
-                            ctx.fillStyle = '#000000';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'top';
-
-                            for (let h = 0; h < 24; h += 2) {
-                                const x = marginLeft + gapX + plotW * (h * 60 / 1440);
-                                let label;
-                                if (h === 0) label = '12AM';
-                                else if (h < 12) label = h + 'AM';
-                                else if (h === 12) label = '12PM';
-                                else label = (h - 12) + 'PM';
-                                ctx.fillText(label, x, marginTop + chartH + 6);
-                            }
-
-                            if (fetchedDataPoints && fetchedDataPoints.length > 0) {
-
-                                fetchedDataPoints.sort((a, b) => a.startMins - b.startMins);
-
-                                // Overlap Removal Logic - Aggregates points that are less than ~3.5 pixels apart
-                                let aggregated = [];
-                                const MIN_GAP_MINS = (3.5 / plotW) * 1440;
-
-                                let currentBin = null;
-                                for (let d of fetchedDataPoints) {
-                                    if (d.min === 0 && d.max === 0) continue;
-
-                                    if (!currentBin) {
-                                        currentBin = { ...d, sumAvg: d.avg, count: 1 };
-                                    } else {
-                                        if (d.startMins - currentBin.startMins < MIN_GAP_MINS) {
-                                            currentBin.min = Math.min(currentBin.min, d.min);
-                                            currentBin.max = Math.max(currentBin.max, d.max);
-                                            currentBin.sumAvg += d.avg;
-                                            currentBin.count++;
-                                        } else {
-                                            currentBin.avg = currentBin.sumAvg / currentBin.count;
-                                            aggregated.push(currentBin);
-                                            currentBin = { ...d, sumAvg: d.avg, count: 1 };
-                                        }
-                                    }
-                                }
-                                if (currentBin) {
-                                    currentBin.avg = currentBin.sumAvg / currentBin.count;
-                                    aggregated.push(currentBin);
-                                }
-
-                                // Update Stats using aggregated clean data
-                                const minValues = aggregated.map(e => e.min);
-                                const maxValues = aggregated.map(e => e.max);
-                                const avgSum = aggregated.reduce((sum, e) => sum + e.avg, 0);
-
-                                const minStr = minValues.length > 0 ? Math.min(...minValues) : '--';
-                                const maxStr = maxValues.length > 0 ? Math.max(...maxValues) : '--';
-                                const avgStr = aggregated.length > 0 ? Math.round(avgSum / aggregated.length) : '--';
-
-                                document.getElementById('statAvg').textContent = `Average HR: ${avgStr}bpm`;
-                                document.getElementById('statMin').textContent = `Minimum Strip HR: ${minStr}bpm`;
-                                document.getElementById('statMax').textContent = `Maximum Strip HR: ${maxStr}bpm`;
-
-                                // Draw Min/Max vertical black lines with horizontal caps
-                                ctx.strokeStyle = '#4a4a4a';
-                                ctx.lineWidth = 1.2;
-                                ctx.lineCap = 'butt';
-
-                                const capHalf = 2.5;
-
-                                aggregated.forEach(d => {
-                                    let x = marginLeft + gapX + plotW * (d.startMins / 1440);
-                                    let yMaxPix = marginTop + chartH * (1 - (Math.min(d.max, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
-                                    let yMinPix = marginTop + chartH * (1 - (Math.min(d.min, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
-
-                                    ctx.beginPath();
-                                    ctx.moveTo(x, yMinPix);
-                                    ctx.lineTo(x, yMaxPix);
-
-                                    ctx.moveTo(x - capHalf, yMaxPix);
-                                    ctx.lineTo(x + capHalf, yMaxPix);
-
-                                    ctx.moveTo(x - capHalf, yMinPix);
-                                    ctx.lineTo(x + capHalf, yMinPix);
-                                    ctx.stroke();
-                                });
-
-                                // Draw the continuous red line connecting all event averages
-                                ctx.strokeStyle = '#D9766B';
-                                ctx.lineWidth = 1.5;
-                                ctx.lineJoin = 'round';
-                                ctx.lineCap = 'round';
-                                ctx.beginPath();
-
-                                aggregated.forEach((d, i) => {
-                                    let x = marginLeft + gapX + plotW * (d.startMins / 1440);
-                                    let yAvgPix = marginTop + chartH * (1 - (Math.min(d.avg, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
-
-                                    if (i === 0) ctx.moveTo(x, yAvgPix);
-                                    else ctx.lineTo(x, yAvgPix);
-                                });
-                                ctx.stroke();
-                            }
-                        }
-
-                        draw();
-                        let resizeTimer;
-                        window.addEventListener('resize', () => {
-                            clearTimeout(resizeTimer);
-                            resizeTimer = setTimeout(draw, 100);
+                            if (i === 0) ctx.moveTo(x, yAvgPix);
+                            else ctx.lineTo(x, yAvgPix);
                         });
+                        ctx.stroke();
                     }
+                }
 
-                    // ---------------- Main Initialization ----------------
-                    async function initCutStrip() {
-                        try {
-                            const BASE_URL = "http://192.168.97.68:2001";
+                draw();
+                let resizeTimer;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(draw, 100);
+                });
+            }
 
-                            // 1. Gather all files we need to plot from Strip List and QER List
-                            const allEventEntries = [];
+            // ---------------- Main Initialization ----------------
+            async function initCutStrip() {
+                try {
 
-                            (REPORT_DATA.strip_list || []).forEach(s => {
-                                allEventEntries.push({
-                                    path: s.sub_strip_file_path,
-                                    startStr: s.sub_strip_start_datetime || s.event_start_datetime,
-                                    isSubStrip: true,
-                                    fallbackBpm: 0,
-                                    originalObj: s
-                                });
-                            });
+                    // 1. Gather all files we need to plot from Strip List and QER List
+                    const allEventEntries = [];
 
-                            (REPORT_DATA.qer_list || []).forEach(q => {
-                                allEventEntries.push({
-                                    path: q.event_file_path,
-                                    startStr: q.event_start_datetime,
-                                    isSubStrip: false,
-                                    fallbackBpm: q.bpm || 0,
-                                    originalObj: q
-                                });
-                            });
+                    (REPORT_DATA.strip_list || []).forEach(s => {
+                        allEventEntries.push({
+                            path: s.sub_strip_file_path,
+                            startStr: s.sub_strip_start_datetime || s.event_start_datetime,
+                            isSubStrip: true,
+                            fallbackBpm: 0,
+                            originalObj: s
+                        });
+                    });
 
-                            if (allEventEntries.length === 0) {
-                                renderEventSummaryGraph([]);
-                                return;
+                    (REPORT_DATA.qer_list || []).forEach(q => {
+                        allEventEntries.push({
+                            path:  q.event_file_path,
+                            startStr: q.event_start_datetime,
+                            isSubStrip: false,
+                            fallbackBpm: q.bpm || 0,
+                            originalObj: q
+                        });
+                    });
+
+                    if (allEventEntries.length === 0) {
+                        renderEventSummaryGraph([]);
+                        return;
+                    }
+                    allEventEntries.forEach(item => {
+                        if (item.path) {
+                            item.path = REPORT_DATA?.ecg_base_url + item.path;
+                        }
+                    });
+
+                    // 2. Fetch all json files
+                    const fetchedStripsData = await Promise.all(
+                        allEventEntries.map(async (entry) => {
+                            if (!entry.path) return { entry, data: {} };
+                            try {
+                                const safePath = entry.path.replace(/\\/g, '/').replace(/^\//, '');
+
+                                const res = await fetch(safePath);
+
+                                if (!res.ok) throw new Error(`Status ${res.status}`);
+                                const json = await res.json();
+                                return { entry, data: json };
+                            } catch (err) {
+                                console.error(`Failed to fetch ${entry.path}:`, err);
+                                return { entry, data: null };
                             }
+                        })
+                    );
 
-                            // 2. Fetch all json files
-                            const fetchedStripsData = await Promise.all(
-                                allEventEntries.map(async (entry) => {
-                                    if (!entry.path) return { entry, data: {} };
-                                    try {
-                                        const safePath = entry.path.replace(/\\/g, '/').replace(/^\//, '');
-                                        const res = await fetch(`${BASE_URL}/${safePath}`);
-                                        if (!res.ok) throw new Error(`Status ${res.status}`);
-                                        const json = await res.json();
-                                        return { entry, data: json };
-                                    } catch (err) {
-                                        console.error(`Failed to fetch ${entry.path}:`, err);
-                                        return { entry, data: null };
-                                    }
-                                })
-                            );
+                    // Setup pagination variables
+                    const stripListOnly = allEventEntries.filter(e => e.isSubStrip);
+                    const CARDS_PER_PAGE = 3;
+                    const totalExtraPages = Math.ceil(stripListOnly.length / CARDS_PER_PAGE);
+                    const totalPages = 1 + totalExtraPages;
 
-                            // Setup pagination variables
-                            const stripListOnly = allEventEntries.filter(e => e.isSubStrip);
-                            const CARDS_PER_PAGE = 3;
-                            const totalExtraPages = Math.ceil(stripListOnly.length / CARDS_PER_PAGE);
-                            const totalPages = 1 + totalExtraPages;
+                    let currentPageDiv = null;
+                    let ecgContainer = null;
+                    let pageNum = 2;
+                    let cardIndexCounter = 0;
 
-                            let currentPageDiv = null;
-                            let ecgContainer = null;
-                            let pageNum = 2;
-                            let cardIndexCounter = 0;
+                    // 3. Process the results for BOTH Graph Plotting and Lower Strip Cards
+                    for (let i = 0; i < fetchedStripsData.length; i++) {
+                        const item = fetchedStripsData[i];
+                        const entry = item.entry;
+                        const fetchedJson = item.data || {};
+                        const waveformData = fetchedJson.waveform_snippet || fetchedJson;
 
-                            // 3. Process the results for BOTH Graph Plotting and Lower Strip Cards
-                            for (let i = 0; i < fetchedStripsData.length; i++) {
-                                const item = fetchedStripsData[i];
-                                const entry = item.entry;
-                                const fetchedJson = item.data || {};
-                                const waveformData = fetchedJson.waveform_snippet || fetchedJson;
+                        const voltages = waveformData.voltage_mv || [];
+                        const samplingRate = waveformData.sampling_rate || 256;
 
-                                const voltages = waveformData.voltage_mv || [];
-                                const samplingRate = waveformData.sampling_rate || 256;
+                        // Calculate Heart Rate bounds
+                        let stats = calculateBPMStats(voltages, samplingRate);
 
-                                // Calculate Heart Rate bounds
-                                let stats = calculateBPMStats(voltages, samplingRate);
+                        // Fallback logic
+                        if (stats.avg === 0 && entry.fallbackBpm > 0) {
+                            stats.avg = entry.fallbackBpm;
+                            stats.min = Math.max(35, entry.fallbackBpm - 5);
+                            stats.max = entry.fallbackBpm + 5;
+                        }
 
-                                // Fallback logic
-                                if (stats.avg === 0 && entry.fallbackBpm > 0) {
-                                    stats.avg = entry.fallbackBpm;
-                                    stats.min = Math.max(35, entry.fallbackBpm - 5);
-                                    stats.max = entry.fallbackBpm + 5;
+                        let avgBpm = stats.avg > 0 ? stats.avg : (waveformData.heart_rate || waveformData.bpm || "--");
+
+                        // Add to Graph Data Pool
+                        eventsDataForGraph.push({
+                            startMins: getMinutesFromMidnight(entry.startStr),
+                            min: stats.min,
+                            max: stats.max,
+                            avg: stats.avg
+                        });
+
+                        // 4. Render only the "Sub Strips" as UI Cards below the graph
+                        if (entry.isSubStrip) {
+                            if (cardIndexCounter % CARDS_PER_PAGE === 0) {
+                                currentPageDiv = document.createElement("div");
+                                currentPageDiv.className = "page";
+                                currentPageDiv.id = `page${pageNum}`;
+
+                                const mainContent = document.createElement("div");
+                                mainContent.className = "main-content";
+                                mainContent.appendChild(createPatientRow());
+
+                                ecgContainer = document.createElement("div");
+                                ecgContainer.className = "ecg-container";
+
+                                mainContent.appendChild(ecgContainer);
+                                currentPageDiv.appendChild(mainContent);
+                                currentPageDiv.appendChild(createFooter(pageNum, totalPages));
+
+                                if (pageNum === totalPages) {
+                                    const endDiv = document.createElement("div");
+                                    endDiv.className = "end-of-summary";
+                                    endDiv.textContent = "End of Summary";
+                                    currentPageDiv.appendChild(endDiv);
                                 }
 
-                                let avgBpm = stats.avg > 0 ? stats.avg : (waveformData.heart_rate || waveformData.bpm || "--");
-
-                                // Add to Graph Data Pool
-                                eventsDataForGraph.push({
-                                    startMins: getMinutesFromMidnight(entry.startStr),
-                                    min: stats.min,
-                                    max: stats.max,
-                                    avg: stats.avg
-                                });
-
-                                // 4. Render only the "Sub Strips" as UI Cards below the graph
-                                if (entry.isSubStrip) {
-                                    if (cardIndexCounter % CARDS_PER_PAGE === 0) {
-                                        currentPageDiv = document.createElement("div");
-                                        currentPageDiv.className = "page";
-                                        currentPageDiv.id = `page${pageNum}`;
-
-                                        const mainContent = document.createElement("div");
-                                        mainContent.className = "main-content";
-                                        mainContent.appendChild(createPatientRow());
-
-                                        ecgContainer = document.createElement("div");
-                                        ecgContainer.className = "ecg-container";
-
-                                        mainContent.appendChild(ecgContainer);
-                                        currentPageDiv.appendChild(mainContent);
-                                        currentPageDiv.appendChild(createFooter(pageNum, totalPages));
-
-                                        if (pageNum === totalPages) {
-                                            const endDiv = document.createElement("div");
-                                            endDiv.className = "end-of-summary";
-                                            endDiv.textContent = "End of Summary";
-                                            currentPageDiv.appendChild(endDiv);
-                                        }
-
-                                        const previousPage = document.getElementById(`page${pageNum - 1}`);
-                                        if (previousPage) {
-                                            previousPage.after(currentPageDiv);
-                                        }
-                                        pageNum++;
-                                    }
-
-                                    // Extract Findings text
-                                    let findingsText = "Unknown Anomaly";
-
-                                    if (entry.originalObj.finding_list && entry.originalObj.finding_list.length > 0) {
-
-                                        findingsText = entry.originalObj.finding_list.map(f => {
-
-                                            let name = f.finding_name || "";
-
-                                            // Replace first square bracket with value1
-                                            name = name.replace(/\[[^\]]*\]/, f.value1 +" " ?? "");
-
-                                            // Replace second square bracket with value2
-                                            name = name.replace(/\[[^\]]*\]/, f.value2 +" " ?? "");
-
-                                            return name;
-
-                                        }).join(", ");
-
-                                    } else if (entry.originalObj.finding_names) {
-                                        findingsText = entry.originalObj.finding_names;
-                                    }
-
-                                    const eventData = {
-                                        number: cardIndexCounter + 1,
-                                        datetime: entry.startStr,
-                                        findings: findingsText,
-                                        eventType: "Auto triggered",
-                                        movement: entry.originalObj.movement_g || 0,
-                                        symptoms: "None",
-                                        waveform: waveformData,
-                                        avgBpm: avgBpm,
-                                        trigger_type: findingsText,
-                                        // New appended data for query parameters
-                                        patientId: patient.patient_id,
-                                        enrollmentId: patient.patient_enrollment_id,
-                                        filePath: entry.path,
-                                        findingList: entry.originalObj.finding_list || []
-                                    };
-                                    const card = buildCard(eventData);
-                                    ecgContainer.appendChild(card);
-
-                                    const canvas = card.querySelector("canvas.ecg-canvas");
-                                    if (canvas) {
-                                        requestAnimationFrame(() => drawECG(canvas, eventData.waveform));
-                                        let resizeTimer;
-                                        window.addEventListener('resize', () => {
-                                            clearTimeout(resizeTimer);
-                                            resizeTimer = setTimeout(() => drawECG(canvas, eventData.waveform), 100);
-                                        });
-                                    }
-
-                                    cardIndexCounter++;
+                                const previousPage = document.getElementById(`page${pageNum - 1}`);
+                                if (previousPage) {
+                                    previousPage.after(currentPageDiv);
                                 }
+                                pageNum++;
                             }
 
-                            // Finally, render the Top 24-hr Summary HR Plot with our combined aggregated points
-                            renderEventSummaryGraph(eventsDataForGraph);
+                            // Extract Findings text
+                            let findingsText = "Unknown Anomaly";
+                            if (entry.originalObj.finding_list && entry.originalObj.finding_list.length > 0) {
+                                findingsText = entry.originalObj.finding_list.map(f => f.finding_name).join(", ");
+                            } else if (entry.originalObj.finding_names) {
+                                findingsText = entry.originalObj.finding_names;
+                            }
 
-                        } catch (error) {
-                            console.error("Failed to render strips:", error);
+                            const eventData = {
+                                number: cardIndexCounter + 1,
+                                datetime: entry.startStr,
+                                findings: findingsText,
+                                eventType: "Auto triggered",
+                                movement: entry.originalObj.movement_g || 0,
+                                symptoms: "None",
+                                waveform: waveformData,
+                                avgBpm: avgBpm,
+                                trigger_type: findingsText,
+                                // New appended data for query parameters
+                                patientId: patient.patient_id,
+                                enrollmentId: patient.patient_enrollment_id,
+                                filePath: entry.path,
+                                findingList: entry.originalObj.finding_list || []
+                            };
+                            const card = buildCard(eventData);
+                            ecgContainer.appendChild(card);
+
+                            const canvas = card.querySelector("canvas.ecg-canvas");
+                            if (canvas) {
+                                requestAnimationFrame(() => drawECG(canvas, eventData.waveform));
+                                let resizeTimer;
+                                window.addEventListener('resize', () => {
+                                    clearTimeout(resizeTimer);
+                                    resizeTimer = setTimeout(() => drawECG(canvas, eventData.waveform), 100);
+                                });
+                            }
+
+                            cardIndexCounter++;
                         }
                     }
 
-                    initCutStrip();
-                })();
+                    // Finally, render the Top 24-hr Summary HR Plot with our combined aggregated points
+                    renderEventSummaryGraph(eventsDataForGraph);
+
+                } catch (error) {
+                    console.error("Failed to render strips:", error);
+                }
+            }
+
+            initCutStrip();
+        })();
     </script>
 </body>
+
 </html>

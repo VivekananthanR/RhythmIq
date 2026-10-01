@@ -14,7 +14,7 @@ namespace elr_API.Service.Report_template
         private readonly IDapperSqlService _db;
         public string ErrorMessage = string.Empty;
         public string ELR_db = CommonFunctions.GetConnectionString("elr_DB");
-
+        private string ecg_base_url = CommonFunctions.DataOnLive() ? "https://elrapi.chcpharmacy.com/" : "http://192.168.97.68:2001/";
         public ReportTemplateService(IDapperSqlService db)
         {
             _db = db;
@@ -89,6 +89,7 @@ namespace elr_API.Service.Report_template
 
                 var reportData = new PatientReportPdfDTO
                 {
+                    ecg_base_url = ecg_base_url,
                     patient_details = patientData,
                     event_summary = eventSummary,
                     arrhythmias_present = arrhythmiaData,
@@ -97,7 +98,7 @@ namespace elr_API.Service.Report_template
                     pac = pac_Burden,
                     pause = pause_Burden,
                     strip_list = stripList,
-                    qer_list = qerList,
+                    qer_list = qerList
 
                 };
 
@@ -130,7 +131,7 @@ namespace elr_API.Service.Report_template
                 string html = await File.ReadAllTextAsync(htmlTemplatePath);
 
                 string jsonData = JsonSerializer.Serialize(reportData);
-                //Console.WriteLine("json", jsonData);
+                Console.WriteLine("json", jsonData);
 
                 html = html.Replace("/*{{REPORT_DATA}}*/ null", jsonData);
 

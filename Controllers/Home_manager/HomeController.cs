@@ -597,6 +597,18 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
 
+        #region HttpPost = api/Home/ElrPublishReport
+        [HttpPost("ElrPublishReport"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrPublishReport([FromHeader] string authorization, PatientReportGenerateReqDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+
+            return await _homeService.ElrPublishReport(obj);
+        }
+        #endregion
+
+
 
     }
 

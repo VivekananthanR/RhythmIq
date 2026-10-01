@@ -293,8 +293,7 @@ public class AddUpdateEmployeeDetailsReqDTO
         return $@"
                     select count(1) as totalCount from {Tbl.user_master} 
                         WHERE is_active = 1
-                      AND user_type_id = 5
-                      AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%');
+                      AND user_type_id = 5;
 
                     SELECT
                         user_id,
@@ -305,7 +304,6 @@ public class AddUpdateEmployeeDetailsReqDTO
                     FROM {Tbl.user_master}
                     WHERE is_active = 1
                       AND user_type_id = 5
-                      AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%')
                     ORDER BY user_name ASC";
     }
     internal static string select_technicians_list()
@@ -313,8 +311,7 @@ public class AddUpdateEmployeeDetailsReqDTO
         return $@"
                     select count(1) as totalCount from {Tbl.user_master}
                     where is_active = 1
-                      AND user_type_id = 4
-                      AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%');
+                      AND user_type_id = 4;
 
                     SELECT
                         user_id,
@@ -324,7 +321,6 @@ public class AddUpdateEmployeeDetailsReqDTO
                     FROM {Tbl.user_master}
                     WHERE is_active = 1
                       AND user_type_id = 4
-                      AND (@user_name IS NULL OR user_name LIKE '%' + @user_name + '%')
                     ORDER BY user_name ASC";
     }
     #endregion
@@ -439,12 +435,16 @@ public class PatientReportDTO
     public DateTime? actual_hookup { get; set; }
     public DateTime? report_due_datetime { get; set; }
     public DateTime? report_started_datetime { get; set; }
+    public DateTime? report_generated_datetime { get; set; }
+    public long generate_to { get; set; }
     public string report_type_name { get; set; }
     public string referred_physician_name { get; set; }
 
     public long user_id { get; set; }
     public string user_name { get; set; }
-    public DateTime? report_generated_datetime { get; set; }
+
+    public long device_id { get; set; }
+    public string device_name { get; set; }
     public DateTime? report_finalized_datetime { get; set; }
     public long report_type_id { get; set; }
 
@@ -464,7 +464,7 @@ public class PatientReportDTO
     #region Query
     internal static string current_report_assign_detatils()
     {
-        return $@" SELECT a.report_assigned_id,a.patient_report_id,a.patient_enrollment_id,p.patient_id ,p.patient_name, b.report_type_id, b.report_started_datetime, b.report_due_datetime, a.assign_status
+        return $@" SELECT a.report_assigned_id,a.patient_report_id,a.patient_enrollment_id,p.patient_id ,p.patient_name, b.report_type_id, b.report_started_datetime, b.report_due_datetime, a.assign_status,dm.device_id,dm.device_name
                    from {Tbl.report_assigned} as a
                        inner join {Tbl.patient_report} as b
                         on a.patient_report_id = b.patient_report_id
@@ -472,6 +472,8 @@ public class PatientReportDTO
                         on a.patient_enrollment_id = c.patient_enrollment_id
                             inner join {Tbl.patient} as p
                         on c.patient_id = p.patient_id 
+                            inner join {Tbl.device_mast} as dm
+                        on dm.device_id = c.device_id
                        where  a.report_assigned_id = @report_assigned_id and a.is_active = 1 ";
 
     }
@@ -488,8 +490,14 @@ public class PatientReportDTO
                 pr.report_type_id,
                 pr.report_status,
                 pr.report_due_datetime,
-                pr.report_started_datetime
+                pr.report_started_datetime,
+                dm.device_id,
+                dm.device_name
             FROM {Tbl.patient_report} pr
+            inner join {Tbl.patient_enrollment} as pe
+                on pe.patient_enrollment_id = pr.patient_enrollment_id and pe.is_active =1
+            inner join {Tbl.device_mast} as dm
+                on dm.device_id = pe.device_id
             WHERE pr.patient_report_id = @patient_report_id  AND pr.report_status = 'pending' and pr.report_started_datetime is not null
               AND pr.is_active = 1";
     }
@@ -594,7 +602,9 @@ public class PatientReportDTO
                     pr.report_status,
                     pr.report_due_datetime,
                     pr.report_started_datetime,
-                    p.patient_id
+                    p.patient_id,
+                    dm.device_id,
+                    dm.device_name
                 FROM {Tbl.report_assigned} ra
                 INNER JOIN {Tbl.patient_report} pr
                     ON ra.patient_report_id = pr.patient_report_id
@@ -602,6 +612,8 @@ public class PatientReportDTO
                     on pe.patient_enrollment_id = pr.patient_enrollment_id
                 inner join {Tbl.patient} as p
                     on p.patient_id = pe.patient_id
+                inner join {Tbl.device_mast} as dm
+                    on dm.device_id = pe.device_id
                 WHERE ra.created_by = @emp_id
                   AND ra.assign_status = 'processing'
                   AND ra.is_active = 1
@@ -677,6 +689,8 @@ public class PatientReportDTO
                     ON pr.report_type_id = rt.report_type_id
                 LEFT JOIN {Tbl.user_master} AS c
                     ON pe.referred_physician_id = c.user_id
+                LEFT JOIN {Tbl.device_mast} AS dm
+                    ON pe.device_id = dm.device_id
                 WHERE pr.is_active = 1 and pr.report_started_datetime is not null
                   AND pe.is_active = 1 and  pr.report_status NOT IN ('completed', 'inprogress');
 
@@ -686,8 +700,12 @@ public class PatientReportDTO
                     pr.report_status,
                     p.patient_id,
                     p.patient_name,
+                    dm.device_id,
+                    dm.device_name,
+                    pr.generate_to,
                     pr.report_due_datetime,
                     pr.report_started_datetime,
+                    pr.report_generated_datetime,
                     pe.patient_enrollment_id,
                     rt.report_type_name,
                     c.user_name AS referred_physician_name
@@ -700,54 +718,82 @@ public class PatientReportDTO
                     ON pr.report_type_id = rt.report_type_id
                 LEFT JOIN {Tbl.user_master} AS c
                     ON pe.referred_physician_id = c.user_id
-                WHERE pr.is_active = 1 and pr.report_started_datetime is not null
+                LEFT JOIN {Tbl.device_mast} AS dm
+                    ON pe.device_id = dm.device_id
+                WHERE pr.is_active = 1 
                   AND pe.is_active = 1 and pr.report_status NOT IN ('completed', 'inprogress')
                 ORDER BY {sortBy} {orderBy}
                 OFFSET @offset ROWS
                 FETCH NEXT @pageSize ROWS ONLY;";
     }
 
-
     internal static string create_24_hours_report()
     {
         return $@"
-                INSERT INTO {Tbl.patient_report}
-                (
-                    patient_enrollment_id,
-                    report_type_id,
-                    report_status,
-                    report_due_datetime,
-                    report_started_datetime,
-                    created_datetime,
-                    is_active
-                )
-                SELECT
-                    pe.patient_enrollment_id,
-                    rt.report_type_id,
-                    'pending',
-                    DATEADD(HOUR, 24, pe.actual_hookup),
-                    pe.actual_hookup,
-                    GETDATE(),
-                    1
-                FROM {Tbl.patient_enrollment} pe
-                INNER JOIN {Tbl.report_type} rt
-                    ON rt.report_type_id = 1
-                    AND rt.is_active = 1
-                WHERE pe.actual_hookup IS NOT NULL
-                  AND DATEADD(HOUR, 24, pe.actual_hookup) <= GETDATE()
-                  AND pe.is_active = 1
-                  AND NOT EXISTS
-                  (
-                      SELECT 1
-                      FROM {Tbl.patient_report} pr
-                      WHERE pr.patient_enrollment_id = pe.patient_enrollment_id
-                        AND pr.report_type_id = rt.report_type_id
-                        AND pr.is_active = 1
-                  );
-            ";
+        INSERT INTO {Tbl.patient_report}
+        (
+            patient_enrollment_id,
+            report_type_id,
+            report_status,
+            report_due_datetime,
+            report_started_datetime,
+            created_datetime,
+            is_active
+        )
+        SELECT
+            pe.patient_enrollment_id,
+            rt.report_type_id,
+            'pending',
+
+            DATEADD(
+                HOUR,
+                24,
+                pe.actual_hookup
+            ) AS report_due_datetime,
+
+            pe.actual_hookup AS report_started_datetime,
+
+            GETDATE(),
+            1
+
+        FROM {Tbl.patient_enrollment} pe
+
+        INNER JOIN {Tbl.test_prices} tp
+            ON tp.test_prices_id = pe.estimated_test_prices_id
+            AND tp.is_active = 1
+
+        INNER JOIN {Tbl.test_mast} tm
+            ON tm.test_id = tp.test_id
+            AND tm.is_active = 1
+
+        INNER JOIN {Tbl.report_type} rt
+            ON rt.report_type_id = 1
+            AND rt.is_active = 1
+
+        WHERE pe.actual_hookup IS NOT NULL
+
+          -- 24 Hours Report only for tests more than 1 day
+          AND tm.duration_in_day > 1
+
+          -- 24 hours completed
+          AND DATEADD(
+                HOUR,
+                24,
+                pe.actual_hookup
+              ) <= GETDATE()
+
+          AND pe.is_active = 1
+
+          AND NOT EXISTS
+          (
+              SELECT 1
+              FROM {Tbl.patient_report} pr
+              WHERE pr.patient_enrollment_id = pe.patient_enrollment_id
+                AND pr.report_type_id = rt.report_type_id
+                AND pr.is_active = 1
+          );
+    ";
     }
-
-
     internal static string create_final_report()
     {
         return $@"
@@ -765,23 +811,74 @@ public class PatientReportDTO
             pe.patient_enrollment_id,
             rt.report_type_id,
             'pending',
-            pe.actual_removal,
+
+            DATEADD(
+                DAY,
+                tm.duration_in_day,
+                pe.actual_hookup
+            ),
+
             pe.actual_hookup,
+
             GETDATE(),
             1
+
         FROM {Tbl.patient_enrollment} pe
+
+        INNER JOIN {Tbl.test_prices} tp
+            ON tp.test_prices_id = pe.estimated_test_prices_id
+            AND tp.is_active = 1
+
+        INNER JOIN {Tbl.test_mast} tm
+            ON tm.test_id = tp.test_id
+            AND tm.is_active = 1
+
         INNER JOIN {Tbl.report_type} rt
             ON rt.report_type_id = 2
             AND rt.is_active = 1
-        WHERE pe.actual_removal IS NOT NULL
-          AND pe.actual_removal <= GETDATE()
+
+        WHERE pe.actual_hookup IS NOT NULL
+          AND tm.duration_in_day >= 1
+
+          -- Full test duration completed
+          AND DATEADD(
+                DAY,
+                tm.duration_in_day,
+                pe.actual_hookup
+              ) <= GETDATE()
+
           AND pe.is_active = 1
+
+          -- Enrollment must have at least one event
+          AND EXISTS
+          (
+              SELECT 1
+              FROM {Tbl.queued_events_records} q
+              WHERE q.patient_enrollment_id = pe.patient_enrollment_id
+          )
+
+          -- ALL events must be completed
+          AND NOT EXISTS
+          (
+              SELECT 1
+              FROM {Tbl.queued_events_records} q
+              WHERE q.patient_enrollment_id = pe.patient_enrollment_id
+                AND
+                (
+                    q.event_status <> 'completed'
+                    OR q.event_status IS NULL
+                    OR q.completed_by IS NULL
+                    OR q.completed_datetime IS NULL
+                )
+          )
+
+          -- Don't create duplicate Final Report
           AND NOT EXISTS
           (
               SELECT 1
               FROM {Tbl.patient_report} pr
               WHERE pr.patient_enrollment_id = pe.patient_enrollment_id
-                AND pr.report_type_id = rt.report_type_id
+                AND pr.report_type_id = 2
                 AND pr.is_active = 1
           );
     ";

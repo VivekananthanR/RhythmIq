@@ -372,15 +372,15 @@ namespace elr_API.Service.User_manager
 
             return data;
         }
-        public async Task<ResponseDTO> ElrphysiciansList(string? physiciansName)
+        public async Task<ResponseDTO> ElrphysiciansList()
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                string? search = string.IsNullOrWhiteSpace(physiciansName) ? null : physiciansName.Trim();
+                //string? search = string.IsNullOrWhiteSpace(physiciansName) ? null : physiciansName.Trim();
                 query = AddUpdateEmployeeDetailsReqDTO.select_physicians_list();
-                var (totalCount, data) = await _dp.SelectQueryWithCount<long, AddUpdateEmployeeDetailsReqDTO>(query, new { user_name = search }, Elr_db);
+                var (totalCount, data) = await _dp.SelectQueryWithCount<long, AddUpdateEmployeeDetailsReqDTO>(query, null, Elr_db);
 
                 var response = new
                 {
@@ -398,15 +398,14 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> ElrTechniciansList(string? technicians_name)
+        public async Task<ResponseDTO> ElrTechniciansList()
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
-                string? search = string.IsNullOrWhiteSpace(technicians_name) ? null : technicians_name.Trim();
                 query = AddUpdateEmployeeDetailsReqDTO.select_technicians_list();
-                var (totalCount, data) = await _dp.SelectQueryWithCount<long, AddUpdateEmployeeDetailsReqDTO>(query, new { user_name = search }, Elr_db);
+                var (totalCount, data) = await _dp.SelectQueryWithCount<long, AddUpdateEmployeeDetailsReqDTO>(query, null, Elr_db);
 
                 var response = new
                 {

@@ -89,19 +89,19 @@ namespace elr_API.Controllers.User_manager
         }
         #endregion
 
-        #region HttpPost = api/User/ElrphysiciansList?physiciansName =
+        #region HttpPost = api/User/ElrphysiciansList
         [HttpGet("ElrphysiciansList"), Authorize]
-        public async Task<ResponseDTO> ElrphysiciansList(string? physiciansName)
+        public async Task<ActionResult<ResponseDTO>> ElrphysiciansList()
         {
-            return await _userService.ElrphysiciansList(physiciansName);
+            return await _userService.ElrphysiciansList();
         }
         #endregion
 
-        #region HttpGet = api/User/ElrTechniciansList?technicians_name =
+        #region HttpGet = api/User/ElrTechniciansList
         [HttpGet("ElrTechniciansList"), Authorize]
-        public async Task<ResponseDTO> ElrTechniciansList(string? technicians_name)
+        public async Task<ActionResult<ResponseDTO>> ElrTechniciansList()
         {
-            return await _userService.ElrTechniciansList(technicians_name);
+            return await _userService.ElrTechniciansList();
         }
         #endregion
 

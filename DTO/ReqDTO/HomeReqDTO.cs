@@ -1032,69 +1032,157 @@ namespace elr_API.DTO.ReqDTO
         #region Query   
         internal static string queue_anomaly_list(QueuedAnomalyReqDTO obj)
         {
-            return $@"select count(1) from {Tbl.queued_events_records} as a where a.is_active = 1 and a.event_status <> 'partial-completed' and a.event_status <> 'completed'
+            return $@"
+        SELECT COUNT(1)
+        FROM {Tbl.queued_events_records} a
 
-                        SELECT
-                            a.queued_events_records_id,
-                            a.patient_enrollment_id,
-                            a.enrollment_raw_data_id,
-                            a.priority_level,
-                            a.trigger_type,
-                            a.bpm,
-                            a.event_status,
-                            a.event_start_datetime,
-                            a.event_end_datetime,
-                            a.event_file_path,
-                            a.created_datetime,
+        LEFT JOIN {Tbl.patient_enrollment} pe
+            ON a.patient_enrollment_id = pe.patient_enrollment_id
 
-                            -- Patient Details
-                            p.patient_id,
-                            p.patient_name,
-                            p.age,
-                            p.gender,
-                            p.phone_no,
-                            p.email_id,
+        LEFT JOIN {Tbl.patient} p
+            ON pe.patient_id = p.patient_id
 
-                            -- Technician Details
-                            pe.actual_technician_id,
-                            u.user_name AS technician_name,
+        LEFT JOIN {Tbl.user_master} u
+            ON pe.actual_technician_id = u.user_id
 
-                            CASE
-                                WHEN pe.is_patient_hookuped = 1 THEN 'Patient'
-                                ELSE 'Employee'
-                            END AS hookup_done_by,
+        LEFT JOIN {Tbl.device_mast} d
+            ON pe.device_id = d.device_id
 
-                            CASE
-                                WHEN pe.is_patient_hookuped = 1 THEN p.patient_name
-                                ELSE u.user_name
-                            END AS hookup_done_by_name,
-                
-                            -- Device Details
-                            d.device_id,
-                            d.device_no,      
-                            d.device_name   
-    
+        WHERE a.is_active = 1
+          AND pe.is_active = 1
+          AND p.is_active = 1
+          AND u.is_active = 1
+          AND d.is_active = 1
+          AND a.event_status NOT IN ('partial-completed', 'completed');
 
-                            FROM {Tbl.queued_events_records} a
 
-                            LEFT JOIN {Tbl.patient_enrollment} pe
-                                ON a.patient_enrollment_id = pe.patient_enrollment_id
+        SELECT
+            a.queued_events_records_id,
+            a.patient_enrollment_id,
+            a.enrollment_raw_data_id,
+            a.priority_level,
+            a.trigger_type,
+            a.bpm,
+            a.event_status,
+            a.event_start_datetime,
+            a.event_end_datetime,
+            a.event_file_path,
+            a.created_datetime,
 
-                            LEFT JOIN {Tbl.patient} p
-                                ON pe.patient_id = p.patient_id
+            p.patient_id,
+            p.patient_name,
+            p.age,
+            p.gender,
+            p.phone_no,
+            p.email_id,
 
-                            LEFT JOIN {Tbl.user_master} u
-                                ON pe.actual_technician_id = u.user_id
+            pe.actual_technician_id,
+            u.user_name AS technician_name,
 
-                            LEFT JOIN {Tbl.device_mast} d
-                                ON pe.device_id = d.device_id
+            CASE
+                WHEN pe.is_patient_hookuped = 1 THEN 'Patient'
+                ELSE 'Employee'
+            END AS hookup_done_by,
 
-                                where a.is_active = 1 and pe.is_active = 1 and p.is_active = 1 and u.is_active = 1 and d.is_active = 1
-                                        and a.event_status <> 'partial-completed' and a.event_status <> 'completed'
+            CASE
+                WHEN pe.is_patient_hookuped = 1 THEN p.patient_name
+                ELSE u.user_name
+            END AS hookup_done_by_name,
 
-                                order by {obj.shortColumn} {obj.orderBy}
-                                offset @offset rows fetch next @pageSize rows only";
+            d.device_id,
+            d.device_no,
+            d.device_name
+
+        FROM {Tbl.queued_events_records} a
+
+        LEFT JOIN {Tbl.patient_enrollment} pe
+            ON a.patient_enrollment_id = pe.patient_enrollment_id
+
+        LEFT JOIN {Tbl.patient} p
+            ON pe.patient_id = p.patient_id
+
+        LEFT JOIN {Tbl.user_master} u
+            ON pe.actual_technician_id = u.user_id
+
+        LEFT JOIN {Tbl.device_mast} d
+            ON pe.device_id = d.device_id
+
+        WHERE a.is_active = 1
+          AND pe.is_active = 1
+          AND p.is_active = 1
+          AND u.is_active = 1
+          AND d.is_active = 1
+          AND a.event_status NOT IN ('partial-completed', 'completed')
+
+        ORDER BY {obj.shortColumn} {obj.orderBy}
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY;";
         }
+        //internal static string queue_anomaly_list(QueuedAnomalyReqDTO obj)
+        //{
+        //    return $@"select count(1) from {Tbl.queued_events_records} as a where a.is_active = 1 and a.event_status <> 'partial-completed' and a.event_status <> 'completed';
+
+        //                SELECT
+        //                    a.queued_events_records_id,
+        //                    a.patient_enrollment_id,
+        //                    a.enrollment_raw_data_id,
+        //                    a.priority_level,
+        //                    a.trigger_type,
+        //                    a.bpm,
+        //                    a.event_status,
+        //                    a.event_start_datetime,
+        //                    a.event_end_datetime,
+        //                    a.event_file_path,
+        //                    a.created_datetime,
+
+        //                    -- Patient Details
+        //                    p.patient_id,
+        //                    p.patient_name,
+        //                    p.age,
+        //                    p.gender,
+        //                    p.phone_no,
+        //                    p.email_id,
+
+        //                    -- Technician Details
+        //                    pe.actual_technician_id,
+        //                    u.user_name AS technician_name,
+
+        //                    CASE
+        //                        WHEN pe.is_patient_hookuped = 1 THEN 'Patient'
+        //                        ELSE 'Employee'
+        //                    END AS hookup_done_by,
+
+        //                    CASE
+        //                        WHEN pe.is_patient_hookuped = 1 THEN p.patient_name
+        //                        ELSE u.user_name
+        //                    END AS hookup_done_by_name,
+
+        //                    -- Device Details
+        //                    d.device_id,
+        //                    d.device_no,      
+        //                    d.device_name   
+
+
+        //                    FROM {Tbl.queued_events_records} a
+
+        //                    LEFT JOIN {Tbl.patient_enrollment} pe
+        //                        ON a.patient_enrollment_id = pe.patient_enrollment_id
+
+        //                    LEFT JOIN {Tbl.patient} p
+        //                        ON pe.patient_id = p.patient_id
+
+        //                    LEFT JOIN {Tbl.user_master} u
+        //                        ON pe.actual_technician_id = u.user_id
+
+        //                    LEFT JOIN {Tbl.device_mast} d
+        //                        ON pe.device_id = d.device_id
+
+        //                        where a.is_active = 1 and pe.is_active = 1 and p.is_active = 1 and u.is_active = 1 and d.is_active = 1
+        //                                and a.event_status <> 'partial-completed' and a.event_status <> 'completed'
+
+        //                        order by {obj.shortColumn} {obj.orderBy}
+        //                        offset @offset rows fetch next @pageSize rows only";
+        //}
 
         #endregion
     }
@@ -1819,10 +1907,21 @@ namespace elr_API.DTO.ReqDTO
                         qer.created_by,
                         qer.modified_by,
                         qer.created_datetime,
-                        qer.modified_datetime
+                        qer.modified_datetime,
+                        p.patient_id,
+                        p.patient_name,
+                        dm.device_id,
+                        dm.device_name
+
                     FROM {Tbl.event_assign} ea
                     INNER JOIN {Tbl.queued_events_records} qer
                         ON qer.queued_events_records_id = ea.queued_events_records_id
+                    inner join {Tbl.patient_enrollment} as pe
+                        on pe.patient_enrollment_id = ea.patient_enrollment_id 
+                    inner join {Tbl.device_mast} as dm
+                        on dm.device_id = pe.device_id
+                    inner join {Tbl.patient} as p
+                        on p.patient_id = pe.patient_id
                     WHERE ea.assigned_by = @assigned_by
                       AND ea.work_status = 'inprogress'
                     ORDER BY ea.event_assign_id DESC";
@@ -5203,12 +5302,30 @@ namespace elr_API.DTO.ReqDTO
 
 
         #region
+
+        internal static string publish_report()
+        {
+            return $@"update {Tbl.patient_report}
+                    set report_status = 'completed',
+                        report_finalized_datetime = GETDATE(),
+                        modified_by = @modified_by,
+                        modified_datetime = GETDATE()
+                        where patient_report_id = @patient_report_id and report_status = 'inprogress';";
+        }
         internal static string update_assigned_status()
         {
             return $@"update {Tbl.report_assigned}
                     set assign_status = 'pending',
                         modified_by = @modified_by,
                         modified_datetime = GETDATE()
+                        where report_assigned_id = @report_assigned_id and patient_report_id = @patient_report_id AND assign_status = 'generated';";
+        }
+        internal static string publish_assigned_status()
+        {
+            return $@"update {Tbl.report_assigned}
+                    set assign_status = 'completed',
+                        completed_by = @modified_by,
+                        completed_datetime = GETDATE()
                         where report_assigned_id = @report_assigned_id and patient_report_id = @patient_report_id AND assign_status = 'generated';";
         }
 
@@ -5261,8 +5378,7 @@ namespace elr_API.DTO.ReqDTO
             ON a.patient_report_id = b.patient_report_id
         WHERE a.report_assigned_id = @report_assigned_id
           AND a.patient_report_id = @patient_report_id
-          AND a.is_active = 1
-          AND a.assign_status IN ('pending', 'processing', 'completed')";
+          AND a.is_active = 1";
         }
 
         internal static string get_report_generate_list()
@@ -5278,7 +5394,7 @@ namespace elr_API.DTO.ReqDTO
         on d.report_type_id = b.report_type_id
         inner join tbl_patient as e
         on e.patient_id = c.patient_id
-        where e.patient_id =4 and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') ;
+        where e.patient_id = @patient_id and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') ;
        
 
 
@@ -5308,7 +5424,7 @@ namespace elr_API.DTO.ReqDTO
         on d.report_type_id = b.report_type_id
         inner join tbl_patient as e
         on e.patient_id = c.patient_id
-        where e.patient_id =4 and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') 
+        where e.patient_id = @patient_id and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') 
        
     ";
         }
@@ -5461,6 +5577,8 @@ namespace elr_API.DTO.ReqDTO
 
                                     d.user_id,
                                     d.user_name,
+                                    dm.device_id,
+                                    dm.device_name,
 
                                     f.report_assigned_id,
                                     f.assign_status,
@@ -5480,6 +5598,9 @@ namespace elr_API.DTO.ReqDTO
 
                                 LEFT JOIN {Tbl.user_master} AS d
                                     ON d.user_id = a.generate_to
+
+                                LEFT JOIN {Tbl.device_mast} AS dm
+                                    ON dm.device_id = b.device_id
 
                                 INNER JOIN {Tbl.report_type} AS e
                                     ON e.report_type_id = a.report_type_id

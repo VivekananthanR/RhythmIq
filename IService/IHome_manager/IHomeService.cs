@@ -120,6 +120,7 @@ namespace elr_API.IService.IHome_manager
 
         Task<ResponseDTO> ElrGetReportGenerateList(long patient_id);
         Task<ResponseDTO> ElrPatientReportSearchList(PatientReportSearchReqDTO obj);
+        Task<ResponseDTO> ElrPublishReport(PatientReportGenerateReqDTO obj);
 
 
 
