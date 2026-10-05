@@ -87,6 +87,7 @@ namespace elr_API.Service.Report_template
                 query = ReportQerPdfDTO.get_qer_data();
                 var qerList = (await _db.SelectQuery<ReportQerPdfDTO>(query, new { patient_report_id = patient_report_id }, ELR_db)).ToList();
 
+
                 var reportData = new PatientReportPdfDTO
                 {
                     ecg_base_url = ecg_base_url,
@@ -131,7 +132,6 @@ namespace elr_API.Service.Report_template
                 string html = await File.ReadAllTextAsync(htmlTemplatePath);
 
                 string jsonData = JsonSerializer.Serialize(reportData);
-                Console.WriteLine("json", jsonData);
 
                 html = html.Replace("/*{{REPORT_DATA}}*/ null", jsonData);
 

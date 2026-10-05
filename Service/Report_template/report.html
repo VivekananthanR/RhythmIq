@@ -569,6 +569,7 @@
     <div class="page page-break-after" id="page1">
         <div class="main-content">
             <div>
+
                 <div class="header">
                     <div class="logo-row">
                         <img width="150" height="35" style="height: 35px; width: auto;"
@@ -596,16 +597,15 @@
                 <div class="hr-card">
                     <div class="hr-header">
                         <span id="statAvg">Average HR: --bpm</span>
-                        <span id="statMin">Minimum Strip HR: --bpm</span>
-                        <span id="statMax">Maximum Strip HR: --bpm</span>
+                        <!--<span id="statMin">Minimum Strip HR: --bpm</span>-->
+                        <!--<span id="statMax">Maximum Strip HR: --bpm</span>-->
                     </div>
                     <div class="hr-chart-wrap">
                         <canvas id="hrCanvas"></canvas>
                     </div>
                     <div class="hr-legend">
                         <span style="display:inline-flex; align-items:center; gap: 8px;">
-                            <span class="legend-line"><span class="legend-red-line"></span></span> Event Strip bounds
-                            (Min/Max & Average HR)
+                            <span class="legend-line"><span class="legend-red-line"></span></span> Avg. HR
                         </span>
                     </div>
                 </div>
@@ -675,7 +675,7 @@
                                           style="font-size: 16px; color: black; -webkit-text-stroke: 0px;">
                                         <strong class="af-burden"><strong> Pause </strong> </strong>
                                     </span>
-                                    <span class="val pause_longest_duration" style="font-weight: normal; "></span>
+                                    <span class="val pause_longest_duration_burden" style="font-weight: normal; "></span>
                                 </div>
                                 <div class="box_padding_desc"
                                      style="border-bottom: 1px solid var(--line); padding-top: 4px; padding-bottom: 4px; display: flex; font-size: 9.5px; color: #333; font-weight: normal; justify-content: flex-end;">
@@ -734,9 +734,20 @@
                                 </div>
                                 <div class="leader box_padding_desc" style="margin-top: 8px;">
                                     <span class="lbl">Longest AF:</span><span class="dots"></span><span class="num"
-                                                                                                        id="longest_af"></span>
+                                                                                                        id="longest_af_value1"></span>
                                 </div>
-                            </div>
+
+
+
+
+
+
+
+                                <div class="leader box_padding_desc" style="margin-top: 8px;">
+                                    <span class="lbl">Longest AF Value2:</span><span class="dots"></span><span class="num"
+                                                                                                         id="longest_af_value2"></span>
+                                </div>
+                            </div>  
                         </div>
 
                         <div class="box">
@@ -863,7 +874,8 @@
         document.getElementById('arrhythmiaHeartBlock').innerText = arrhythmia.heart_block || 'None Found';
         document.getElementById('arrhythmiaVT').innerText = arrhythmia.vt || 'None Found';
 
-        document.getElementById('longest_af').innerText = aF_Burden.longest_af;
+document.getElementById('longest_af_value2').innerText = aF_Burden.longest_af_value2;
+document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_value1;
         document.getElementById('af_percentage').innerText = aF_Burden.burden;
         document.getElementById('af_count').innerText = aF_Burden.episode_count;
         document.getElementById('af_hr').innerText = aF_Burden.high_hr;
