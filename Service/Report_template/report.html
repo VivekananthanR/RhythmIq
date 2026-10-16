@@ -50,6 +50,10 @@
             align-items: center;
         }
 
+        .invisible {
+            visibility: hidden;
+        }
+
         .report-title {
             font-family: "Times New Roman", serif;
             font-size: 18px;
@@ -66,7 +70,7 @@
 
         .header-right {
             text-align: right;
-            padding-top: 2px;
+            padding-top: 0;
         }
 
             .header-right .title {
@@ -93,7 +97,7 @@
 
         .page-heading {
             font-size: 19px;
-            margin: 18px 0 10px;
+            margin: 0;
         }
 
         /* ---------- INFO FIELDS ---------- */
@@ -572,8 +576,8 @@
 
                 <div class="header">
                     <div class="logo-row">
-                        <img width="150" height="35" style="height: 35px; width: auto;"
-                             src="http://192.168.97.55:83/assets/rhythm-iq-logo.png" alt="Rhythm IQ Logo Left" />
+                        <img width="196" height="28" style="height: 28px; width: auto; object-fit: contain;"
+                             src="https://elr.chcpharmacy.com/assets/chc-rhythmIQ.png" alt="Rhythm IQ Logo Left" />
                     </div>
                     <div class="logo-row">
                         <img width="223" height="35" style="height: 35px; width: auto;"
@@ -581,7 +585,7 @@
                              alt="Healthwatch Logo Right" />
                     </div>
                 </div>
-                <div style="display: flex;justify-content: space-between;margin-top:-6px">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 8px; margin-bottom: 8px;">
                     <div class="page-heading">24-hour Summary</div>
                     <div class="header-right">
                         <div class="title">
@@ -596,7 +600,7 @@
                 <!-- DYNAMIC HR CARD -->
                 <div class="hr-card">
                     <div class="hr-header">
-                        <span id="statAvg">Average HR: --bpm</span>
+                        <span id="statAvg">Average HR: 89bpm</span>
                         <!--<span id="statMin">Minimum Strip HR: --bpm</span>-->
                         <!--<span id="statMax">Maximum Strip HR: --bpm</span>-->
                     </div>
@@ -675,7 +679,8 @@
                                           style="font-size: 16px; color: black; -webkit-text-stroke: 0px;">
                                         <strong class="af-burden"><strong> Pause </strong> </strong>
                                     </span>
-                                    <span class="val pause_longest_duration_burden" style="font-weight: normal; "></span>
+                                    <span class="val " id="pause_longest_duration_burden"
+                                          style="font-weight: normal; "></span>
                                 </div>
                                 <div class="box_padding_desc"
                                      style="border-bottom: 1px solid var(--line); padding-top: 4px; padding-bottom: 4px; display: flex; font-size: 9.5px; color: #333; font-weight: normal; justify-content: flex-end;">
@@ -708,8 +713,8 @@
                                         <span class="dots"></span>
                                         <span class="num" style="width: 50px; text-align: center;  font-weight: normal;"
                                               id="pause_total">-</span>
-                                        <span class="dots" style="flex: 0 0 30px;"></span>
-                                        <span class="num pause_longest_duration"
+                                        <span class="dots invisible" style="flex: 0 0 30px;"></span>
+                                        <span class="num pause_longest_duration invisible"
                                               style="width: 80px; text-align: right;  font-weight: normal;">-</span>
                                     </div>
                                 </div>
@@ -743,11 +748,11 @@
 
 
 
-                                <div class="leader box_padding_desc" style="margin-top: 8px;">
-                                    <span class="lbl">Longest AF Value2:</span><span class="dots"></span><span class="num"
-                                                                                                         id="longest_af_value2"></span>
-                                </div>
-                            </div>  
+                                <!-- <div class="leader box_padding_desc" style="margin-top: 8px;">
+                                    <span class="lbl">Longest AF Value2:</span><span class="dots"></span><span
+                                        class="num" id="longest_af_value2"></span>
+                                </div> -->
+                            </div>
                         </div>
 
                         <div class="box">
@@ -851,9 +856,10 @@
     </div>
 
     <!-- MAIN LOGIC SCRIPT -->
+    <script src="http://192.168.97.68:2001/graph.js"></script>
     <script>
         const REPORT_DATA = /*{{REPORT_DATA}}*/ null;
-      
+        // const REPORT_DATA = { "ecg_base_url": "http:192.168.97.68:2001/", "patient_details": { "patient_report_id": 1, "report_assigned_id": 103, "patient_enrollment_id": 10, "patient_id": 5, "patient_name": "Gracy", "phone_no": "123457891", "doctor_name": "Vivekananthan", "superviser_name": "Dharun Gowtham", "report_generated_datetime": "2026-10-08T17:17:08.95", "modified_datetime": "2026-10-08T12:30:02.92", "report_started_datetime": "2026-08-14T11:21:07.207", "report_due_datetime": "2026-08-15T11:21:07.207", "created_datetime": "2026-09-30T15:47:10.613", "duration_in_day": 1 }, "event_summary": { "total_event_strip_count": 7, "patient_event_count": 0, "auto_event_count": 7 }, "arrhythmias_present": { "af": "Found", "svt": "None Found", "pause": "Found", "heart_block": "None Found", "vt": "None Found" }, "aF_Burden": { "burden": 0.0463, "episode_count": 0, "high_hr": 0, "longest_af_value1": 0.00, "longest_af_value2": 40.00 }, "pvc": { "am": 1, "am_burden": 0.07, "pm": 1, "pm_burden": 0.56, "total": 2, "total_burden": 0.63 }, "pac": { "am": 1, "am_burden": 0.07, "pm": 1, "pm_burden": 0.07, "total": 2, "total_burden": 0.14 }, "pause": { "am": 1, "am_longest_duration": 50, "pm": 1, "pm_longest_duration": 10, "total": 2, "longest_duration": 50, "burden": 0.0697 }, "strip_list": [{ "patient_report_generate_id": 167, "patient_report_id": 1, "queued_events_records_id": 4421, "sub_strip_event_id": 102, "event_start_datetime": "2026-08-14T15:32:15.71", "event_end_datetime": "2026-08-14T15:36:15.71", "event_file_path": "Resources\\ECG-FetchData\\10\\10-4420-20260817153614558.json", "sub_strip_file_path": "Resources\\Sub-Strip\\4421\\4421_20261006134055396.json", "sub_strip_start_datetime": "1786701944835", "sub_strip_end_datetime": "1786701954831", "finding_list": [{ "event_finding_id": 13, "finding_name": "Atrial Couplet(s)", "value1": 0.00, "value2": 0.00 }] }, { "patient_report_generate_id": 168, "patient_report_id": 1, "queued_events_records_id": 4415, "sub_strip_event_id": 158, "event_start_datetime": "2026-08-14T16:00:07.433", "event_end_datetime": "2026-08-14T16:01:06.433", "event_file_path": "Resources\\ECG-AnomalyData\\13\\13-21092026142229389.edf", "sub_strip_file_path": "Resources\\Sub-Strip\\4415\\4415_20261008170219266.edf", "sub_strip_start_datetime": "1789813585910.1562", "sub_strip_end_datetime": "1789813595906.25", "finding_list": [{ "event_finding_id": 4, "finding_name": "Sinus Tachycardia", "value1": 0.00, "value2": 0.00 }] }, { "patient_report_generate_id": 169, "patient_report_id": 1, "queued_events_records_id": 4415, "sub_strip_event_id": 159, "event_start_datetime": "2026-08-14T16:00:07.433", "event_end_datetime": "2026-08-14T16:01:06.433", "event_file_path": "Resources\\ECG-AnomalyData\\13\\13-21092026142229389.edf", "sub_strip_file_path": "Resources\\Sub-Strip\\4415\\4415_20261008170259358.edf", "sub_strip_start_datetime": "1789813596722.6562", "sub_strip_end_datetime": "1789813606718.75", "finding_list": [{ "event_finding_id": 3, "finding_name": "Sinus Bradycardia", "value1": 0.00, "value2": 0.00 }] }], "qer_list": [{ "queued_events_records_id": 4412, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T11:21:07.207", "event_end_datetime": "2026-08-14T11:22:07.207", "trigger_type": "PAC Run", "bpm": 89, "event_file_path": "Resources\\ECG-AnomalyData\\10\\10-14082026141646323.json" }, { "queued_events_records_id": 4413, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T14:14:07.593", "event_end_datetime": "2026-08-14T14:15:07.59", "trigger_type": "Ventricular Couplet", "bpm": 90, "event_file_path": "Resources\\ECG-AnomalyData\\10\\10-14082026141646361.json" }, { "queued_events_records_id": 4423, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T15:20:15.71", "event_end_datetime": "2026-08-14T15:32:15.71", "trigger_type": "Fetch-ECG", "bpm": 82, "event_file_path": "Resources\\ECG-FetchData\\10\\10-4421-20260822120956489.json" }, { "queued_events_records_id": 4421, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T15:32:15.71", "event_end_datetime": "2026-08-14T15:36:15.71", "trigger_type": "Fetch-ECG", "bpm": 82, "event_file_path": "Resources\\ECG-FetchData\\10\\10-4420-20260817153614558.json" }, { "queued_events_records_id": 4420, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T15:36:15.71", "event_end_datetime": "2026-08-14T15:44:15.71", "trigger_type": "Fetch-ECG", "bpm": 82, "event_file_path": "Resources\\ECG-FetchData\\10\\10-4414-20260817151255580.json" }, { "queued_events_records_id": 4422, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T15:44:15.71", "event_end_datetime": "2026-08-14T15:48:15.71", "trigger_type": "Fetch-ECG", "bpm": 82, "event_file_path": "Resources\\ECG-FetchData\\10\\10-4420-20260817153810616.json" }, { "queued_events_records_id": 4414, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T15:44:15.71", "event_end_datetime": "2026-08-14T15:45:15.707", "trigger_type": "Ventricular Couplet", "bpm": 82, "event_file_path": "Resources\\ECG-AnomalyData\\10\\10-14082026154647550.json" }, { "queued_events_records_id": 4415, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T16:00:07.433", "event_end_datetime": "2026-08-14T16:01:06.433", "trigger_type": "VE Trigeminy", "bpm": 95, "event_file_path": "Resources\\ECG-AnomalyData\\13\\13-21092026142229389.edf" }, { "queued_events_records_id": 4416, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T16:01:37.043", "event_end_datetime": "2026-08-14T16:02:37.037", "trigger_type": "Ventricular Couplet", "bpm": 99, "event_file_path": "Resources\\ECG-AnomalyData\\10\\10-14082026160649638.json" }, { "queued_events_records_id": 4417, "patient_enrollment_id": 10, "event_start_datetime": "2026-08-14T16:02:05.413", "event_end_datetime": "2026-08-14T16:03:05.41", "trigger_type": "Ventricular Couplet", "bpm": 95, "event_file_path": "Resources\\ECG-AnomalyData\\10\\10-14082026160649677.json" }] };
         // -------------------------------------------------------------
         // Populate Top Info Tables
         // -------------------------------------------------------------
@@ -874,33 +880,48 @@
         document.getElementById('arrhythmiaHeartBlock').innerText = arrhythmia.heart_block || 'None Found';
         document.getElementById('arrhythmiaVT').innerText = arrhythmia.vt || 'None Found';
 
-document.getElementById('longest_af_value2').innerText = aF_Burden.longest_af_value2;
-document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_value1;
-        document.getElementById('af_percentage').innerText = aF_Burden.burden;
+        const minutes = Number(aF_Burden.longest_af_value1) || 0;
+        const seconds = Number(aF_Burden.longest_af_value2) || 0;
+
+        if (minutes === 0) {
+            document.getElementById('longest_af_value1').innerText = `${seconds} sec`;
+        } else {
+            document.getElementById('longest_af_value1').innerText =
+                `${minutes} min ${seconds} sec`;
+        }
         document.getElementById('af_count').innerText = aF_Burden.episode_count;
-        document.getElementById('af_hr').innerText = aF_Burden.high_hr;
+        document.getElementById('af_hr').innerText = aF_Burden.high_hr + ' bpm';
 
         document.getElementById('pvc_am').innerText = pvc.am;
-        document.getElementById('pvc_am_burden').innerText = pvc.am_burden;
+        document.getElementById('pvc_am_burden').innerText = pvc.am_burden + '%';
         document.getElementById('pvc_pm').innerText = pvc.pm;
-        document.getElementById('pvc_pm_burden').innerText = pvc.pm_burden;
+        document.getElementById('pvc_pm_burden').innerText = pvc.pm_burden + '%';
         document.getElementById('pvc_count').innerText = pvc.total;
-        document.querySelectorAll('.pvc_burden1').forEach(element => { element.textContent = pvc.total_burden || 0; });
+        document.getElementById('pause_longest_duration_burden').innerText =
+            Number(pause.burden || 0).toFixed(2) + '%';
 
+        document.getElementById('pac_total_burden1').innerText =
+            Number(pac.total_burden || 0).toFixed(2) + '%';
+
+        document.querySelectorAll('.pvc_burden1').forEach(element => {
+            element.textContent = Number(pvc.total_burden || 0).toFixed(2) + '%';
+        });
+
+        document.getElementById('af_percentage').innerText =
+            Number(aF_Burden.burden || 0).toFixed(2) + '%';
         document.getElementById('pac_am').innerText = pac.am;
-        document.getElementById('pac_am_burden').innerText = pac.am_burden;
+        document.getElementById('pac_am_burden').innerText = pac.am_burden + '%';
         document.getElementById('pac_pm').innerText = pac.pm;
-        document.getElementById('pac_pm_burden').innerText = pac.pm_burden;
+        document.getElementById('pac_pm_burden').innerText = pac.pm_burden + '%';
         document.getElementById('pac_count').innerText = pac.total;
-        document.getElementById('pac_total_burden1').innerText = pac.total_burden;
-        document.getElementById('pac_total_burden2').innerText = pac.total_burden;
+        document.getElementById('pac_total_burden2').innerText = pac.total_burden + '%';
 
         document.getElementById('pause_am').innerText = pause.am;
-        document.getElementById('pause_am_longest_duration').innerText = pause.am_longest_duration;
+        document.getElementById('pause_am_longest_duration').innerText = pause.am_longest_duration + '  sec';
         document.getElementById('pause_pm').innerText = pause.pm;
-        document.getElementById('pause_pm_longest_duration').innerText = pause.pm_longest_duration;
+        document.getElementById('pause_pm_longest_duration').innerText = pause.pm_longest_duration + ' sec';
         document.getElementById('pause_total').innerText = pause.total;
-        document.querySelectorAll('.pause_longest_duration').forEach(element => { element.textContent = pvc.longest_duration || 0; });
+        document.querySelectorAll('.pause_longest_duration').forEach(element => { element.textContent = pause.longest_duration + ' sec' || 0; });
 
         const rows = [
             [
@@ -965,7 +986,7 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
             function formatCustomDateTime(dateString) {
                 if (!dateString || dateString === 'N/A') return 'N/A';
                 let date;
-                if (/^\d+$/.test(dateString)) date = new Date(parseInt(dateString, 10));
+                if (/^\d+(\.\d+)?$/.test(dateString)) date = new Date(parseFloat(dateString));
                 else date = new Date(dateString);
 
                 if (isNaN(date.getTime())) return dateString;
@@ -982,54 +1003,96 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
             function getMinutesFromMidnight(dateString) {
                 if (!dateString || dateString === 'N/A') return 0;
                 let date;
-                if (/^\d+$/.test(dateString)) date = new Date(parseInt(dateString, 10));
+                if (/^\d+(\.\d+)?$/.test(dateString)) date = new Date(parseFloat(dateString));
                 else date = new Date(dateString);
 
                 if (isNaN(date.getTime())) return 0;
                 return (date.getHours() * 60) + date.getMinutes() + (date.getSeconds() / 60);
             }
 
-            function calculateBPMStats(voltages, samplingRate) {
-                if (!voltages || voltages.length === 0) return { min: 0, max: 0, avg: 0 };
+            function getBeatsInRange(waveformData, samplingRate) {
+                const voltages = waveformData.voltage_mv || waveformData;
+                const totalPoints = voltages.length;
+                let peaks = [];
 
-                let sum = 0; for (let i = 0; i < voltages.length; i++) sum += voltages[i];
-                let mean = sum / voltages.length;
-
-                let maxDev = 0;
-                for (let i = 0; i < voltages.length; i++) {
-                    let dev = voltages[i] - mean;
-                    if (dev > maxDev) maxDev = dev;
+                if (waveformData.beat_positions && waveformData.beat_positions.length > 0) {
+                    peaks = waveformData.beat_positions.slice();
+                    peaks = peaks.map(p => {
+                        if (p < totalPoints) return p;
+                        return 0;
+                    }).filter(p => p > 0);
+                    peaks.sort((a, b) => a - b);
+                    return peaks;
                 }
 
-                let threshold = mean + (maxDev * 0.6);
-                let peaks = [];
-                let lastPeakIdx = -1;
-                let minPeakDist = samplingRate * 0.3;
+                let windowVoltages = Array.from(voltages);
+                windowVoltages.sort((a, b) => a - b);
+                const pct = (p) => windowVoltages[Math.floor(p * (windowVoltages.length - 1))];
+                const floor = pct(0.10) || 0;
+                const ceiling = pct(0.90) || 0;
 
-                for (let i = 0; i < voltages.length; i++) {
+                const threshold = floor + (ceiling - floor) * 0.6;
+                const valleyThreshold = floor + (ceiling - floor) * 0.3;
+                const minDistance = Math.floor(samplingRate * 0.25);
+
+                let candidates = [];
+                for (let i = 0; i < totalPoints; i++) {
                     if (voltages[i] > threshold) {
-                        if (lastPeakIdx === -1 || (i - lastPeakIdx) > minPeakDist) {
-                            peaks.push(i);
-                            lastPeakIdx = i;
-                        } else if (voltages[i] > voltages[lastPeakIdx]) {
-                            peaks[peaks.length - 1] = i;
-                            lastPeakIdx = i;
+                        let isMax = true;
+                        for (let j = 1; j <= minDistance; j++) {
+                            const left = i - j;
+                            const right = i + j;
+                            if (left >= 0 && voltages[left] > voltages[i]) { isMax = false; break; }
+                            if (right < totalPoints && voltages[right] > voltages[i]) { isMax = false; break; }
+                        }
+                        if (isMax) {
+                            candidates.push(i);
+                            i += minDistance;
                         }
                     }
                 }
 
-                if (peaks.length < 2) return { min: 0, max: 0, avg: 0 };
-
-                let bpms = [];
-                for (let i = 1; i < peaks.length; i++) {
-                    let r_r_sec = (peaks[i] - peaks[i - 1]) / samplingRate;
-                    if (r_r_sec > 0) bpms.push(60 / r_r_sec);
+                for (const p of candidates) {
+                    if (peaks.length === 0) { peaks.push(p); continue; }
+                    const prev = peaks[peaks.length - 1];
+                    let minBetween = Infinity;
+                    for (let k = prev; k <= p; k++) {
+                        if (voltages[k] < minBetween) minBetween = voltages[k];
+                    }
+                    if (minBetween < valleyThreshold) peaks.push(p);
                 }
 
+                return peaks;
+            }
+
+            function calculateBPMStats(waveformData, samplingRate) {
+                const voltages = waveformData.voltage_mv || waveformData;
+                if (!voltages || voltages.length === 0) return { min: 0, max: 0, avg: 0 };
+
+                let peaks = getBeatsInRange(waveformData, samplingRate);
+
+                if (peaks.length < 2) return { min: 0, max: 0, avg: 0 };
+
+                let rrIntervalsPts = [];
+                for (let i = 1; i < peaks.length; i++) {
+                    rrIntervalsPts.push(peaks[i] - peaks[i - 1]);
+                }
+
+                let sortedRR = [...rrIntervalsPts].sort((a, b) => a - b);
+
+                const mid = Math.floor(sortedRR.length / 2);
+                const medianIntervalPts = sortedRR.length % 2 !== 0
+                    ? sortedRR[mid]
+                    : (sortedRR[mid - 1] + sortedRR[mid]) / 2;
+                const medianIntervalSec = medianIntervalPts / samplingRate;
+                const medianBpm = medianIntervalSec > 0 ? Math.round(60 / medianIntervalSec) : 0;
+
+                let bpms = rrIntervalsPts.map(pts => Math.round(60 / (pts / samplingRate))).filter(bpm => bpm > 0);
+
                 return {
-                    min: Math.round(Math.min(...bpms)),
-                    max: Math.round(Math.max(...bpms)),
-                    avg: Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length)
+                    min: Math.min(...bpms),
+                    max: Math.max(...bpms),
+                    avg: medianBpm
                 };
             }
 
@@ -1038,7 +1101,7 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
                 const patientFields = [
                     { label: "Patient", value: patient.patient_name, width: "w33" },
                     { label: "Patient ID", value: patient.patient_id, width: "w33" },
-                    { label: "Date", value: "", width: "w33" }
+                    { label: "Date", value: formatDateTime(patient.created_datetime), width: "w33" }
                 ];
                 const row = document.createElement('div'); row.className = 'row';
                 patientFields.forEach(f => {
@@ -1117,374 +1180,9 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
     `;
                 return card;
             }
-            function drawECG(canvas, waveformData) {
-                const dpr = Math.max(window.devicePixelRatio || 1, 4);
-                const width = canvas.parentElement.clientWidth;
-                const height = 180;
 
-                canvas.width = width * dpr;
-                canvas.height = height * dpr;
-                canvas.style.width = width + 'px';
-                canvas.style.height = height + 'px';
-
-                const ctx = canvas.getContext('2d');
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                ctx.clearRect(0, 0, width, height);
-
-                // Equal margins on left and right since Y-axis amplitude points are removed
-                const marginLeft = 6, marginRight = 6, marginTop = 20, marginBottom = 45;
-                const plotW = Math.max(0, width - marginLeft - marginRight);
-                const plotH = height - marginTop - marginBottom;
-
-                const voltages = waveformData.voltage_mv || [];
-                const timestamps = waveformData.timestamp_ms || [];
-                const samplingRate = waveformData.sampling_rate || 256;
-                const totalPoints = voltages.length;
-                const durationSec = totalPoints / samplingRate;
-
-                if (totalPoints === 0) {
-                    ctx.fillStyle = '#000000';
-                    ctx.font = '12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('No ECG data available in response.', width / 2, height / 2);
-                    return;
-                }
-
-                const pxPerSec = plotW / (durationSec || 10);
-                const midY = marginTop + (plotH / 2);
-
-                // Standard ECG paper square grid (1mm x 1mm and 5mm x 5mm proportional)
-                const smallStepX = 0.04 * pxPerSec;
-                const smallStepY = smallStepX;
-                const bigStepX = smallStepX * 5;
-                const bigStepY = smallStepY * 5;
-
-                const gridLeft = marginLeft, gridRight = width - marginRight;
-                const gridTop = marginTop, gridBottom = height - marginBottom;
-
-                // 1. Grid Background (Pure white)
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(gridLeft, gridTop, plotW, plotH);
-
-                // 2. Minor Grid (Light pink/salmon-red medical ECG paper theme)
-                ctx.strokeStyle = '#ffb2b2';
-                ctx.lineWidth = 0.5;
-                for (let x = gridLeft; x <= gridRight; x += smallStepX) {
-                    ctx.beginPath();
-                    ctx.moveTo(Math.round(x) + 0.5, gridTop);
-                    ctx.lineTo(Math.round(x) + 0.5, gridBottom);
-                    ctx.stroke();
-                }
-                for (let y = gridTop; y <= gridBottom; y += smallStepY) {
-                    ctx.beginPath();
-                    ctx.moveTo(gridLeft, Math.round(y) + 0.5);
-                    ctx.lineTo(gridRight, Math.round(y) + 0.5);
-                    ctx.stroke();
-                }
-
-                // 3. Major Grid (Vivid medical red)
-                ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 0.8;
-                for (let x = gridLeft; x <= gridRight; x += bigStepX) {
-                    ctx.beginPath();
-                    ctx.moveTo(Math.round(x) + 0.5, gridTop);
-                    ctx.lineTo(Math.round(x) + 0.5, gridBottom);
-                    ctx.stroke();
-                }
-                for (let y = gridTop; y <= gridBottom; y += bigStepY) {
-                    ctx.beginPath();
-                    ctx.moveTo(gridLeft, Math.round(y) + 0.5);
-                    ctx.lineTo(gridRight, Math.round(y) + 0.5);
-                    ctx.stroke();
-                }
-
-                // 4. Grid Outer Border
-                ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 0.85;
-                ctx.strokeRect(gridLeft, gridTop, plotW, plotH);
-
-                // 5. Y-Axis Amplitude Points removed per request
-
-                // 6. X-Axis Timestamp Labels (Black)
-                ctx.fillStyle = '#000000';
-                ctx.font = '8px Arial, sans-serif';
-                ctx.textBaseline = 'bottom';
-
-                function formatTimeLabel(index) {
-                    if (timestamps.length > index) {
-                        const date = new Date(timestamps[index]);
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const mins = String(date.getMinutes()).padStart(2, '0');
-                        const secs = String(date.getSeconds()).padStart(2, '0');
-                        const deciseconds = Math.floor(date.getMilliseconds() / 100);
-                        return `${hours}:${mins}:${secs}.${deciseconds}`;
-                    }
-                    return '';
-                }
-
-                ctx.textAlign = 'left';
-                ctx.fillText(formatTimeLabel(0), gridLeft, marginTop - 4);
-                ctx.textAlign = 'right';
-                ctx.fillText(formatTimeLabel(totalPoints - 1), gridRight, marginTop - 4);
-
-                // Dynamic voltage range & compression so waveform is fully shown within container
-                let minV = Infinity, maxV = -Infinity;
-                for (let i = 0; i < totalPoints; i++) {
-                    const v = voltages[i];
-                    if (v < minV) minV = v;
-                    if (v > maxV) maxV = v;
-                }
-                if (!isFinite(minV)) { minV = -1; maxV = 1; }
-
-                const signalCenter = (Math.abs((maxV + minV) / 2) > 1.5) ? ((maxV + minV) / 2) : 0;
-                let maxDev = 0;
-                for (let i = 0; i < totalPoints; i++) {
-                    const dev = Math.abs(voltages[i] - signalCenter);
-                    if (dev > maxDev) maxDev = dev;
-                }
-
-                // Compress waveform vertically to fit with clean margin inside grid container
-                const padY = 16;
-                const halfH = (plotH / 2) - padY;
-                const scaleY = halfH / Math.max(maxDev, 2.0);
-
-                // 7. Main ECG Waveform (Clean thin line like Image 1, fully compressed inside container)
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(gridLeft, gridTop, plotW, plotH);
-                ctx.clip();
-
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.75;
-                ctx.lineJoin = 'round';
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-
-                for (let i = 0; i < totalPoints; i++) {
-                    const x = gridLeft + (i / samplingRate) * pxPerSec;
-                    const y = midY - (voltages[i] - signalCenter) * scaleY;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-                ctx.restore();
-
-                // 8. Bottom Rhythm / Mini-strip
-                const stripTop = height - 30;
-                const stripBottom = height - 5;
-                const stripH = stripBottom - stripTop;
-                const stripMidY = stripTop + stripH / 2;
-                const hlStart = gridLeft + plotW * 0.35;
-                const hlEnd = gridLeft + plotW * 0.65;
-
-                // Mini-strip background container
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(gridLeft, stripTop, plotW, stripH);
-
-                // Highlight section (soft red/pink tint like Image 2)
-                ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
-                ctx.fillRect(hlStart, stripTop, hlEnd - hlStart, stripH);
-
-                // Mini-strip outer border
-                ctx.strokeStyle = '#d1d5db';
-                ctx.lineWidth = 0.8;
-                ctx.strokeRect(gridLeft, stripTop, plotW, stripH);
-
-                // Center baseline
-                ctx.strokeStyle = '#e5e7eb';
-                ctx.lineWidth = 0.6;
-                ctx.beginPath();
-                ctx.moveTo(gridLeft, stripMidY);
-                ctx.lineTo(gridRight, stripMidY);
-                ctx.stroke();
-
-                // Ticks along the baseline
-                ctx.strokeStyle = '#cccccc';
-                ctx.lineWidth = 0.6;
-                const tickSpacing = pxPerSec;
-                for (let x = gridLeft; x <= gridRight; x += tickSpacing) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, stripMidY - 3);
-                    ctx.lineTo(x, stripMidY + 3);
-                    ctx.stroke();
-                }
-
-                // Mini-strip Waveform (Clean thin line, compressed inside mini-strip)
-                const miniPadY = 3;
-                const miniHalfH = (stripH / 2) - miniPadY;
-                const miniScaleY = miniHalfH / Math.max(maxDev, 2.0);
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(gridLeft, stripTop, plotW, stripH);
-                ctx.clip();
-
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.65;
-                ctx.lineJoin = 'round';
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-                for (let i = 0; i < totalPoints; i++) {
-                    const x = gridLeft + (i / samplingRate) * pxPerSec;
-                    const y = stripMidY - (voltages[i] - signalCenter) * miniScaleY;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            // ---------------- NEW AGGREGATED HR EVENT GRAPH RENDER ----------------
-            function renderEventSummaryGraph(fetchedDataPoints) {
-                const canvas = document.getElementById('hrCanvas');
-                const ctx = canvas.getContext('2d');
-                const wrap = canvas.parentElement;
-
-                function draw() {
-                    const dpr = Math.max(window.devicePixelRatio || 1, 4);
-                    const width = wrap.getBoundingClientRect().width;
-                    const height = 130;
-
-                    canvas.width = width * dpr;
-                    canvas.height = height * dpr;
-                    canvas.style.width = width + 'px';
-                    canvas.style.height = height + 'px';
-                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                    ctx.clearRect(0, 0, width, height);
-
-                    const marginLeft = 28, marginRight = 10, marginTop = 10, marginBottom = 18;
-                    const chartW = width - marginLeft - marginRight;
-                    const chartH = height - marginTop - marginBottom;
-                    const yMinVal = 0, yMaxVal = 200, yStep = 40;
-
-                    ctx.strokeStyle = '#E5E9ED';
-                    ctx.lineWidth = 1;
-                    ctx.fillStyle = '#000000';
-                    ctx.font = '9px -apple-system, Helvetica, Arial, sans-serif';
-                    ctx.textAlign = 'right';
-                    ctx.textBaseline = 'middle';
-
-                    for (let v = yMinVal; v <= yMaxVal; v += yStep) {
-                        const y = marginTop + chartH * (1 - (v - yMinVal) / (yMaxVal - yMinVal));
-                        ctx.beginPath();
-                        ctx.moveTo(marginLeft, y);
-                        ctx.lineTo(width - marginRight, y);
-                        ctx.stroke();
-                        ctx.fillText(String(v), marginLeft - 6, y);
-                    }
-
-                    const gapX = 15;
-                    const plotW = chartW - (gapX * 2);
-
-                    ctx.fillStyle = '#000000';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-
-                    for (let h = 0; h < 24; h += 2) {
-                        const x = marginLeft + gapX + plotW * (h * 60 / 1440);
-                        let label;
-                        if (h === 0) label = '12AM';
-                        else if (h < 12) label = h + 'AM';
-                        else if (h === 12) label = '12PM';
-                        else label = (h - 12) + 'PM';
-                        ctx.fillText(label, x, marginTop + chartH + 6);
-                    }
-
-                    if (fetchedDataPoints && fetchedDataPoints.length > 0) {
-
-                        fetchedDataPoints.sort((a, b) => a.startMins - b.startMins);
-
-                        // Overlap Removal Logic - Aggregates points that are less than ~3.5 pixels apart
-                        let aggregated = [];
-                        const MIN_GAP_MINS = (3.5 / plotW) * 1440;
-
-                        let currentBin = null;
-                        for (let d of fetchedDataPoints) {
-                            if (d.min === 0 && d.max === 0) continue;
-
-                            if (!currentBin) {
-                                currentBin = { ...d, sumAvg: d.avg, count: 1 };
-                            } else {
-                                if (d.startMins - currentBin.startMins < MIN_GAP_MINS) {
-                                    currentBin.min = Math.min(currentBin.min, d.min);
-                                    currentBin.max = Math.max(currentBin.max, d.max);
-                                    currentBin.sumAvg += d.avg;
-                                    currentBin.count++;
-                                } else {
-                                    currentBin.avg = currentBin.sumAvg / currentBin.count;
-                                    aggregated.push(currentBin);
-                                    currentBin = { ...d, sumAvg: d.avg, count: 1 };
-                                }
-                            }
-                        }
-                        if (currentBin) {
-                            currentBin.avg = currentBin.sumAvg / currentBin.count;
-                            aggregated.push(currentBin);
-                        }
-
-                        // Update Stats using aggregated clean data
-                        const minValues = aggregated.map(e => e.min);
-                        const maxValues = aggregated.map(e => e.max);
-                        const avgSum = aggregated.reduce((sum, e) => sum + e.avg, 0);
-
-                        const minStr = minValues.length > 0 ? Math.min(...minValues) : '--';
-                        const maxStr = maxValues.length > 0 ? Math.max(...maxValues) : '--';
-                        const avgStr = aggregated.length > 0 ? Math.round(avgSum / aggregated.length) : '--';
-
-                        document.getElementById('statAvg').textContent = `Average HR: ${avgStr}bpm`;
-                        document.getElementById('statMin').textContent = `Minimum Strip HR: ${minStr}bpm`;
-                        document.getElementById('statMax').textContent = `Maximum Strip HR: ${maxStr}bpm`;
-
-                        // Draw Min/Max vertical black lines with horizontal caps
-                        ctx.strokeStyle = '#4a4a4a';
-                        ctx.lineWidth = 1.2;
-                        ctx.lineCap = 'butt';
-
-                        const capHalf = 2.5;
-
-                        aggregated.forEach(d => {
-                            let x = marginLeft + gapX + plotW * (d.startMins / 1440);
-                            let yMaxPix = marginTop + chartH * (1 - (Math.min(d.max, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
-                            let yMinPix = marginTop + chartH * (1 - (Math.min(d.min, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
-
-                            ctx.beginPath();
-                            ctx.moveTo(x, yMinPix);
-                            ctx.lineTo(x, yMaxPix);
-
-                            ctx.moveTo(x - capHalf, yMaxPix);
-                            ctx.lineTo(x + capHalf, yMaxPix);
-
-                            ctx.moveTo(x - capHalf, yMinPix);
-                            ctx.lineTo(x + capHalf, yMinPix);
-                            ctx.stroke();
-                        });
-
-                        // Draw the continuous red line connecting all event averages
-                        ctx.strokeStyle = '#D9766B';
-                        ctx.lineWidth = 1.5;
-                        ctx.lineJoin = 'round';
-                        ctx.lineCap = 'round';
-                        ctx.beginPath();
-
-                        aggregated.forEach((d, i) => {
-                            let x = marginLeft + gapX + plotW * (d.startMins / 1440);
-                            let yAvgPix = marginTop + chartH * (1 - (Math.min(d.avg, yMaxVal) - yMinVal) / (yMaxVal - yMinVal));
-
-                            if (i === 0) ctx.moveTo(x, yAvgPix);
-                            else ctx.lineTo(x, yAvgPix);
-                        });
-                        ctx.stroke();
-                    }
-                }
-
-                draw();
-                let resizeTimer;
-                window.addEventListener('resize', () => {
-                    clearTimeout(resizeTimer);
-                    resizeTimer = setTimeout(draw, 100);
-                });
-            }
+            // Immediately render the top HR graph on page load
+            renderEventSummaryGraph();
 
             // ---------------- Main Initialization ----------------
             async function initCutStrip() {
@@ -1505,7 +1203,7 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
 
                     (REPORT_DATA.qer_list || []).forEach(q => {
                         allEventEntries.push({
-                            path:  q.event_file_path,
+                            path: q.event_file_path,
                             startStr: q.event_start_datetime,
                             isSubStrip: false,
                             fallbackBpm: q.bpm || 0,
@@ -1523,18 +1221,29 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
                         }
                     });
 
-                    // 2. Fetch all json files
+                    // 2. Fetch all strip files (JSON or EDF)
                     const fetchedStripsData = await Promise.all(
                         allEventEntries.map(async (entry) => {
+                            if (typeof fetchAndParseStrip === 'function') {
+                                return await fetchAndParseStrip(entry);
+                            }
                             if (!entry.path) return { entry, data: {} };
                             try {
                                 const safePath = entry.path.replace(/\\/g, '/').replace(/^\//, '');
+                                const isEdf = safePath.toLowerCase().endsWith('.edf') || safePath.toLowerCase().includes('.edf');
 
                                 const res = await fetch(safePath);
-
                                 if (!res.ok) throw new Error(`Status ${res.status}`);
-                                const json = await res.json();
-                                return { entry, data: json };
+
+                                if (isEdf && typeof parseEdf === 'function') {
+                                    const arrayBuffer = await res.arrayBuffer();
+                                    const fileName = safePath.split('/').pop() || '';
+                                    const edfData = parseEdf(arrayBuffer, fileName, entry.originalObj);
+                                    return { entry, data: edfData };
+                                } else {
+                                    const json = await res.json();
+                                    return { entry, data: json };
+                                }
                             } catch (err) {
                                 console.error(`Failed to fetch ${entry.path}:`, err);
                                 return { entry, data: null };
@@ -1560,11 +1269,30 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
                         const fetchedJson = item.data || {};
                         const waveformData = fetchedJson.waveform_snippet || fetchedJson;
 
+                        waveformData.amplitudeScale = Number(
+                            waveformData.amplitudeScale ??
+                            waveformData.waveform_snippet?.amplitudeScale ??
+                            fetchedJson.amplitudeScale ??
+                            fetchedJson.waveform_snippet?.amplitudeScale ??
+                            entry?.originalObj?.amplitudeScale ??
+                            entry?.originalObj?.waveform_snippet?.amplitudeScale ??
+                            1
+                        ) || 1;
+
+                        waveformData.yOffset = Number(
+                            waveformData.yOffset ??
+                            waveformData.waveform_snippet?.yOffset ??
+                            fetchedJson.yOffset ??
+                            fetchedJson.waveform_snippet?.yOffset ??
+                            entry?.originalObj?.yOffset ??
+                            0
+                        ) || 0;
+
                         const voltages = waveformData.voltage_mv || [];
                         const samplingRate = waveformData.sampling_rate || 256;
 
                         // Calculate Heart Rate bounds
-                        let stats = calculateBPMStats(voltages, samplingRate);
+                        let stats = calculateBPMStats(waveformData, samplingRate);
 
                         // Fallback logic
                         if (stats.avg === 0 && entry.fallbackBpm > 0) {
@@ -1617,8 +1345,22 @@ document.getElementById('longest_af_value1').innerText = aF_Burden.longest_af_va
 
                             // Extract Findings text
                             let findingsText = "Unknown Anomaly";
+
                             if (entry.originalObj.finding_list && entry.originalObj.finding_list.length > 0) {
-                                findingsText = entry.originalObj.finding_list.map(f => f.finding_name).join(", ");
+                                findingsText = entry.originalObj.finding_list
+                                    .map(f => {
+                                        let findingName = f.finding_name || "";
+
+                                        // Replace first [] content with value1
+                                        findingName = findingName.replace(/\[[^\]]*\]/, f.value1 ?? "");
+
+                                        // Replace second [] content with value2
+                                        findingName = findingName.replace(/\[[^\]]*\]/, f.value2 ?? "");
+
+                                        return findingName;
+                                    })
+                                    .join(", ");
+
                             } else if (entry.originalObj.finding_names) {
                                 findingsText = entry.originalObj.finding_names;
                             }

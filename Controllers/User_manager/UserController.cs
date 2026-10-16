@@ -121,6 +121,13 @@ namespace elr_API.Controllers.User_manager
         }
         #endregion
 
+        #region HttpGet = api/User/ElrEventProcessingTracking
+        [HttpGet("ElrEventProcessingTracking")]
+        public async Task<ActionResult<ResponseDTO>> ElrEventProcessingTracking()
+        {
+            return await _userService.ElrEventProcessingTracking();
+        }
+        #endregion
 
     }
 }

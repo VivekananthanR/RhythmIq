@@ -46,7 +46,7 @@ namespace elr_API.Service.Report_template
 
 
                 query = ArrhythmiaPdfDTO.get_arrhythmia_data();
-                var result = (await _db.SelectQuery<ArrhythmiaResultDTO>(query, new { patient_report_id = patientData.patient_report_id }, ELR_db)).FirstOrDefault();
+                var result = (await _db.SelectQuery<ArrhythmiaResultDTO>(query, new { patient_enrollment_id = patientData.patient_enrollment_id }, ELR_db)).FirstOrDefault();
 
 
                 var arrhythmiaData = new ArrhythmiaPdfDTO

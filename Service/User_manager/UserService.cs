@@ -472,7 +472,28 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-
+        public async Task<ResponseDTO> ElrEventProcessingTracking()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = EventProcessTrackingDTO.select_event_process_tracking();
+                var (totalCount, data) = await _dp.SelectQueryWithCount<long, EventProcessTrackingDTO>(query, null, Elr_db);
+                var result = new
+                {
+                    totalCount = totalCount,
+                    item = data,
+                };
+                return new ResponseDTO(result);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
     }
 

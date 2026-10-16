@@ -595,14 +595,12 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-
         public async Task ElrPhythonProcessEnrollmentRawData()
         {
-            string query = string.Empty;
+            string query = EnrollmentRawDataDTO.GetWaitingRecords();
 
-            query = EnrollmentRawDataDTO.GetWaitingRecords();
-
-            var records = await _db.SelectQuery<EnrollmentRawDataDTO>(query, null, ELR_db);
+            var records = await _db.SelectQuery<EnrollmentRawDataDTO>(
+                query, null, ELR_db);
 
             foreach (var item in records)
             {
@@ -610,66 +608,130 @@ namespace elr_API.Service.Enrolment
                 {
                     query = EnrollmentRawDataDTO.update_checking_status();
 
-                    var row = await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+                    var row = await _db.Execute(
+                        query,
+                        new
+                        {
+                            enrollment_raw_data_id = item.enrollment_raw_data_id
+                        },
+                        ELR_db);
 
                     if (row == 0)
                     {
                         continue;
                     }
 
-                    string physicalPath = Path.Combine(Directory.GetCurrentDirectory(), item.file_path);
-
+                    string physicalPath = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        item.file_path);
 
                     if (!File.Exists(physicalPath))
                     {
+                        await _db.Execute(
+                            EnrollmentRawDataDTO.update_waiting_status(),
+                            new
+                            {
+                                remarks = $"File not found: {physicalPath}",
+                                enrollment_raw_data_id = item.enrollment_raw_data_id
+                            },
+                            ELR_db);
 
-                        query = EnrollmentRawDataDTO.update_waiting_status();
+                        continue;
+                    }
 
-                        await _db.Execute(query, new { remarks = $"File not found : {physicalPath}", enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+                    // Current flow accepts EDF / EDF+ only
+                    string extension = Path.GetExtension(physicalPath);
+
+                    if (!extension.Equals(".edf", StringComparison.OrdinalIgnoreCase)
+                        && !extension.Equals(".edf+", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _db.Execute(
+                            EnrollmentRawDataDTO.update_waiting_status(),
+                            new
+                            {
+                                remarks = $"Invalid file format. EDF/EDF+ expected: {physicalPath}",
+                                enrollment_raw_data_id = item.enrollment_raw_data_id
+                            },
+                            ELR_db);
 
                         continue;
                     }
 
                     using var formData = new MultipartFormDataContent();
-
                     using var fileStream = File.OpenRead(physicalPath);
+                    using var fileContent = new StreamContent(fileStream);
 
-                    var fileContent = new StreamContent(fileStream);
+                    fileContent.Headers.ContentType =
+                        new System.Net.Http.Headers.MediaTypeHeaderValue(
+                            "application/octet-stream");
 
-                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                    formData.Add(
+                        fileContent,
+                        "file",
+                        Path.GetFileName(physicalPath));
 
-                    formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
-                    formData.Add(new StringContent(item.patient_enrollment_id.ToString()), "patient_enrollment_id");
-                    formData.Add(new StringContent(item.enrollment_raw_data_id.ToString()), "enrollment_raw_data_id");
+                    formData.Add(
+                        new StringContent(item.patient_enrollment_id.ToString()),
+                        "patient_enrollment_id");
+
+                    formData.Add(
+                        new StringContent(item.enrollment_raw_data_id.ToString()),
+                        "enrollment_raw_data_id");
 
                     using var client = _httpClientFactory.CreateClient();
-
                     client.Timeout = TimeSpan.FromSeconds(30);
 
-                    var url = CommonFunctions.DataOnLive() ? _configuration["PythonApi:ProcessUrlLive"] : _configuration["PythonApi:ProcessUrlLocal"];
+                    var url = CommonFunctions.DataOnLive()
+                        ? _configuration["PythonApi:ProcessUrlLive"]
+                        : _configuration["PythonApi:ProcessUrlLocal"];
 
-                    var response = await client.PostAsync(url, formData);
+                    Console.WriteLine("========== PYTHON API REQUEST ==========");
+                    Console.WriteLine($"URL: {url}");
+                    Console.WriteLine($"File: {physicalPath}");
+                    Console.WriteLine($"Extension: {extension}");
+                    Console.WriteLine($"Enrollment ID: {item.patient_enrollment_id}");
+                    Console.WriteLine($"Raw Data ID: {item.enrollment_raw_data_id}");
 
+                    using var response = await client.PostAsync(url, formData);
                     string result = await response.Content.ReadAsStringAsync();
+
+                    Console.WriteLine("========== PYTHON API RESPONSE ==========");
+                    Console.WriteLine($"Status: {(int)response.StatusCode}");
+                    Console.WriteLine($"Success: {response.IsSuccessStatusCode}");
+                    Console.WriteLine($"Response: {result}");
+                    Console.WriteLine("=========================================");
 
                     if (response.IsSuccessStatusCode)
                     {
-                        query = EnrollmentRawDataDTO.update_completed_status();
+                        await _db.Execute(
+                            EnrollmentRawDataDTO.update_completed_status(),
+                            new
+                            {
+                                enrollment_raw_data_id = item.enrollment_raw_data_id
+                            },
+                            ELR_db);
 
-                        await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
-
-                        query = PatientEnrollmentDTO.monitoring_hookup_status(item.patient_enrollment_id);
-
-                        await _db.Execute(query, new { patient_enrollment_id = item.patient_enrollment_id }, ELR_db);
+                        await _db.Execute(
+                            PatientEnrollmentDTO.monitoring_hookup_status(
+                                item.patient_enrollment_id),
+                            new
+                            {
+                                patient_enrollment_id = item.patient_enrollment_id
+                            },
+                            ELR_db);
                     }
                     else
                     {
-                        query = EnrollmentRawDataDTO.update_waiting_status();
-                        await _db.Execute(query, new
-                        {
-                            remarks = string.IsNullOrWhiteSpace(result) ? "Python API request failed." : result,
-                            enrollment_raw_data_id = item.enrollment_raw_data_id
-                        }, ELR_db);
+                        await _db.Execute(
+                            EnrollmentRawDataDTO.update_waiting_status(),
+                            new
+                            {
+                                remarks = string.IsNullOrWhiteSpace(result)
+                                    ? $"Python API failed: HTTP {(int)response.StatusCode} - {response.ReasonPhrase}"
+                                    : result,
+                                enrollment_raw_data_id = item.enrollment_raw_data_id
+                            },
+                            ELR_db);
                     }
                 }
                 catch (Exception ex)
@@ -683,11 +745,105 @@ namespace elr_API.Service.Enrolment
                         ELR_db);
 
                     CommonFunctions.ILogging(item, ex.ToString());
-
-                    continue;
                 }
             }
         }
+
+        //public async Task ElrPhythonProcessEnrollmentRawData()
+        //{
+        //    string query = string.Empty;
+
+        //    query = EnrollmentRawDataDTO.GetWaitingRecords();
+
+        //    var records = await _db.SelectQuery<EnrollmentRawDataDTO>(query, null, ELR_db);
+
+        //    foreach (var item in records)
+        //    {
+        //        try
+        //        {
+        //            query = EnrollmentRawDataDTO.update_checking_status();
+
+        //            var row = await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+
+        //            if (row == 0)
+        //            {
+        //                continue;
+        //            }
+
+        //            string physicalPath = Path.Combine(Directory.GetCurrentDirectory(), item.file_path);
+
+
+        //            if (!File.Exists(physicalPath))
+        //            {
+
+        //                query = EnrollmentRawDataDTO.update_waiting_status();
+
+        //                await _db.Execute(query, new { remarks = $"File not found : {physicalPath}", enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+
+        //                continue;
+        //            }
+
+        //            using var formData = new MultipartFormDataContent();
+
+        //            using var fileStream = File.OpenRead(physicalPath);
+
+        //            var fileContent = new StreamContent(fileStream);
+
+        //            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        //            formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
+        //            formData.Add(new StringContent(item.patient_enrollment_id.ToString()), "patient_enrollment_id");
+        //            formData.Add(new StringContent(item.enrollment_raw_data_id.ToString()), "enrollment_raw_data_id");
+
+        //            using var client = _httpClientFactory.CreateClient();
+
+        //            client.Timeout = TimeSpan.FromSeconds(30);
+
+        //            var url = CommonFunctions.DataOnLive() ? _configuration["PythonApi:ProcessUrlLive"] : _configuration["PythonApi:ProcessUrlLocal"];
+
+        //            var response = await client.PostAsync(url, formData);
+
+        //            string result = await response.Content.ReadAsStringAsync();
+
+        //            if (response.IsSuccessStatusCode)
+        //            {
+        //                query = EnrollmentRawDataDTO.update_completed_status();
+
+        //                await _db.Execute(query, new { enrollment_raw_data_id = item.enrollment_raw_data_id }, ELR_db);
+
+        //                query = PatientEnrollmentDTO.monitoring_hookup_status(item.patient_enrollment_id);
+
+        //                await _db.Execute(query, new { patient_enrollment_id = item.patient_enrollment_id }, ELR_db);
+        //            }
+        //            else
+        //            {
+        //                query = EnrollmentRawDataDTO.update_waiting_status();
+
+        //                await _db.Execute(query, new
+        //                {
+        //                    remarks = string.IsNullOrWhiteSpace(result)
+        //                        ? $"Python API failed. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}"
+        //                        : result,
+        //                    enrollment_raw_data_id = item.enrollment_raw_data_id
+        //                }, ELR_db);
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            await _db.Execute(
+        //                EnrollmentRawDataDTO.update_waiting_status(),
+        //                new
+        //                {
+        //                    enrollment_raw_data_id = item.enrollment_raw_data_id
+        //                },
+        //                ELR_db);
+
+        //            CommonFunctions.ILogging(item, ex.ToString());
+
+        //            continue;
+        //        }
+        //    }
+        //}
 
 
 

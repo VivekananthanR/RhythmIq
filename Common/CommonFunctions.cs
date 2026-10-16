@@ -48,6 +48,23 @@ namespace elr_API.Common
         }
         #endregion
 
+
+        public static string GetEdfFullPath(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                return string.Empty;
+
+            if (Path.IsPathRooted(filePath))
+                return filePath;
+
+            string projectPath = Directory.GetCurrentDirectory();
+
+            return Path.GetFullPath(
+                Path.Combine(projectPath, filePath)
+            );
+        }
+
+
         public static async Task<string> UploadFile(IFormFile File, string FileName, string FolderPath)
         {
             if (File != null)

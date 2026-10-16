@@ -316,7 +316,7 @@ namespace elr_API.Controllers.Home_manager
 
         #region HttpPost= api/Home/ElrSubStripEvent
         [HttpPost("ElrSubStripEvent"), Authorize]
-        public async Task<ActionResult<ResponseDTO>> ElrSubStripEvent([FromHeader] string authorization, SubStripEventDTO obj)
+        public async Task<ActionResult<ResponseDTO>> ElrSubStripEvent([FromHeader] string authorization, [FromForm] SubStripEventDTO obj)
         {
             TokenClaims tokenClaims = Validation.ClaimValues(authorization);
             obj.created_by = tokenClaims.id;

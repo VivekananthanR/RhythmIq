@@ -25,7 +25,7 @@ namespace elr_API.Service.Background_services
                     var db = scope.ServiceProvider.GetRequiredService<IDapperSqlService>();
 
                     // Create 24 Hours Report
-                    //await db.Execute(PatientReportDTO.create_24_hours_report(), null, ELR_db);
+                    await db.Execute(PatientReportDTO.create_24_hours_report(), null, ELR_db);
 
                     // Create Final Report
                     await db.Execute(PatientReportDTO.create_final_report(), null, ELR_db);

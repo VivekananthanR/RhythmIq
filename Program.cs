@@ -1,3 +1,4 @@
+using elr_API.Common;
 using elr_API.IService.ICommon_manager;
 using elr_API.IService.IDapper;
 using elr_API.IService.IEntrolement;
@@ -80,6 +81,7 @@ builder.Services.AddScoped<IEnrollment, Enrollment>();
 builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddScoped<IReportTemplateService, ReportTemplateService>();
 builder.Services.AddScoped<IQikberrychatService, QikberrychatService>();
+builder.Services.AddScoped<EdfService>();
 #endregion
 
 #region Logging configuration

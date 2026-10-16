@@ -89,49 +89,45 @@ namespace elr_API.DTO.ReqDTO
         internal static string get_strip_data()
         {
             return @"
-        SELECT
-            a.patient_report_generate_id,
-            a.patient_report_id,
-            a.queued_events_records_id,
-            a.sub_strip_event_id,
+                    SELECT
+                        a.patient_report_generate_id,
+                        a.patient_report_id,
+                        a.queued_events_records_id,
+                        a.sub_strip_event_id,
 
-            qer.event_start_datetime,
-            qer.event_end_datetime,
-            qer.event_file_path,
+                        qer.event_start_datetime,
+                        qer.event_end_datetime,
+                        qer.event_file_path,
 
-            sse.sub_strip_file_path,
-            sse.sub_strip_start_datetime,
-            sse.sub_strip_end_datetime
+                        sse.sub_strip_file_path,
+                        sse.sub_strip_start_datetime,
+                        sse.sub_strip_end_datetime
 
-        FROM tbl_patient_report_generate AS a
+                    FROM tbl_patient_report_generate AS a
 
-        INNER JOIN tbl_patient_report AS pr
-            ON pr.patient_report_id = a.patient_report_id
+                    INNER JOIN tbl_patient_report AS pr
+                        ON pr.patient_report_id = a.patient_report_id
 
-        INNER JOIN tbl_patient_enrollment AS pe
-            ON pe.patient_enrollment_id = pr.patient_enrollment_id
+                    INNER JOIN tbl_patient_enrollment AS pe
+                        ON pe.patient_enrollment_id = pr.patient_enrollment_id
 
-        INNER JOIN tbl_queued_events_records AS qer
-            ON qer.queued_events_records_id = a.queued_events_records_id
+                    INNER JOIN tbl_queued_events_records AS qer
+                        ON qer.queued_events_records_id = a.queued_events_records_id
 
-        INNER JOIN tbl_sub_strip_event AS sse
-            ON sse.sub_strip_event_id = a.sub_strip_event_id
+                    INNER JOIN tbl_sub_strip_event AS sse
+                        ON sse.sub_strip_event_id = a.sub_strip_event_id
 
-        WHERE a.patient_report_id = @patient_report_id
-          AND a.is_active = 1
-          AND sse.is_active = 1
+                    WHERE a.patient_report_id = @patient_report_id
+                      AND a.is_active = 1
+                      AND sse.is_active = 1
 
-          AND qer.event_start_datetime >= pe.actual_hookup
+                      --AND qer.event_start_datetime >= pe.actual_hookup
 
-          AND qer.event_end_datetime <= DATEADD(
-                HOUR,
-                24,
-                pe.actual_hookup
-              )
+                     -- AND qer.event_end_datetime <= DATEADD( HOUR,24,pe.actual_hookup)
 
-        ORDER BY
-            qer.event_start_datetime,
-            a.sub_strip_event_id;";
+                    ORDER BY
+                        qer.event_start_datetime,
+                        a.sub_strip_event_id;";
         }
     }
 
@@ -257,265 +253,339 @@ namespace elr_API.DTO.ReqDTO
         public long longest_duration { get; set; }
 
         public decimal burden { get; set; }
-
-
+        #region query 
 
         internal static string get_pause_data()
         {
             return $@"
-
-    SELECT
-
-        -- =========================================
-        -- AM COUNT
-        -- =========================================
-
-        COUNT(CASE
-            WHEN CAST(pause_data.event_start_datetime AS TIME)
-                 < '12:00:00'
-            THEN 1
-        END) AS am,
-
-
-        -- =========================================
-        -- AM LONGEST DURATION
-        -- Finding 78 value1 = seconds
-        -- =========================================
-
-        ISNULL(
-            MAX(CASE
-                WHEN CAST(
-                    pause_data.event_start_datetime AS TIME
-                ) < '12:00:00'
-                THEN pause_data.duration_seconds
-            END),
-            0
-        ) AS am_longest_duration,
-
-
-        -- =========================================
-        -- PM COUNT
-        -- =========================================
-
-        COUNT(CASE
-            WHEN CAST(pause_data.event_start_datetime AS TIME)
-                 >= '12:00:00'
-            THEN 1
-        END) AS pm,
-
-
-        -- =========================================
-        -- PM LONGEST DURATION
-        -- =========================================
-
-        ISNULL(
-            MAX(CASE
-                WHEN CAST(
-                    pause_data.event_start_datetime AS TIME
-                ) >= '12:00:00'
-                THEN pause_data.duration_seconds
-            END),
-            0
-        ) AS pm_longest_duration,
-
-
-        -- =========================================
-        -- TOTAL COUNT
-        -- =========================================
-
-        COUNT(*) AS total,
-
-
-        -- =========================================
-        -- TOTAL LONGEST DURATION
-        -- =========================================
-
-        ISNULL(
-            MAX(pause_data.duration_seconds),
-            0
-        ) AS longest_duration,
-
-
-        -- =========================================
-        -- PAUSE BURDEN
-        --
-        -- SUM OF PAUSE SECONDS
-        -- /
-        -- REPORT DURATION SECONDS
-        -- * 100
-        -- =========================================
-
-ISNULL(
-    CAST(
-        (
-            CAST(
-                SUM(pause_data.duration_seconds)
-                AS DECIMAL(18,6)
-            )
-            /
-            NULLIF(
-                DATEDIFF(
-                    SECOND,
-                    MAX(pause_data.report_started_datetime),
-                    MAX(pause_data.report_due_datetime)
-                ),
-                0
-            )
-        ) * 100
-        AS DECIMAL(10,6)
-    ),
-    0
-) AS burden
-
-
-    FROM
-    (
-        SELECT DISTINCT
-
-            -- =====================================
-            -- ONE QER = ONE PAUSE FILE
-            -- =====================================
-
-            qe.queued_events_records_id,
-
-            qe.event_start_datetime,
-
-            qe.event_end_datetime,
-
-
-            -- =====================================
-            -- PAUSE DURATION
-            --
-            -- 73 = Pause
-            -- 78 = Duration
-            -- value1 = seconds
-            -- =====================================
-
-            ISNULL(
-                pause_duration.value1,
-                0
-            ) AS duration_seconds,
-
-
-            pr.report_started_datetime,
-
-            pr.report_due_datetime
-
-
-        FROM tbl_patient_report pr
-
-
-        INNER JOIN tbl_queued_events_records qe
-            ON qe.patient_enrollment_id =
-               pr.patient_enrollment_id
-
-
-        -- =========================================
-        -- PAUSE PARENT FINDING
-        -- 73 = Pause
-        -- =========================================
-
-        INNER JOIN tbl_sub_strip_event_finding pause_finding
-            ON pause_finding.queued_events_records_id =
-               qe.queued_events_records_id
-
-            AND pause_finding.event_finding_id = 73
-
-            AND pause_finding.is_active = 1
-
-            AND pause_finding.sub_strip_event_id IS NULL
-
-
-        -- =========================================
-        -- PAUSE DURATION CHILD
-        -- 78 = [xx.x] seconds Pause
-        -- =========================================
-
-        INNER JOIN tbl_event_finding_mast duration_mast
-            ON duration_mast.parent_finding_id =
-               pause_finding.event_finding_id
-
-            AND duration_mast.event_finding_id = 78
-
-            AND duration_mast.is_active = 1
-
-
-        -- =========================================
-        -- ACTUAL DURATION VALUE
-        -- =========================================
-
-        INNER JOIN tbl_sub_strip_event_finding pause_duration
-            ON pause_duration.queued_events_records_id =
-               qe.queued_events_records_id
-
-            AND pause_duration.event_finding_id =
-                duration_mast.event_finding_id
-
-            AND pause_duration.is_active = 1
-
-            AND pause_duration.sub_strip_event_id IS NULL
-
-
-        WHERE
-
-            pr.patient_report_id =
-                @patient_report_id
-
-
-            AND pr.report_status IN
-            (
-                'inprogress',
-                'completed'
-            )
-
-
-            AND qe.event_status =
-                'completed'
-
-
-            AND qe.completed_by IS NOT NULL
-
-
-            -- =====================================
-            -- 24 HOUR REPORT WINDOW
-            -- =====================================
-
-            AND qe.event_start_datetime >=
-                pr.report_started_datetime
-
-            AND qe.event_start_datetime <
-                pr.report_due_datetime
-
-
-            -- =====================================
-            -- DETECTION COMPLETED
-            -- =====================================
-
-            AND EXISTS
-            (
-                SELECT 1
-
-                FROM tbl_detection d
-
-                WHERE
-                    d.queued_events_records_id =
-                        qe.queued_events_records_id
-
-                    AND d.sub_strip_event_id IS NULL
-
-                    AND d.is_active = 1
-
-                    AND d.detection_status IN
+                    SELECT
+                        -- AM COUNT
+                        COUNT(CASE
+                            WHEN CAST(pause_data.event_start_datetime AS TIME)
+                                 < '12:00:00'
+                            THEN 1
+                        END) AS am,
+
+                        -- AM LONGEST DURATION
+                        ISNULL(
+                            MAX(CASE
+                                WHEN CAST(pause_data.event_start_datetime AS TIME)
+                                     < '12:00:00'
+                                THEN pause_data.duration_seconds
+                            END),
+                            0
+                        ) AS am_longest_duration,
+
+                        -- PM COUNT
+                        COUNT(CASE
+                            WHEN CAST(pause_data.event_start_datetime AS TIME)
+                                 >= '12:00:00'
+                            THEN 1
+                        END) AS pm,
+
+                        -- PM LONGEST DURATION
+                        ISNULL(
+                            MAX(CASE
+                                WHEN CAST(pause_data.event_start_datetime AS TIME)
+                                     >= '12:00:00'
+                                THEN pause_data.duration_seconds
+                            END),
+                            0
+                        ) AS pm_longest_duration,
+
+                        -- TOTAL COUNT
+                        COUNT(*) AS total,
+
+                        -- PAUSE BURDEN
+                        ISNULL(
+                            CAST(
+                                (
+                                    CAST(SUM(pause_data.duration_seconds) AS DECIMAL(18,4))
+                                    /
+                                    NULLIF(
+                                        MAX(pause_data.total_report_seconds),
+                                        0
+                                    )
+                                ) * 100
+                                AS DECIMAL(10,4)
+                            ),
+                            0
+                        ) AS burden
+
+                    FROM
                     (
-                        'submit',
-                        'confirm-submit'
-                    )
-            )
+                        SELECT DISTINCT
+                            qe.queued_events_records_id,
+                            qe.event_start_datetime,
 
-    ) pause_data;
+                            -- Duration in seconds
+                            ISNULL(pause_duration.value1, 0) AS duration_seconds,
 
-";
+                            DATEDIFF(
+                                SECOND,
+                                pr.report_started_datetime,
+                                pr.report_due_datetime
+                            ) AS total_report_seconds
+
+                        FROM tbl_patient_report pr
+
+                        INNER JOIN tbl_queued_events_records qe
+                            ON qe.patient_enrollment_id =
+                               pr.patient_enrollment_id
+
+                        -- PAUSE PARENT FINDING
+                        INNER JOIN tbl_sub_strip_event_finding pause_finding
+                            ON pause_finding.queued_events_records_id =
+                               qe.queued_events_records_id
+                           AND pause_finding.event_finding_id = 73
+                           AND pause_finding.is_active = 1
+                           AND pause_finding.sub_strip_event_id IS NULL
+
+                        -- DYNAMIC DURATION FINDING MAPPING
+                        INNER JOIN tbl_event_finding_mast duration_mast
+                            ON duration_mast.parent_finding_id =
+                               pause_finding.event_finding_id
+                           AND duration_mast.is_active = 1
+
+                        -- ACTUAL DURATION VALUE
+                        INNER JOIN tbl_sub_strip_event_finding pause_duration
+                            ON pause_duration.queued_events_records_id =
+                               qe.queued_events_records_id
+                           AND pause_duration.event_finding_id =
+                               duration_mast.event_finding_id
+                           AND pause_duration.is_active = 1
+                           AND pause_duration.sub_strip_event_id IS NULL
+
+                        WHERE pr.patient_report_id = @patient_report_id
+                          AND pr.report_status IN ('inprogress', 'completed')
+                          AND qe.is_active = 1
+                          AND qe.event_status = 'completed'
+                          AND qe.completed_by IS NOT NULL
+
+                          -- REPORT WINDOW
+                          AND qe.event_start_datetime >=
+                              pr.report_started_datetime
+                          AND qe.event_start_datetime <
+                              pr.report_due_datetime
+
+                          -- COMPLETED PARENT DETECTION
+                          AND EXISTS
+                          (
+                              SELECT 1
+                              FROM tbl_detection d
+                              WHERE d.queued_events_records_id =
+                                    qe.queued_events_records_id
+                                AND d.sub_strip_event_id IS NULL
+                                AND d.is_active = 1
+                                AND d.detection_status IN
+                                    ('submit', 'confirm-submit')
+                          )
+                    ) pause_data;
+                ";
         }
+
+        #endregion
+
+
+        //internal static string get_pause_data()
+        //{
+        //    return $@"
+        //        SELECT
+
+        //            -- =========================================
+        //            -- AM COUNT
+        //            -- =========================================
+        //            COUNT(CASE
+        //                WHEN CAST(pause_data.event_start_datetime AS TIME)
+        //                     < '12:00:00'
+        //                THEN 1
+        //            END) AS am,
+
+        //            -- =========================================
+        //            -- AM LONGEST DURATION
+        //            -- Finding 78 value1 = seconds
+        //            -- =========================================
+        //            ISNULL(
+        //                MAX(CASE
+        //                    WHEN CAST(
+        //                        pause_data.event_start_datetime AS TIME
+        //                    ) < '12:00:00'
+        //                    THEN pause_data.duration_seconds
+        //                END),
+        //                0
+        //            ) AS am_longest_duration,
+
+        //            -- =========================================
+        //            -- PM COUNT
+        //            -- =========================================
+        //            COUNT(CASE
+        //                WHEN CAST(pause_data.event_start_datetime AS TIME)
+        //                     >= '12:00:00'
+        //                THEN 1
+        //            END) AS pm,
+
+        //            -- =========================================
+        //            -- PM LONGEST DURATION
+        //            -- =========================================
+        //            ISNULL(
+        //                MAX(CASE
+        //                    WHEN CAST(
+        //                        pause_data.event_start_datetime AS TIME
+        //                    ) >= '12:00:00'
+        //                    THEN pause_data.duration_seconds
+        //                END),
+        //                0
+        //            ) AS pm_longest_duration,
+
+        //            -- =========================================
+        //            -- TOTAL COUNT
+        //            -- =========================================
+        //            COUNT(*) AS total,
+
+        //            -- =========================================
+        //            -- TOTAL LONGEST DURATION
+        //            -- =========================================
+        //            ISNULL(
+        //                MAX(pause_data.duration_seconds),
+        //                0
+        //            ) AS longest_duration,
+
+        //            -- =========================================
+        //            -- PAUSE BURDEN (Updated logic using value1)
+        //            --
+        //            -- SUM OF PAUSE SECONDS (value1)
+        //            -- /
+        //            -- REPORT DURATION SECONDS
+        //            -- * 100
+        //            -- =========================================
+        //            ISNULL(
+        //                CAST(
+        //                    (
+        //                        CAST(
+        //                            SUM(pause_data.duration_seconds) AS DECIMAL(18,4)
+        //                        )
+        //                        /
+        //                        NULLIF(
+        //                            DATEDIFF(
+        //                                SECOND,
+        //                                MAX(pause_data.report_started_datetime),
+        //                                MAX(pause_data.report_due_datetime)
+        //                            ),
+        //                            0
+        //                        )
+        //                    ) * 100
+        //                    AS DECIMAL(10,4)
+        //                ),
+        //                0
+        //            ) AS burden
+
+        //        FROM
+        //        (
+        //            SELECT DISTINCT
+
+        //                -- =====================================
+        //                -- ONE QER = ONE PAUSE FILE
+        //                -- =====================================
+        //                qe.queued_events_records_id,
+        //                qe.event_start_datetime,
+        //                qe.event_end_datetime,
+
+        //                -- =====================================
+        //                -- PAUSE DURATION
+        //                --
+        //                -- 73 = Pause
+        //                -- 78 = Duration
+        //                -- value1 = seconds
+        //                -- =====================================
+        //                ISNULL(
+        //                    pause_duration.value1,
+        //                    0
+        //                ) AS duration_seconds,
+
+        //                pr.report_started_datetime,
+        //                pr.report_due_datetime
+
+        //            FROM tbl_patient_report pr
+
+        //            INNER JOIN tbl_queued_events_records qe
+        //                ON qe.patient_enrollment_id =
+        //                   pr.patient_enrollment_id
+
+        //            -- =========================================
+        //            -- PAUSE PARENT FINDING
+        //            -- 73 = Pause
+        //            -- =========================================
+        //            INNER JOIN tbl_sub_strip_event_finding pause_finding
+        //                ON pause_finding.queued_events_records_id =
+        //                   qe.queued_events_records_id
+        //                AND pause_finding.event_finding_id = 73
+        //                AND pause_finding.is_active = 1
+        //                AND pause_finding.sub_strip_event_id IS NULL
+
+        //            -- =========================================
+        //            -- PAUSE DURATION CHILD
+        //            -- 78 = [xx.x] seconds Pause
+        //            -- =========================================
+        //            INNER JOIN tbl_event_finding_mast duration_mast
+        //                ON duration_mast.parent_finding_id =
+        //                   pause_finding.event_finding_id
+        //                AND duration_mast.event_finding_id = 78
+        //                AND duration_mast.is_active = 1
+
+        //            -- =========================================
+        //            -- ACTUAL DURATION VALUE
+        //            -- =========================================
+        //            INNER JOIN tbl_sub_strip_event_finding pause_duration
+        //                ON pause_duration.queued_events_records_id =
+        //                   qe.queued_events_records_id
+        //                AND pause_duration.event_finding_id =
+        //                    duration_mast.event_finding_id
+        //                AND pause_duration.is_active = 1
+        //                AND pause_duration.sub_strip_event_id IS NULL
+
+        //            WHERE
+        //                pr.patient_report_id =
+        //                    @patient_report_id
+        //                AND pr.report_status IN
+        //                (
+        //                    'inprogress',
+        //                    'completed'
+        //                )
+        //                AND qe.event_status =
+        //                    'completed'
+        //                AND qe.completed_by IS NOT NULL
+
+        //                -- =====================================
+        //                -- 24 HOUR REPORT WINDOW
+        //                -- =====================================
+        //                AND qe.event_start_datetime >=
+        //                    pr.report_started_datetime
+        //                AND qe.event_start_datetime <
+        //                    pr.report_due_datetime
+
+        //                -- =====================================
+        //                -- DETECTION COMPLETED
+        //                -- =====================================
+        //                AND EXISTS
+        //                (
+        //                    SELECT 1
+        //                    FROM tbl_detection d
+        //                    WHERE
+        //                        d.queued_events_records_id =
+        //                            qe.queued_events_records_id
+        //                        AND d.sub_strip_event_id IS NULL
+        //                        AND d.is_active = 1
+        //                        AND d.detection_status IN
+        //                        (
+        //                            'submit',
+        //                            'confirm-submit'
+        //                        )
+        //                )
+
+        //        ) pause_data;
+
+        //        ";
+        //}
     }
 
 
@@ -927,291 +997,332 @@ ISNULL(
 
         public decimal longest_af_value2 { get; set; }
 
-
         #region Query
+
         internal static string get_af_burden_data()
         {
             return $@"
         SELECT
-
-            -- =========================================
             -- AF EPISODE COUNT
-            -- One sub-strip = one AF episode
-            -- =========================================
-
             (
-                SELECT
-                    COUNT(DISTINCT sse.sub_strip_event_id)
-
+                SELECT COUNT(DISTINCT d.queued_events_records_id)
                 FROM tbl_patient_report pr_ep
-
                 INNER JOIN tbl_queued_events_records qe_ep
                     ON qe_ep.patient_enrollment_id =
                        pr_ep.patient_enrollment_id
-
-                INNER JOIN tbl_sub_strip_event sse
-                    ON sse.queued_events_records_id =
+                INNER JOIN tbl_detection d
+                    ON d.queued_events_records_id =
                        qe_ep.queued_events_records_id
-                    AND sse.is_active = 1
-
+                   AND d.is_active = 1
+                   AND d.parent_detection_id IS NULL
                 INNER JOIN tbl_sub_strip_event_finding ssf
-                    ON ssf.sub_strip_event_id =
-                       sse.sub_strip_event_id
-                    AND ssf.is_active = 1
-
-                    AND ssf.event_finding_id IN
-                    (
-                        35,
-                        36,
-                        37
-                    )
-
-                WHERE
-                    pr_ep.patient_report_id =
-                        @patient_report_id
-
+                    ON ssf.detection_id = d.detection_id
+                   AND ssf.is_active = 1
+                   AND ssf.event_finding_id IN (35, 36, 37)
+                WHERE pr_ep.patient_report_id = @patient_report_id
             ) AS episode_count,
 
-
-            -- =========================================
             -- HIGHEST HR
-            -- =========================================
-
             ISNULL(
                 (
                     SELECT MAX(qe.bpm)
-
                     FROM tbl_patient_report pr_hr
-
                     INNER JOIN tbl_queued_events_records qe
                         ON qe.patient_enrollment_id =
                            pr_hr.patient_enrollment_id
-
-                    INNER JOIN tbl_sub_strip_event sse
-                        ON sse.queued_events_records_id =
+                    INNER JOIN tbl_detection d
+                        ON d.queued_events_records_id =
                            qe.queued_events_records_id
-                        AND sse.is_active = 1
-
+                       AND d.is_active = 1
+                       AND d.parent_detection_id IS NULL
                     INNER JOIN tbl_sub_strip_event_finding ssf
-                        ON ssf.sub_strip_event_id =
-                           sse.sub_strip_event_id
-                        AND ssf.is_active = 1
-
-                        AND ssf.event_finding_id IN
-                        (
-                            35,
-                            36,
-                            37
-                        )
-
-                    WHERE
-                        pr_hr.patient_report_id =
-                            @patient_report_id
-
+                        ON ssf.detection_id = d.detection_id
+                       AND ssf.is_active = 1
+                       AND ssf.event_finding_id IN (35, 36, 37)
+                    WHERE pr_hr.patient_report_id = @patient_report_id
                 ),
                 0
             ) AS high_hr,
 
-
-            -- =========================================
             -- LONGEST AF
-            -- =========================================
+            ISNULL(longest_af.value1, 0) AS longest_af_value1,
+            ISNULL(longest_af.value2, 0) AS longest_af_value2,
 
-            ISNULL(
-                longest_af.value1,
-                0
-            ) AS longest_af_value1,
-
-            ISNULL(
-                longest_af.value2,
-                0
-            ) AS longest_af_value2,
-
-
-            -- =========================================
             -- AF BURDEN
-            -- One duration per sub-strip
-            -- =========================================
+            ISNULL(burden_data.total_af_percentage, 0) AS burden
 
-            ISNULL(
-                (
-                    SELECT
-                        CAST(
-                            (
-                                CAST(
-                                    SUM(duration_seconds)
-                                    AS DECIMAL(18,2)
-                                )
-                                /
-                                NULLIF(
-                                    DATEDIFF(
-                                        SECOND,
-                                        MAX(report_started_datetime),
-                                        MAX(report_due_datetime)
-                                    ),
-                                    0
-                                )
-                            ) * 100
-                            AS DECIMAL(10,2)
-                        ) AS burden
-
-                    FROM
-                    (
-                        SELECT
-
-                            af_finding.sub_strip_event_id,
-
-                            MAX(
-                                ISNULL(
-                                    af_duration.value1,
-                                    0
-                                ) * 60
-                                +
-                                ISNULL(
-                                    af_duration.value2,
-                                    0
-                                )
-                            ) AS duration_seconds,
-
-                            MAX(
-                                pr.report_started_datetime
-                            ) AS report_started_datetime,
-
-                            MAX(
-                                pr.report_due_datetime
-                            ) AS report_due_datetime
-
-                        FROM tbl_patient_report pr
-
-                        INNER JOIN tbl_queued_events_records qe
-                            ON qe.patient_enrollment_id =
-                               pr.patient_enrollment_id
-
-                        INNER JOIN tbl_sub_strip_event sse
-                            ON sse.queued_events_records_id =
-                               qe.queued_events_records_id
-
-                            AND sse.is_active = 1
-
-                        INNER JOIN tbl_sub_strip_event_finding af_finding
-                            ON af_finding.sub_strip_event_id =
-                               sse.sub_strip_event_id
-
-                            AND af_finding.is_active = 1
-
-                            AND af_finding.event_finding_id IN
-                            (
-                                35,
-                                36,
-                                37
-                            )
-
-                        INNER JOIN tbl_event_finding_mast duration_mast
-                            ON duration_mast.parent_finding_id =
-                               af_finding.event_finding_id
-
-                            AND duration_mast.is_active = 1
-
-                        INNER JOIN tbl_sub_strip_event_finding af_duration
-                            ON af_duration.queued_events_records_id =
-                               qe.queued_events_records_id
-
-                            AND af_duration.event_finding_id =
-                                duration_mast.event_finding_id
-
-                            AND af_duration.is_active = 1
-
-                            AND af_duration.sub_strip_event_id IS NULL
-
-                        WHERE
-                            pr.patient_report_id =
-                                @patient_report_id
-
-                        GROUP BY
-                            af_finding.sub_strip_event_id
-
-                    ) af_burden_data
-
-                ),
-                0
-            ) AS burden,
-
-
-            -- =========================================
-            -- LONGEST AF DURATION
-            -- =========================================
-
-            longest_af.value1 AS longest_value1,
-
-            longest_af.value2 AS longest_value2
-
-
-        FROM
-        (
-            SELECT 1 AS dummy
-        ) x
-
-
-        -- =============================================
-        -- LONGEST AF
-        -- =============================================
+        FROM tbl_patient_report pr
 
         OUTER APPLY
         (
             SELECT TOP 1
+                duration.value1,
+                duration.value2
+            FROM tbl_queued_events_records qe
+            INNER JOIN tbl_detection d
+                ON d.queued_events_records_id =
+                   qe.queued_events_records_id
+               AND d.is_active = 1
+               AND d.detection_status = 'submit'
+               AND d.parent_detection_id IS NULL
+               AND d.sub_strip_event_id IS NULL
 
-                af_duration.value1,
-
-                af_duration.value2
-
-            FROM tbl_sub_strip_event_finding af_finding
+            INNER JOIN tbl_sub_strip_event_finding parent_finding
+                ON parent_finding.detection_id = d.detection_id
+               AND parent_finding.is_active = 1
+               AND parent_finding.event_finding_id IN (35, 36, 37)
 
             INNER JOIN tbl_event_finding_mast duration_mast
                 ON duration_mast.parent_finding_id =
-                   af_finding.event_finding_id
+                   parent_finding.event_finding_id
+               AND duration_mast.is_active = 1
 
-                AND duration_mast.is_active = 1
+            INNER JOIN tbl_sub_strip_event_finding duration
+                ON duration.detection_id = d.detection_id
+               AND duration.event_finding_id =
+                   duration_mast.event_finding_id
+               AND duration.is_active = 1
 
-            INNER JOIN tbl_sub_strip_event_finding af_duration
-                ON af_duration.queued_events_records_id =
-                   af_finding.queued_events_records_id
-
-                AND af_duration.event_finding_id =
-                    duration_mast.event_finding_id
-
-                AND af_duration.is_active = 1
-
-                AND af_duration.sub_strip_event_id IS NULL
-
-            WHERE
-                af_finding.event_finding_id IN
-                (
-                    35,
-                    36,
-                    37
-                )
-
-                AND af_finding.is_active = 1
-
-                AND af_finding.sub_strip_event_id IS NOT NULL
+            WHERE qe.patient_enrollment_id = pr.patient_enrollment_id
+              AND qe.is_active = 1
 
             ORDER BY
                 (
-                    ISNULL(
-                        af_duration.value1,
-                        0
-                    ) * 60
-                    +
-                    ISNULL(
-                        af_duration.value2,
-                        0
-                    )
+                    ISNULL(duration.value1, 0) * 60
+                    + ISNULL(duration.value2, 0)
                 ) DESC
+        ) longest_af
 
-        ) longest_af;
-        ";
+       OUTER APPLY
+                (
+                    SELECT
+                        SUM(
+                            CAST(
+                                (
+                                    CAST(f.value1 AS DECIMAL(18,4)) * 60
+                                    + CAST(f.value2 AS DECIMAL(18,4))
+                                )
+                                / NULLIF(r.total_report_seconds, 0)
+                                * 100
+                                AS DECIMAL(10,4)
+                            )
+                        ) AS total_af_percentage
+                    FROM tbl_sub_strip_event_finding f
+                    INNER JOIN tbl_queued_events_records a
+                        ON a.queued_events_records_id = f.queued_events_records_id
+                    INNER JOIN tbl_patient_enrollment b
+                        ON b.patient_enrollment_id = a.patient_enrollment_id
+                    INNER JOIN tbl_patient_report c
+                        ON c.patient_enrollment_id = b.patient_enrollment_id
+                    INNER JOIN tbl_detection d
+                        ON d.detection_id = f.detection_id
+                       AND d.is_active = 1
+                       AND d.parent_detection_id IS NULL
+                    INNER JOIN tbl_event_finding_mast duration_mast
+                        ON duration_mast.event_finding_id = f.event_finding_id
+                       AND duration_mast.parent_finding_id IN (35, 36, 37)
+                       AND duration_mast.is_active = 1
+                    CROSS APPLY
+                    (
+                        SELECT
+                            DATEDIFF(
+                                SECOND,
+                                MAX(c2.report_started_datetime),
+                                MAX(c2.report_due_datetime)
+                            ) AS total_report_seconds
+                        FROM tbl_patient_report c2
+                        WHERE c2.patient_enrollment_id = b.patient_enrollment_id
+                    ) r
+                    WHERE c.patient_report_id = @patient_report_id
+                      AND f.sub_strip_event_id IS NULL
+                      AND f.is_active = 1
+                ) burden_data
+
+        WHERE pr.patient_report_id = @patient_report_id; ";
         }
+
         #endregion
+        //        #region Query
+        //        internal static string get_af_burden_data()
+        //        {
+        //            return $@"
+        //                    SELECT
+        //                    -- AF EPISODE COUNT
+        //                    (
+        //                        SELECT
+        //                            COUNT(DISTINCT sse.sub_strip_event_id)
+        //                        FROM tbl_patient_report pr_ep
+        //                        INNER JOIN tbl_queued_events_records qe_ep
+        //                            ON qe_ep.patient_enrollment_id =
+        //                               pr_ep.patient_enrollment_id
+        //                        INNER JOIN tbl_sub_strip_event sse
+        //                            ON sse.queued_events_records_id =
+        //                               qe_ep.queued_events_records_id
+        //                            AND sse.is_active = 1
+        //                        INNER JOIN tbl_sub_strip_event_finding ssf
+        //                            ON ssf.sub_strip_event_id =
+        //                               sse.sub_strip_event_id
+        //                            AND ssf.is_active = 1
+        //                            AND ssf.event_finding_id IN
+        //                            (
+        //                                35,
+        //                                36,
+        //                                37
+        //                            )
+        //                        WHERE
+        //                            pr_ep.patient_report_id =
+        //                                @patient_report_id
+        //                    ) AS episode_count,
+
+        //    -- =========================================
+        //    -- HIGHEST HR
+        //    -- =========================================
+        //    ISNULL(
+        //        (
+        //            SELECT MAX(qe.bpm)
+        //            FROM tbl_patient_report pr_hr
+        //            INNER JOIN tbl_queued_events_records qe
+        //                ON qe.patient_enrollment_id =
+        //                   pr_hr.patient_enrollment_id
+        //            INNER JOIN tbl_sub_strip_event sse
+        //                ON sse.queued_events_records_id =
+        //                   qe.queued_events_records_id
+        //                AND sse.is_active = 1
+        //            INNER JOIN tbl_sub_strip_event_finding ssf
+        //                ON ssf.sub_strip_event_id =
+        //                   sse.sub_strip_event_id
+        //                AND ssf.is_active = 1
+        //                AND ssf.event_finding_id IN
+        //                (
+        //                    35,
+        //                    36,
+        //                    37
+        //                )
+        //            WHERE
+        //                pr_hr.patient_report_id =
+        //                    @patient_report_id
+        //        ),
+        //        0
+        //    ) AS high_hr,
+
+        //    -- =========================================
+        //    -- LONGEST AF
+        //    -- =========================================
+        //    ISNULL(
+        //        longest_af.value1,
+        //        0
+        //    ) AS longest_af_value1,
+
+        //    ISNULL(
+        //        longest_af.value2,
+        //        0
+        //    ) AS longest_af_value2,
+
+        //    -- =========================================
+        //    -- AF BURDEN (Summed into a single value)
+        //    -- =========================================
+        //    ISNULL(burden_data.total_pause_percentage, 0) AS burden,
+
+        //    -- =========================================
+        //    -- LONGEST AF DURATION
+        //    -- =========================================
+        //    ISNULL(longest_af.value1, 0) AS longest_value1,
+        //    ISNULL(longest_af.value2, 0) AS longest_value2
+
+        //FROM(
+        //    SELECT 1 AS dummy
+        //) x
+
+        //-- =============================================
+        //-- LONGEST AF
+        //-- =============================================
+        //OUTER APPLY(
+        //    SELECT TOP 1
+        //        af_duration.value1,
+        //        af_duration.value2
+        //    FROM tbl_patient_report pr
+        //    INNER JOIN tbl_queued_events_records qe
+        //        ON qe.patient_enrollment_id = 
+        //           pr.patient_enrollment_id
+        //    INNER JOIN tbl_sub_strip_event_finding af_finding
+        //        ON af_finding.queued_events_records_id = 
+        //           qe.queued_events_records_id
+        //    INNER JOIN tbl_event_finding_mast duration_mast
+        //        ON duration_mast.parent_finding_id =
+        //           af_finding.event_finding_id
+        //        AND duration_mast.is_active = 1
+        //    INNER JOIN tbl_sub_strip_event_finding af_duration
+        //        ON af_duration.queued_events_records_id =
+        //           af_finding.queued_events_records_id
+        //        AND af_duration.event_finding_id =
+        //             duration_mast.event_finding_id
+        //        AND af_duration.is_active = 1
+        //        AND af_duration.sub_strip_event_id IS NULL
+        //    WHERE
+        //        pr.patient_report_id = @patient_report_id
+        //        AND af_finding.event_finding_id IN
+        //        (
+        //            35,
+        //            36,
+        //            37
+        //        )
+        //        AND af_finding.is_active = 1
+        //        AND af_finding.sub_strip_event_id IS NOT NULL
+        //    ORDER BY
+        //        (
+        //            ISNULL(
+        //                af_duration.value1,
+        //                0
+        //            ) * 60
+        //            +
+        //            ISNULL(
+        //                af_duration.value2,
+        //                0
+        //            )
+        //        ) DESC
+        //) longest_af
+
+        //-- =============================================
+        //-- NEW AF BURDEN / PAUSE PERCENTAGE (Aggregated to 1 Row)
+        //-- =============================================
+        //OUTER APPLY (
+        //    SELECT
+        //        -- Summing the duration percentages across all matching rows
+        //        SUM(
+        //            CAST(
+        //                (
+        //                    CAST(f.value1 AS DECIMAL(18,4)) * 60
+        //                    + CAST(f.value2 AS DECIMAL(18,4))
+        //                )
+        //                / NULLIF(r.total_report_seconds, 0)
+        //                * 100
+        //                AS DECIMAL(10,4)
+        //            )
+        //        ) AS total_pause_percentage
+        //    FROM tbl_sub_strip_event_finding f
+        //    INNER JOIN tbl_queued_events_records a
+        //        ON a.queued_events_records_id = f.queued_events_records_id
+        //    INNER JOIN tbl_patient_enrollment b
+        //        ON b.patient_enrollment_id = a.patient_enrollment_id
+        //    INNER JOIN tbl_patient_report c
+        //        ON c.patient_enrollment_id = b.patient_enrollment_id
+        //    CROSS APPLY(
+        //        SELECT
+        //            DATEDIFF(
+        //                SECOND,
+        //                MAX(c2.report_started_datetime),
+        //                MAX(c2.report_due_datetime)
+        //            ) AS total_report_seconds
+        //        FROM tbl_patient_report c2
+        //        WHERE c2.patient_enrollment_id = b.patient_enrollment_id
+        //    ) r
+        //    WHERE c.patient_report_id = @patient_report_id
+        //      AND f.sub_strip_event_id IS NULL
+        //      AND f.is_active = 1
+        //) burden_data;
+        //                        ";
+        //        }
+        //        #endregion
     }
     public class ArrhythmiaPdfDTO
     {
@@ -1259,7 +1370,7 @@ ISNULL(
                         ON c.patient_enrollment_id = b.patient_enrollment_id
                     INNER JOIN tbl_detection AS d
                         ON d.detection_id = sse.detection_id
-                    WHERE c.patient_enrollment_id = 10
+                    WHERE c.patient_enrollment_id = @patient_enrollment_id
                       AND sse.is_active = 1
                       AND d.sub_strip_event_id IS NULL;";
 
@@ -1273,7 +1384,6 @@ ISNULL(
     public class ArrhythmiaResultDTO
     {
         public int af { get; set; }
-        public int af_high_hr { get; set; }
         public int svt { get; set; }
         public int pause { get; set; }
         public int heart_block { get; set; }
@@ -1306,6 +1416,8 @@ ISNULL(
         public string? doctor_name { get; set; }
         public string? superviser_name { get; set; }
 
+        public DateTime? report_generated_datetime { get; set; }
+        public DateTime? modified_datetime { get; set; }
         public DateTime? report_started_datetime { get; set; }
         public DateTime? report_due_datetime { get; set; }
         public DateTime? created_datetime { get; set; }
@@ -1317,7 +1429,7 @@ ISNULL(
         #region Query 
         internal static string get_patient_details()
         {
-            return $@" select a.patient_enrollment_id,a.patient_report_id,a.report_assigned_id,b.created_datetime,b.report_due_datetime,b.report_started_datetime,d.patient_id,d.patient_name,d.phone_no,f.duration_in_day,g.user_name as doctor_name,
+            return $@" select a.patient_enrollment_id,a.patient_report_id,a.report_assigned_id,b.modified_datetime,b.report_generated_datetime,b.created_datetime,b.report_due_datetime,b.report_started_datetime,d.patient_id,d.patient_name,d.phone_no,f.duration_in_day,g.user_name as doctor_name,
                           h.user_name as superviser_name
                           from tbl_report_assigned as a
                           inner join tbl_patient_report as b
@@ -1334,7 +1446,7 @@ ISNULL(
                           on g.user_id = c.referred_physician_id
                           inner join tbl_user_mast as h
                           on h.user_id =b.generate_to
-                          where a.assign_status  in ('generated', 'completed') and b.report_status in('inprogress', 'completed') and c.enrollment_status ='completed' and a.patient_report_id = @patient_report_id";
+                          where a.assign_status  in ('generated', 'completed') and b.report_status in('inprogress', 'completed')  and a.patient_report_id = @patient_report_id";
         }
 
         #endregion

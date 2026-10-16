@@ -879,7 +879,7 @@ public class PatientReportDTO
               FROM {Tbl.patient_report} pr
               WHERE pr.patient_enrollment_id = pe.patient_enrollment_id
                 AND pr.report_type_id = 2
-                AND pr.is_active = 1
+                --AND pr.is_active = 1
           );
     ";
     }
@@ -916,4 +916,38 @@ public class PhysiciansListResDTO
     public string speciality { get; set; }
     public long hospital_id { get; set; }
     public string hospital_name { get; set; }
+}
+
+
+public class EventProcessTrackingDTO
+{
+    public long Taken_by { get; set; }
+    public string Taken_by_name { get; set; }
+    public DateTime? Taken_datetime { get; set; }
+    public string work_status { get; set; }
+    public string event_status { get; set; }
+    public long queued_events_records_id { get; set; }
+
+
+
+
+
+    #region Query 
+    internal static string select_event_process_tracking()
+    {
+        return $@"
+                  select count(1) as totalCount from tbl_event_assign as a
+                    inner join tbl_queued_events_records as b
+                    on a.queued_events_records_id = b.queued_events_records_id
+                    where a.work_status = 'inprogress' and b.event_status = 'processing' and a.is_active = 1 and b.is_active = 1 ;
+
+                   select b.modified_by as Taken_by,c.user_name as Taken_by_name,a.work_status,b.modified_datetime as Taken_datetime,a.queued_events_records_id,b.event_status
+                    from tbl_event_assign as a
+                    inner join tbl_queued_events_records as b
+                    on a.queued_events_records_id = b.queued_events_records_id
+                    left join tbl_user_mast as c
+                    on c.user_id = b.modified_by
+                    where a.work_status = 'inprogress' and b.event_status = 'processing' and a.is_active = 1 and b.is_active = 1 ";
+    }
+    #endregion
 }

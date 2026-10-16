@@ -4,19 +4,20 @@ using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
 using elr_API.IService.IDapper;
 using elr_API.IService.IHome_manager;
-using Newtonsoft.Json.Linq;
-using System.Text.Json;
 
 namespace elr_API.Service.Home_manager
 {
     public class HomeService : IHomeService
     {
         private readonly IDapperSqlService _db;
+        private readonly EdfService _edfService;
         public string ErrorMessage = string.Empty;
         public string ELR_db = CommonFunctions.GetConnectionString("elr_DB");
-        public HomeService(IDapperSqlService db)
+        public HomeService(IDapperSqlService db, EdfService edfService)
         {
             _db = db;
+            _edfService = edfService;
+
         }
         public async Task<ResponseDTO> ElrGetDevice(DeviceReqDTO obj)
         {
@@ -965,11 +966,21 @@ namespace elr_API.Service.Home_manager
             {
                 if (obj == null || (obj.queued_events_records_id <= 0 || obj.event_assign_id <= 0)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                if (obj.json_data.ValueKind == JsonValueKind.Undefined || obj.json_data.ValueKind == JsonValueKind.Null)
+                //if (obj.json_data.ValueKind == JsonValueKind.Undefined || obj.json_data.ValueKind == JsonValueKind.Null)
+                //{
+                //    return new ResponseDTO(false, "JSON data is required.");
+                //}
+                query = SubStripEventDTO.check_published_sub_strip();
+
+                var isPublished = (await _db.SelectQuery<int>(query, new { obj.queued_events_records_id }, ELR_db)).FirstOrDefault();
+
+                if (isPublished > 0)
                 {
-                    return new ResponseDTO(false, "JSON data is required.");
+                    return new ResponseDTO(false, "Report is already completed. Cannot cut sub-strip.");
                 }
 
+
+                if (obj.edf_file == null || obj.edf_file.Length <= 0) return new ResponseDTO(false, "EDF file is required.");
 
                 string folderPath = CommonFunctions.FolderPath($"Sub-Strip\\{obj.queued_events_records_id}");
 
@@ -978,13 +989,18 @@ namespace elr_API.Service.Home_manager
                     Directory.CreateDirectory(folderPath);
                 }
 
-                string fileName = $"{obj.queued_events_records_id}_{DateTime.Now:yyyyMMddHHmmssfff}.json";
+                //string fileName = $"{obj.queued_events_records_id}_{DateTime.Now:yyyyMMddHHmmssfff}.json";
+                string fileName = $"{obj.queued_events_records_id}_{DateTime.Now:yyyyMMddHHmmssfff}.edf";
 
                 string fullPath = Path.Combine(folderPath, fileName);
 
-                string json = obj.json_data.GetRawText();
+                //string json = obj.json_data.GetRawText();
+                //await File.WriteAllTextAsync(fullPath, json);
 
-                await File.WriteAllTextAsync(fullPath, json);
+                using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await obj.edf_file.CopyToAsync(stream);
+                }
 
                 obj.sub_strip_file_path = fullPath.Replace(Directory.GetCurrentDirectory() + "\\", "");
 
@@ -1008,6 +1024,18 @@ namespace elr_API.Service.Home_manager
             try
             {
                 if (sub_strip_event_id < 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (sub_strip_event_id > 0)
+                {
+                    query = SubStripEventDTO.check_active_published_sub_strip();
+
+                    var isPublished = (await _db.SelectQuery<int>(query, new { sub_strip_event_id }, ELR_db)).FirstOrDefault();
+
+                    if (isPublished > 0)
+                    {
+                        return new ResponseDTO(false, "Report is already completed. Cannot delete sub-strip.");
+                    }
+                }
 
                 query = SubStripEventDTO.in_active_sub_strip();
                 int rows = await _db.Execute(query, new { sub_strip_event_id = sub_strip_event_id, modified_by = emp_id }, ELR_db);
@@ -1756,32 +1784,77 @@ namespace elr_API.Service.Home_manager
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
+
             try
             {
-                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj == null)
+                    return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.minutes <= 0)
+                    return new ResponseDTO(false, "Minutes must be greater than zero.");
+
+                if (string.IsNullOrWhiteSpace(obj.fetch_direction))
+                    return new ResponseDTO(false, "Fetch direction is required.");
 
                 query = FetchECGReqDTO.get_current_event();
-                var currentEventData = (await _db.SelectQuery<dynamic>(query, new { queued_events_records_id = obj.queued_events_records_id }, ELR_db)).FirstOrDefault();
-                if (currentEventData == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
 
+                var currentEventData = (await _db.SelectQuery<dynamic>(
+                    query,
+                    new
+                    {
+                        queued_events_records_id = obj.queued_events_records_id
+                    },
+                    ELR_db)).FirstOrDefault();
+
+                if (currentEventData == null)
+                    return new ResponseDTO(false, ResponseMessage.Results_NotFound);
                 DateTime fromTime;
                 DateTime toTime;
+                string eventSource;
 
-                if (obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase))
+                if (obj.fetch_direction.Equals(
+                        "before", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Anomaly start-ku munnaadi 4 minutes.
                     fromTime = currentEventData.event_start_datetime.AddMinutes(-obj.minutes);
                     toTime = currentEventData.event_start_datetime;
+
+                    eventSource = "fetch_before";
                 }
-                else if (obj.fetch_direction.Equals("after", StringComparison.OrdinalIgnoreCase))
+                else if (obj.fetch_direction.Equals(
+                        "after", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Anomaly end-ku appuram 4 minutes.
                     fromTime = currentEventData.event_end_datetime;
                     toTime = currentEventData.event_end_datetime.AddMinutes(obj.minutes);
+
+                    eventSource = "fetch_after";
                 }
                 else
                 {
                     return new ResponseDTO(false, "Invalid fetch direction.");
                 }
+                // Check whether this fetch has already been created.
+                query = FetchECGReqDTO.check_fetch_exists();
 
+                long existingFetch = (await _db.SelectQuery<long>(
+                    query,
+                    new
+                    {
+                        parent_queued_events_records_id = obj.queued_events_records_id,
+                        event_source = eventSource,
+                        fetch_duration_minutes = obj.minutes
+                    },
+                    ELR_db)).FirstOrDefault();
+
+                if (existingFetch > 0)
+                {
+                    return new ResponseDTO(
+                        false,
+                        $"ECG already fetched {obj.fetch_direction} {obj.minutes} minutes.");
+                }
+
+                // Get processed EDF files overlapping the requested time range.
                 query = FetchECGReqDTO.get_baseline_files();
 
                 var baselineFiles = (await _db.SelectQuery<PatientBaseLineDTO>(
@@ -1794,214 +1867,403 @@ namespace elr_API.Service.Home_manager
                     },
                     ELR_db)).ToList();
 
-                if (!baselineFiles.Any()) return new ResponseDTO(false, "Processed ECG not found.");
+                List<string> sourceFiles = new List<string>();
 
-                var mergedData = new List<EcgJsonDTO>();
-
-                // Processed ECG Files
                 foreach (var item in baselineFiles)
                 {
-                    string fullFilePath = Path.Combine(Directory.GetCurrentDirectory(), item.event_processed_path);
-
-                    if (!File.Exists(fullFilePath))
+                    if (string.IsNullOrWhiteSpace(item.event_processed_path))
                         continue;
 
-                    string json = await File.ReadAllTextAsync(fullFilePath);
+                    string fullPath = CommonFunctions.GetEdfFullPath(
+                        item.event_processed_path);
 
-                    var token = JToken.Parse(json);
-
-                    var list = token.Type == JTokenType.Array ? token.ToObject<List<EcgJsonDTO>>() : new List<EcgJsonDTO>
-                        {
-                             token.ToObject<EcgJsonDTO>()
-                        };
-
-                    AddTrimmedData(list, mergedData, fromTime, toTime);
+                    if (File.Exists(fullPath))
+                    {
+                        sourceFiles.Add(fullPath);
+                    }
 
                 }
 
+                // Include the current event EDF if it exists.
                 string detectionPath = currentEventData.event_file_path;
 
                 if (!string.IsNullOrWhiteSpace(detectionPath))
                 {
-                    string fullDetectionPath = Path.Combine(Directory.GetCurrentDirectory(), detectionPath);
+                    string fullDetectionPath =
+                        CommonFunctions.GetEdfFullPath(detectionPath);
 
                     if (File.Exists(fullDetectionPath))
                     {
-                        string json = await File.ReadAllTextAsync(fullDetectionPath);
-
-                        var token = JToken.Parse(json);
-
-                        var list = token.Type == JTokenType.Array ? token.ToObject<List<EcgJsonDTO>>() : new List<EcgJsonDTO>
-                            {
-                                token.ToObject<EcgJsonDTO>()
-                            };
-
-                        AddTrimmedData(list, mergedData, fromTime, toTime);
+                        sourceFiles.Add(fullDetectionPath);
                     }
                 }
 
-                string fileName = $"{currentEventData.patient_enrollment_id}-{obj.queued_events_records_id}-{DateTime.Now:yyyyMMddHHmmssfff}.json";
+                sourceFiles = sourceFiles
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
-                string folderPath = CommonFunctions.FolderPath($"ECG-FetchData\\{currentEventData.patient_enrollment_id}");
+                if (sourceFiles.Count == 0)
+                {
+                    return new ResponseDTO(
+                        false,
+                        baselineFiles.Count == 0
+                            ? "Processed ECG not found."
+                            : "Processed EDF files not found on disk.");
+                }
 
-                string fullPath = await CommonFunctions.MergeJsonFile(mergedData, fileName, folderPath);
+                // Create output EDF path.
+                string fileName =
+                    $"{currentEventData.patient_enrollment_id}-" +
+                    $"{obj.queued_events_records_id}-" +
+                    $"{DateTime.Now:yyyyMMddHHmmssfff}.edf";
 
-                if (string.IsNullOrEmpty(fullPath)) return new ResponseDTO(false, "JSON file not created.");
+                string folderPath = CommonFunctions.FolderPath(
+                    $"ECG-FetchData\\{currentEventData.patient_enrollment_id}");
 
-                string relativePath = fullPath.Replace(Directory.GetCurrentDirectory() + "\\", "");
+                Directory.CreateDirectory(folderPath);
 
-                query = FetchECGReqDTO.check_fetch_exists();
+                string fullOutputPath = Path.Combine(folderPath, fileName);
 
-                long existingFetch = (await _db.SelectQuery<long>(
+                // Merge and trim all channels to the requested time range.
+                string mergedPath = _edfService.MergeEdfFiles(
+                    sourceFiles,
+                    fromTime,
+                    toTime,
+                    fullOutputPath);
+
+                if (string.IsNullOrWhiteSpace(mergedPath) ||
+                    !File.Exists(mergedPath))
+                {
+                    return new ResponseDTO(false, "EDF file not created.");
+                }
+
+                // Store a relative path in the database.
+                string relativePath = Path.GetRelativePath(
+                    Directory.GetCurrentDirectory(),
+                    mergedPath);
+
+                relativePath = relativePath.Replace(
+                    Path.DirectorySeparatorChar, '\\');
+
+                // Insert the fetched ECG event.
+                query = FetchECGReqDTO.insert_fetch_event();
+
+                long newQueuedEventId = await _db.ExecuteAndGetId(
                     query,
                     new
                     {
-                        parent_queued_events_records_id = obj.queued_events_records_id,
-                        event_source = obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase) ? "fetch_before" : "fetch_after",
-                        fetch_duration_minutes = obj.minutes
-                    },
-                    ELR_db)).FirstOrDefault();
+                        patient_enrollment_id =
+                            currentEventData.patient_enrollment_id,
 
-                if (existingFetch > 0)
-                {
-                    return new ResponseDTO(false, $"ECG already fetched {obj.fetch_direction} {obj.minutes} minutes.");
-                }
+                        enrollment_raw_data_id =
+                            currentEventData.enrollment_raw_data_id,
 
-                query = FetchECGReqDTO.insert_fetch_event();
-
-                long newQueuedEventId = await _db.ExecuteAndGetId(query,
-                    new
-                    {
-                        patient_enrollment_id = currentEventData.patient_enrollment_id,
-                        enrollment_raw_data_id = currentEventData.enrollment_raw_data_id,
                         priority_level = currentEventData.priority_level,
+
                         trigger_type = "Fetch-ECG",
+
                         bpm = currentEventData.bpm,
+
                         event_start_datetime = fromTime,
                         event_end_datetime = toTime,
+
                         event_file_path = relativePath,
-                        parent_queued_events_records_id = obj.queued_events_records_id,
-                        event_source = obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase) ? "fetch_before" : "fetch_after",
+
+                        parent_queued_events_records_id =
+                            obj.queued_events_records_id,
+
+                        event_source = eventSource,
                         fetch_duration_minutes = obj.minutes,
+
                         created_by = obj.created_by,
                         created_datetime = DateTime.Now,
+
                         event_status = "pending"
                     },
                     ELR_db);
 
-                FetchECGResDTO res = new FetchECGResDTO
+                FetchECGResDTO response = new FetchECGResDTO
                 {
                     queued_events_records_id = newQueuedEventId,
-                    event_start_datetime = currentEventData.event_start_datetime,
-                    event_end_datetime = currentEventData.event_end_datetime,
+
+                    event_start_datetime =
+                        currentEventData.event_start_datetime,
+
+                    event_end_datetime =
+                        currentEventData.event_end_datetime,
+
                     from_datetime = fromTime,
                     to_datetime = toTime,
+
                     merged_file_path = relativePath,
+
                     baseline_files = baselineFiles
                 };
 
-                return new ResponseDTO(res);
-
+                return new ResponseDTO(response);
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging(obj, ex.Message.ToString());
-                ErrorMessage = ex.Message.ToString();
-            }
-            return new ResponseDTO(false, ErrorMessage);
-        }
-        private EcgJsonDTO TrimWaveform(EcgJsonDTO ecg, DateTime fromTime, DateTime toTime)
-        {
-            if (ecg?.waveform_snippet == null || ecg.waveform_snippet.timestamp_ms == null || ecg.waveform_snippet.timestamp_ms.Count == 0)
-                return null;
+                CommonFunctions.ILogging(obj, ex.ToString());
 
+                ErrorMessage = ex.Message;
 
-            long fromMs = new DateTimeOffset(fromTime).ToUnixTimeMilliseconds();
-            long toMs = new DateTimeOffset(toTime).ToUnixTimeMilliseconds();
-
-            var indexes = new List<int>();
-
-            for (int i = 0; i < ecg.waveform_snippet.timestamp_ms.Count; i++)
-            {
-                long ts = ecg.waveform_snippet.timestamp_ms[i];
-
-                if (ts >= fromMs && ts <= toMs)
-                {
-                    indexes.Add(i);
-                }
-            }
-
-
-            if (!indexes.Any())
-                return null;
-
-            int firstIndex = indexes.First();
-
-            if (ecg.waveform_snippet.beat_positions != null && ecg.waveform_snippet.beat_labels != null)
-            {
-                var newBeatPositions = new List<long>();
-                var newBeatLabels = new List<string>();
-
-                for (int i = 0; i < ecg.waveform_snippet.beat_positions.Count; i++)
-                {
-                    long beatPosition = ecg.waveform_snippet.beat_positions[i];
-
-                    if (beatPosition < 0 || beatPosition >= ecg.waveform_snippet.timestamp_ms.Count)
-                        continue;
-
-                    long beatTimestamp = ecg.waveform_snippet.timestamp_ms[(int)beatPosition];
-
-                    if (beatTimestamp >= fromMs && beatTimestamp <= toMs)
-                    {
-                        newBeatPositions.Add(beatPosition - firstIndex);
-
-                        if (i < ecg.waveform_snippet.beat_labels.Count)
-                        {
-                            newBeatLabels.Add(ecg.waveform_snippet.beat_labels[i]);
-                        }
-                    }
-                }
-
-                ecg.waveform_snippet.beat_positions = newBeatPositions;
-
-                ecg.waveform_snippet.beat_labels = newBeatLabels;
-            }
-
-            ecg.waveform_snippet.timestamp_ms = indexes.Select(i => ecg.waveform_snippet.timestamp_ms[i]).ToList();
-
-            if (ecg.waveform_snippet.voltage_mv != null)
-            {
-                ecg.waveform_snippet.voltage_mv = indexes.Select(i => ecg.waveform_snippet.voltage_mv[i]).ToList();
-            }
-
-            ecg.timestamp = DateTimeOffset.FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.First()).LocalDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
-
-            ecg.end_timestamp = DateTimeOffset.FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.Last()).LocalDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
-
-            return ecg;
-        }
-        private void AddTrimmedData(List<EcgJsonDTO> source, List<EcgJsonDTO> mergedData, DateTime fromTime, DateTime toTime)
-        {
-            if (source == null)
-                return;
-
-            foreach (var ecg in source)
-            {
-                DateTime start = DateTime.Parse(ecg.timestamp);
-                DateTime end = DateTime.Parse(ecg.end_timestamp);
-
-                if (end >= fromTime && start <= toTime)
-                {
-                    var ecgCopy = Newtonsoft.Json.JsonConvert.DeserializeObject<EcgJsonDTO>(
-                        Newtonsoft.Json.JsonConvert.SerializeObject(ecg));
-
-                    var trimmed = TrimWaveform(ecgCopy, fromTime, toTime);
-
-                    if (trimmed != null)
-                        mergedData.Add(trimmed);
-                }
+                return new ResponseDTO(false, ErrorMessage);
             }
         }
+
+        //public async Task<ResponseDTO> ElrFetchECG(FetchECGReqDTO obj)
+        //{
+        //    ErrorMessage = string.Empty;
+        //    string query = string.Empty;
+        //    try
+        //    {
+        //        if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+        //        query = FetchECGReqDTO.get_current_event();
+        //        var currentEventData = (await _db.SelectQuery<dynamic>(query, new { queued_events_records_id = obj.queued_events_records_id }, ELR_db)).FirstOrDefault();
+        //        if (currentEventData == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+
+        //        DateTime fromTime;
+        //        DateTime toTime;
+
+        //        if (obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase))
+        //        {
+        //            fromTime = currentEventData.event_start_datetime.AddMinutes(-obj.minutes);
+        //            toTime = currentEventData.event_start_datetime;
+        //        }
+        //        else if (obj.fetch_direction.Equals("after", StringComparison.OrdinalIgnoreCase))
+        //        {
+        //            fromTime = currentEventData.event_end_datetime;
+        //            toTime = currentEventData.event_end_datetime.AddMinutes(obj.minutes);
+        //        }
+        //        else
+        //        {
+        //            return new ResponseDTO(false, "Invalid fetch direction.");
+        //        }
+
+        //        query = FetchECGReqDTO.get_baseline_files();
+
+        //        var baselineFiles = (await _db.SelectQuery<PatientBaseLineDTO>(
+        //            query,
+        //            new
+        //            {
+        //                patient_enrollment_id = currentEventData.patient_enrollment_id,
+        //                fromTime,
+        //                toTime
+        //            },
+        //            ELR_db)).ToList();
+
+        //        if (!baselineFiles.Any()) return new ResponseDTO(false, "Processed ECG not found.");
+
+        //        var mergedData = new List<EcgJsonDTO>();
+
+        //        // Processed ECG Files
+        //        foreach (var item in baselineFiles)
+        //        {
+        //            string fullFilePath = Path.Combine(Directory.GetCurrentDirectory(), item.event_processed_path);
+
+        //            if (!File.Exists(fullFilePath))
+        //                continue;
+
+        //            string json = await File.ReadAllTextAsync(fullFilePath);
+
+        //            var token = JToken.Parse(json);
+
+        //            var list = token.Type == JTokenType.Array ? token.ToObject<List<EcgJsonDTO>>() : new List<EcgJsonDTO>
+        //                {
+        //                     token.ToObject<EcgJsonDTO>()
+        //                };
+
+        //            AddTrimmedData(list, mergedData, fromTime, toTime);
+
+        //        }
+
+        //        string detectionPath = currentEventData.event_file_path;
+
+        //        if (!string.IsNullOrWhiteSpace(detectionPath))
+        //        {
+        //            string fullDetectionPath = Path.Combine(Directory.GetCurrentDirectory(), detectionPath);
+
+        //            if (File.Exists(fullDetectionPath))
+        //            {
+        //                string json = await File.ReadAllTextAsync(fullDetectionPath);
+
+        //                var token = JToken.Parse(json);
+
+        //                var list = token.Type == JTokenType.Array ? token.ToObject<List<EcgJsonDTO>>() : new List<EcgJsonDTO>
+        //                    {
+        //                        token.ToObject<EcgJsonDTO>()
+        //                    };
+
+        //                AddTrimmedData(list, mergedData, fromTime, toTime);
+        //            }
+        //        }
+
+        //        string fileName = $"{currentEventData.patient_enrollment_id}-{obj.queued_events_records_id}-{DateTime.Now:yyyyMMddHHmmssfff}.json";
+
+        //        string folderPath = CommonFunctions.FolderPath($"ECG-FetchData\\{currentEventData.patient_enrollment_id}");
+
+        //        string fullPath = await CommonFunctions.MergeJsonFile(mergedData, fileName, folderPath);
+
+        //        if (string.IsNullOrEmpty(fullPath)) return new ResponseDTO(false, "JSON file not created.");
+
+        //        string relativePath = fullPath.Replace(Directory.GetCurrentDirectory() + "\\", "");
+
+        //        query = FetchECGReqDTO.check_fetch_exists();
+
+        //        long existingFetch = (await _db.SelectQuery<long>(
+        //            query,
+        //            new
+        //            {
+        //                parent_queued_events_records_id = obj.queued_events_records_id,
+        //                event_source = obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase) ? "fetch_before" : "fetch_after",
+        //                fetch_duration_minutes = obj.minutes
+        //            },
+        //            ELR_db)).FirstOrDefault();
+
+        //        if (existingFetch > 0)
+        //        {
+        //            return new ResponseDTO(false, $"ECG already fetched {obj.fetch_direction} {obj.minutes} minutes.");
+        //        }
+
+        //        query = FetchECGReqDTO.insert_fetch_event();
+
+        //        long newQueuedEventId = await _db.ExecuteAndGetId(query,
+        //            new
+        //            {
+        //                patient_enrollment_id = currentEventData.patient_enrollment_id,
+        //                enrollment_raw_data_id = currentEventData.enrollment_raw_data_id,
+        //                priority_level = currentEventData.priority_level,
+        //                trigger_type = "Fetch-ECG",
+        //                bpm = currentEventData.bpm,
+        //                event_start_datetime = fromTime,
+        //                event_end_datetime = toTime,
+        //                event_file_path = relativePath,
+        //                parent_queued_events_records_id = obj.queued_events_records_id,
+        //                event_source = obj.fetch_direction.Equals("before", StringComparison.OrdinalIgnoreCase) ? "fetch_before" : "fetch_after",
+        //                fetch_duration_minutes = obj.minutes,
+        //                created_by = obj.created_by,
+        //                created_datetime = DateTime.Now,
+        //                event_status = "pending"
+        //            },
+        //            ELR_db);
+
+        //        FetchECGResDTO res = new FetchECGResDTO
+        //        {
+        //            queued_events_records_id = newQueuedEventId,
+        //            event_start_datetime = currentEventData.event_start_datetime,
+        //            event_end_datetime = currentEventData.event_end_datetime,
+        //            from_datetime = fromTime,
+        //            to_datetime = toTime,
+        //            merged_file_path = relativePath,
+        //            baseline_files = baselineFiles
+        //        };
+
+        //        return new ResponseDTO(res);
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        CommonFunctions.ILogging(obj, ex.Message.ToString());
+        //        ErrorMessage = ex.Message.ToString();
+        //    }
+        //    return new ResponseDTO(false, ErrorMessage);
+        //}
+        //private EcgJsonDTO TrimWaveform(EcgJsonDTO ecg, DateTime fromTime, DateTime toTime)
+        //{
+        //    if (ecg?.waveform_snippet == null || ecg.waveform_snippet.timestamp_ms == null || ecg.waveform_snippet.timestamp_ms.Count == 0)
+        //        return null;
+
+
+        //    long fromMs = new DateTimeOffset(fromTime).ToUnixTimeMilliseconds();
+        //    long toMs = new DateTimeOffset(toTime).ToUnixTimeMilliseconds();
+
+        //    var indexes = new List<int>();
+
+        //    for (int i = 0; i < ecg.waveform_snippet.timestamp_ms.Count; i++)
+        //    {
+        //        long ts = ecg.waveform_snippet.timestamp_ms[i];
+
+        //        if (ts >= fromMs && ts <= toMs)
+        //        {
+        //            indexes.Add(i);
+        //        }
+        //    }
+
+
+        //    if (!indexes.Any())
+        //        return null;
+
+        //    int firstIndex = indexes.First();
+
+        //    if (ecg.waveform_snippet.beat_positions != null && ecg.waveform_snippet.beat_labels != null)
+        //    {
+        //        var newBeatPositions = new List<long>();
+        //        var newBeatLabels = new List<string>();
+
+        //        for (int i = 0; i < ecg.waveform_snippet.beat_positions.Count; i++)
+        //        {
+        //            long beatPosition = ecg.waveform_snippet.beat_positions[i];
+
+        //            if (beatPosition < 0 || beatPosition >= ecg.waveform_snippet.timestamp_ms.Count)
+        //                continue;
+
+        //            long beatTimestamp = ecg.waveform_snippet.timestamp_ms[(int)beatPosition];
+
+        //            if (beatTimestamp >= fromMs && beatTimestamp <= toMs)
+        //            {
+        //                newBeatPositions.Add(beatPosition - firstIndex);
+
+        //                if (i < ecg.waveform_snippet.beat_labels.Count)
+        //                {
+        //                    newBeatLabels.Add(ecg.waveform_snippet.beat_labels[i]);
+        //                }
+        //            }
+        //        }
+
+        //        ecg.waveform_snippet.beat_positions = newBeatPositions;
+
+        //        ecg.waveform_snippet.beat_labels = newBeatLabels;
+        //    }
+
+        //    ecg.waveform_snippet.timestamp_ms = indexes.Select(i => ecg.waveform_snippet.timestamp_ms[i]).ToList();
+
+        //    if (ecg.waveform_snippet.voltage_mv != null)
+        //    {
+        //        ecg.waveform_snippet.voltage_mv = indexes.Select(i => ecg.waveform_snippet.voltage_mv[i]).ToList();
+        //    }
+
+        //    ecg.timestamp = DateTimeOffset.FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.First()).LocalDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+
+        //    ecg.end_timestamp = DateTimeOffset.FromUnixTimeMilliseconds(ecg.waveform_snippet.timestamp_ms.Last()).LocalDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+
+        //    return ecg;
+        //}
+        //private void AddTrimmedData(List<EcgJsonDTO> source, List<EcgJsonDTO> mergedData, DateTime fromTime, DateTime toTime)
+        //{
+        //    if (source == null)
+        //        return;
+
+        //    foreach (var ecg in source)
+        //    {
+        //        DateTime start = DateTime.Parse(ecg.timestamp);
+        //        DateTime end = DateTime.Parse(ecg.end_timestamp);
+
+        //        if (end >= fromTime && start <= toTime)
+        //        {
+        //            var ecgCopy = Newtonsoft.Json.JsonConvert.DeserializeObject<EcgJsonDTO>(
+        //                Newtonsoft.Json.JsonConvert.SerializeObject(ecg));
+
+        //            var trimmed = TrimWaveform(ecgCopy, fromTime, toTime);
+
+        //            if (trimmed != null)
+        //                mergedData.Add(trimmed);
+        //        }
+        //    }
+        //}
+
+
         public async Task<ResponseDTO> ElrGetFetchHistory(long queued_events_records_id)
         {
             ErrorMessage = string.Empty;
@@ -2374,8 +2636,10 @@ namespace elr_API.Service.Home_manager
                 var currentReport = (await _db.SelectQuery<PatientReportDTO>(query, new { emp_id = emp_id }, ELR_db)).FirstOrDefault();
                 if (currentReport != null) return new ResponseDTO(currentReport);
 
+
                 query = PatientReportDTO.get_next_report();
                 var nextReport = (await _db.SelectQuery<PatientReportDTO>(query, null, ELR_db)).FirstOrDefault();
+
 
                 query = PatientReportDTO.insert_report_assigned();
                 var assignedId = await _db.ExecuteAndGetId(query,

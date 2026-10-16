@@ -1,5 +1,4 @@
 ﻿using elr_API.Common;
-using System.Text.Json;
 
 namespace elr_API.DTO.ReqDTO
 {
@@ -2157,15 +2156,45 @@ namespace elr_API.DTO.ReqDTO
         public string? sub_strip_start_datetime { get; set; }
         public string? sub_strip_end_datetime { get; set; }
         public string remarks { get; set; }
-        public JsonElement json_data { get; set; }
-
+        //public JsonElement json_data { get; set; }
+        public IFormFile? edf_file { get; set; }
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
         public long modified_by { get; set; }
         public DateTime? modified_datetime { get; set; }
         public bool is_active { get; set; }
 
-        #region Query
+        #region Query   
+        internal static string check_active_published_sub_strip()
+        {
+            return $@"   SELECT count(1)
+                                FROM tbl_patient_report AS pr
+                                left JOIN tbl_queued_events_records AS qe
+                                    ON qe.patient_enrollment_id = pr.patient_enrollment_id
+                                    left join tbl_sub_strip_event as ss 
+                                    on ss.queued_events_records_id = qe.queued_events_records_id
+                                WHERE pr.report_status = 'completed'
+                                  AND pr.is_active = 1
+                                  AND qe.completed_by IS NOT NULL
+                                  AND qe.is_active = 1
+                                  AND qe.event_status = 'completed'
+                                  and ss.is_active = 1 
+                                  and ss.sub_strip_event_id = @sub_strip_event_id";
+        }
+
+        internal static string check_published_sub_strip()
+        {
+            return $@"  SELECT count(1)
+                            FROM tbl_patient_report AS pr
+                            INNER JOIN tbl_queued_events_records AS qe
+                                ON qe.patient_enrollment_id = pr.patient_enrollment_id
+                            WHERE pr.report_status = 'completed'
+                              AND pr.is_active = 1
+                              AND qe.completed_by IS NOT NULL
+                              AND qe.is_active = 1
+                              AND qe.event_status = 'completed'
+                              and qe.queued_events_records_id = @queued_events_records_id";
+        }
         internal static string insert_sub_strip()
         {
             return $@" insert into {Tbl.sub_strip_event}(queued_events_records_id,event_assign_id,sub_strip_file_path,sub_strip_start_datetime,sub_strip_end_datetime,remarks,created_by)

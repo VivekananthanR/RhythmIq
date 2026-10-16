@@ -591,18 +591,33 @@ namespace elr_API.DTO.ReqDTO
 
         }
 
+        //internal static string GetWaitingRecords()
+        //{
+        //    return $@"
+        //            SELECT TOP (50)
+        //                enrollment_raw_data_id,
+        //                patient_enrollment_id,
+        //                file_path
+        //            FROM {Tbl.enrollment_raw_data}
+        //            WHERE auto_check_status = 'waiting'
+        //              AND is_active = 1
+        //            ORDER BY waiting_datetime";
+        //}
+
         internal static string GetWaitingRecords()
         {
             return $@"
-                    SELECT TOP (50)
-                        enrollment_raw_data_id,
-                        patient_enrollment_id,
-                        file_path
-                    FROM {Tbl.enrollment_raw_data}
-                    WHERE auto_check_status = 'waiting'
-                      AND is_active = 1
-                    ORDER BY waiting_datetime";
+                        SELECT TOP (50)
+                            enrollment_raw_data_id,
+                            patient_enrollment_id,
+                            file_path
+                        FROM {Tbl.enrollment_raw_data}
+                        WHERE auto_check_status = 'waiting'
+                          AND is_active = 1
+                          AND LOWER(file_path) LIKE '%.edf'
+                        ORDER BY waiting_datetime";
         }
+
 
         internal static string status_waiting_list()
         {
