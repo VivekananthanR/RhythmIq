@@ -474,7 +474,7 @@ public class PatientReportDTO
                         on c.patient_id = p.patient_id 
                             inner join {Tbl.device_mast} as dm
                         on dm.device_id = c.device_id
-                       where  a.report_assigned_id = @report_assigned_id and a.is_active = 1 ";
+                       where  a.report_assigned_id = @report_assigned_id and a.is_active = 1 and c.is_active = 1 ";
 
     }
     internal static string select_assigned_report()
@@ -499,7 +499,7 @@ public class PatientReportDTO
             inner join {Tbl.device_mast} as dm
                 on dm.device_id = pe.device_id
             WHERE pr.patient_report_id = @patient_report_id  AND pr.report_status = 'pending' and pr.report_started_datetime is not null
-              AND pr.is_active = 1";
+              AND pr.is_active = 1 and pe.is_active = 1";
     }
     internal static string reset_patient_report_status()
     {
@@ -618,6 +618,7 @@ public class PatientReportDTO
                   AND ra.assign_status = 'processing'
                   AND ra.is_active = 1
                   AND pr.is_active = 1
+                    AND pe.is_active = 1    
                 ORDER BY ra.report_assigned_id DESC";
     }
 
@@ -692,7 +693,7 @@ public class PatientReportDTO
                 LEFT JOIN {Tbl.device_mast} AS dm
                     ON pe.device_id = dm.device_id
                 WHERE pr.is_active = 1 and pr.report_started_datetime is not null
-                  AND pe.is_active = 1 and  pr.report_status NOT IN ('completed', 'inprogress');
+                  AND pe.is_active = 1 and  pr.report_status NOT IN ('completed', 'inprogress') and pe.is_active = 1;
 
 
                 SELECT
@@ -721,7 +722,7 @@ public class PatientReportDTO
                 LEFT JOIN {Tbl.device_mast} AS dm
                     ON pe.device_id = dm.device_id
                 WHERE pr.is_active = 1 
-                  AND pe.is_active = 1 and pr.report_status NOT IN ('completed', 'inprogress')
+                  AND pe.is_active = 1 and pr.report_status NOT IN ('completed', 'inprogress') and pe.is_active = 1
                 ORDER BY {sortBy} {orderBy}
                 OFFSET @offset ROWS
                 FETCH NEXT @pageSize ROWS ONLY;";

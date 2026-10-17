@@ -49,7 +49,7 @@ namespace elr_API.DTO.ReqDTO
 
         internal static string get_pateint_id_emp_code()
         {
-            return $@"select patient_id from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id ";
+            return $@"select patient_id from {Tbl.patient_enrollment} where patient_enrollment_id = @patient_enrollment_id  and is_active = 1";
         }
         internal static string check_enrollment_exists()
         {
@@ -251,7 +251,7 @@ namespace elr_API.DTO.ReqDTO
                     UPDATE {Tbl.patient_enrollment}
                     SET sign_patient_img = ISNULL(@sign_patient_img, sign_patient_img),
                         sign_field_emp_img = ISNULL(@sign_field_emp_img, sign_field_emp_img)
-                    WHERE patient_enrollment_id = @patient_enrollment_id";
+                    WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1";
         }
         internal static string device_img_upload()
         {
@@ -259,7 +259,7 @@ namespace elr_API.DTO.ReqDTO
                     UPDATE {Tbl.patient_enrollment}
                     SET hookup_start_device_img = ISNULL(@hookup_start_device_img, hookup_start_device_img),
                         hookup_end_device_img = ISNULL(@hookup_end_device_img, hookup_end_device_img)
-                    WHERE patient_enrollment_id = @patient_enrollment_id";
+                    WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1";
         }
         //internal static string start_hookup_status()
         //{
@@ -288,7 +288,8 @@ namespace elr_API.DTO.ReqDTO
                     INNER JOIN {Tbl.test_mast} tm
                         ON tp.test_id = tm.test_id
                     WHERE pe.patient_enrollment_id = @patient_enrollment_id
-                      AND pe.enrollment_status = 'requested'";
+                      AND pe.enrollment_status = 'requested'
+                      AND pe.is_active = 1";
         }
 
         internal static string complete_hookup_status(long patient_enrollment_id)
@@ -298,14 +299,14 @@ namespace elr_API.DTO.ReqDTO
                     is_patient_removal =@is_patient_removal,
                     modified_by = @modified_by, 
                     modified_datetime = getdate()
-              WHERE patient_enrollment_id = @patient_enrollment_id";
+              WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1";
         }
 
         internal static string monitoring_hookup_status(long patient_enrollment_id)
         {
             return $@"UPDATE {Tbl.patient_enrollment}
               SET enrollment_status = 'monitoring'
-              WHERE patient_enrollment_id = @patient_enrollment_id";
+              WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1";
         }
 
         internal static string check_completed_enrollment()
@@ -626,7 +627,7 @@ namespace elr_API.DTO.ReqDTO
                     from {Tbl.enrollment_raw_data} as erd 
                     left join {Tbl.patient_enrollment} as pe
                     on erd.patient_enrollment_id = pe.patient_enrollment_id
-                    where erd.is_active = 1 
+                    where erd.is_active = 1  and pe.is_active = 1 
                     order by enrollment_raw_data_id asc;";
         }
         internal static string update_checking_status()

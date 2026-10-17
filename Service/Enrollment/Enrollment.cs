@@ -685,21 +685,11 @@ namespace elr_API.Service.Enrolment
                         ? _configuration["PythonApi:ProcessUrlLive"]
                         : _configuration["PythonApi:ProcessUrlLocal"];
 
-                    Console.WriteLine("========== PYTHON API REQUEST ==========");
-                    Console.WriteLine($"URL: {url}");
-                    Console.WriteLine($"File: {physicalPath}");
-                    Console.WriteLine($"Extension: {extension}");
-                    Console.WriteLine($"Enrollment ID: {item.patient_enrollment_id}");
-                    Console.WriteLine($"Raw Data ID: {item.enrollment_raw_data_id}");
+
 
                     using var response = await client.PostAsync(url, formData);
                     string result = await response.Content.ReadAsStringAsync();
 
-                    Console.WriteLine("========== PYTHON API RESPONSE ==========");
-                    Console.WriteLine($"Status: {(int)response.StatusCode}");
-                    Console.WriteLine($"Success: {response.IsSuccessStatusCode}");
-                    Console.WriteLine($"Response: {result}");
-                    Console.WriteLine("=========================================");
 
                     if (response.IsSuccessStatusCode)
                     {

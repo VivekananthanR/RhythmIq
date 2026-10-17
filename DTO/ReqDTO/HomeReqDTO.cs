@@ -629,6 +629,7 @@ namespace elr_API.DTO.ReqDTO
                     LEFT JOIN {Tbl.patient_enrollment} da
                         ON da.device_id = dm.device_id
                         AND da.enrollment_status IN ('hookuped', 'monitoring')
+                        AND da.is_active = 1
                     WHERE dm.current_emp_id = @current_emp_id;
                 ";
         }
@@ -1923,6 +1924,7 @@ namespace elr_API.DTO.ReqDTO
                         on p.patient_id = pe.patient_id
                     WHERE ea.assigned_by = @assigned_by
                       AND ea.work_status = 'inprogress'
+                      AND pe.is_active = 1
                     ORDER BY ea.event_assign_id DESC";
         }
         internal static string update_work_status()
@@ -2056,6 +2058,7 @@ namespace elr_API.DTO.ReqDTO
 
                         WHERE pe.patient_id = @patient_id
                           AND sse.is_active = 1
+                          AND pe.is_active = 1
 
                           AND (@from_date IS NULL
                                OR pe.actual_hookup >= @from_date)
@@ -2092,6 +2095,7 @@ namespace elr_API.DTO.ReqDTO
 
                         WHERE pe.patient_id = @patient_id
                           AND sse.is_active = 1
+                          AND pe.is_active = 1
 
                           AND (@from_date IS NULL
                                OR pe.actual_hookup >= @from_date)
@@ -2478,7 +2482,8 @@ namespace elr_API.DTO.ReqDTO
                         ON sse.queued_events_records_id = qer.queued_events_records_id
                     INNER JOIN {Tbl.patient_enrollment} pe
                         ON qer.patient_enrollment_id = pe.patient_enrollment_id
-                    WHERE sse.sub_strip_event_id = @sub_strip_event_id";
+                    WHERE  sse.sub_strip_event_id = @sub_strip_event_id
+                      AND pe.is_active = 1";
         }
         #endregion
     }
@@ -3024,6 +3029,8 @@ namespace elr_API.DTO.ReqDTO
                         ON u.user_id = d.created_by
                     WHERE ea.work_status = 'partial-completed'
                       AND d.is_active = 1
+                      AND qu.is_active = 1
+                      AND p.is_active = 1
                       AND (
                             ISNULL(@search, '') = ''
                             OR pt.patient_name LIKE '%' + @search + '%'
@@ -3067,6 +3074,8 @@ namespace elr_API.DTO.ReqDTO
 
                     WHERE ea.work_status = 'partial-completed'
                       AND d.is_active = 1
+                        AND qu.is_active = 1
+                        AND p.is_active = 1
                       AND (
                             ISNULL(@search, '') = ''
                             OR pt.patient_name LIKE '%' + @search + '%'
@@ -3214,7 +3223,7 @@ namespace elr_API.DTO.ReqDTO
                     LEFT JOIN {Tbl.sub_strip_event} sse
                         ON sse.sub_strip_event_id = d.sub_strip_event_id
 
-                    WHERE d.detection_id = @detection_id and d.is_active = 1
+                    WHERE d.detection_id = @detection_id and d.is_active = 1 and pe.is_active = 1  
 
                    GROUP BY
                         d.detection_id,
@@ -3357,6 +3366,7 @@ namespace elr_API.DTO.ReqDTO
 
                         WHERE d.is_active = 1
                           AND d.detection_status IN ('submit','confirm-submit')
+                          AND pe.is_active = 1
                             AND (@from_date IS NULL 
                                    OR pe.actual_hookup >= @from_date)
 
@@ -3410,6 +3420,7 @@ namespace elr_API.DTO.ReqDTO
 
                     WHERE d.is_active = 1
                       AND d.detection_status IN ('submit','confirm-submit')
+                        AND pe.is_active = 1
                           AND (@from_date IS NULL 
                                    OR pe.actual_hookup >= @from_date)
 
@@ -3837,6 +3848,7 @@ namespace elr_API.DTO.ReqDTO
                     WHERE a.queued_events_records_id = @queued_events_records_id
                       AND a.is_active = 1
                       AND d.is_active = 1
+                        AND c.is_active = 1
                     and ea.is_final_completed = 1
                     and ea.work_status = 'completed' 
                     and ea.is_active = 1
@@ -3860,6 +3872,7 @@ namespace elr_API.DTO.ReqDTO
 
                         WHERE a.trigger_type = 'Fetch-ECG'
                           AND a.is_active = 1
+                            AND c.is_active = 1
 
                           AND
                           (
@@ -3934,6 +3947,7 @@ namespace elr_API.DTO.ReqDTO
 
                     WHERE a.trigger_type = 'Fetch-ECG'
                       AND a.is_active = 1
+and c.is_active = 1
 
                       AND
                       (
@@ -4126,6 +4140,7 @@ namespace elr_API.DTO.ReqDTO
 
                     WHERE a.trigger_type = 'Fetch-ECG'
                       AND a.is_active = 1
+                        AND c.is_active = 1
 
                       AND
                       (
@@ -5134,6 +5149,7 @@ namespace elr_API.DTO.ReqDTO
                         INNER JOIN {Tbl.patient_enrollment} AS pe
                             ON pe.patient_enrollment_id =
                                qe.patient_enrollment_id
+                            AND pe.is_active = 1
 
                         INNER JOIN {Tbl.patient} AS p
                             ON p.patient_id =
@@ -5207,6 +5223,7 @@ namespace elr_API.DTO.ReqDTO
                         INNER JOIN {Tbl.patient_enrollment} AS pe
                             ON pe.patient_enrollment_id =
                                qe.patient_enrollment_id
+                                and pe.is_active = 1
 
                         INNER JOIN {Tbl.patient} AS p
                             ON p.patient_id =
@@ -5423,7 +5440,7 @@ namespace elr_API.DTO.ReqDTO
         on d.report_type_id = b.report_type_id
         inner join tbl_patient as e
         on e.patient_id = c.patient_id
-        where e.patient_id = @patient_id and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') ;
+        where e.patient_id = @patient_id and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') and c.is_active = 1;
        
 
 
@@ -5453,7 +5470,7 @@ namespace elr_API.DTO.ReqDTO
         on d.report_type_id = b.report_type_id
         inner join tbl_patient as e
         on e.patient_id = c.patient_id
-        where e.patient_id = @patient_id and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') 
+        where e.patient_id = @patient_id and b.report_generated_datetime is not null and b.report_status in ('inprogress','completed') and a.assign_status in ('generated','completed') and c.is_active = 1 
        
     ";
         }
@@ -5537,6 +5554,8 @@ namespace elr_API.DTO.ReqDTO
             string condition = $@"
                                 a.is_active = 1
                                 AND f.is_active = 1
+                                AND b.is_active = 1
+                                AND c.is_active = 1
 
                                 AND f.assign_status IN ('generated', 'completed')
                                 AND a.report_status IN ('inprogress', 'completed')
