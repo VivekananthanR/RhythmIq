@@ -12,10 +12,11 @@ namespace elr_API.DTO.ReqDTO
         public int otp { get; set; }
 
         #region Query
+
         internal static string existing_select_patient()
         {
             return $@"
-                    SELECT TOP 1
+                    SELECT 
                         p.patient_id,
                         p.patient_name,
                         p.dob,
@@ -37,7 +38,7 @@ namespace elr_API.DTO.ReqDTO
         public static string existing_patient()
         {
             return @"
-                SELECT TOP 1
+                SELECT 
                     patient_id,
                     phone_no,
                     email_id

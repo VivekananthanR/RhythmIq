@@ -3856,6 +3856,30 @@ namespace elr_API.DTO.ReqDTO
         }
         internal static string select_fetch_history_list(FectchHistoryReqDTO obj)
         {
+
+            string sortColumn = "a.created_datetime";
+            string sortOrder = "DESC";
+
+            if (!string.IsNullOrWhiteSpace(obj.sortBy))
+            {
+                if (obj.sortBy == "created_datetime")
+                    sortColumn = "a.created_datetime";
+                else if (obj.sortBy == "event_start_datetime")
+                    sortColumn = "a.event_start_datetime";
+                else if (obj.sortBy == "event_status")
+                    sortColumn = "a.event_status";
+                else if (obj.sortBy == "patient_name")
+                    sortColumn = "d.patient_name";
+            }
+
+            if (!string.IsNullOrWhiteSpace(obj.orderBy))
+            {
+                if (obj.orderBy.ToUpper() == "ASC")
+                    sortOrder = "ASC";
+                else if (obj.orderBy.ToUpper() == "DESC")
+                    sortOrder = "DESC";
+            }
+
             return $@"
                     SELECT COUNT(*)
                     FROM
@@ -3947,7 +3971,7 @@ namespace elr_API.DTO.ReqDTO
 
                     WHERE a.trigger_type = 'Fetch-ECG'
                       AND a.is_active = 1
-and c.is_active = 1
+                     and c.is_active = 1
 
                       AND
                       (
@@ -3980,10 +4004,11 @@ and c.is_active = 1
                       AND (@to_date IS NULL
                            OR a.created_datetime < DATEADD(DAY, 1, @to_date))
 
-                    ORDER BY {obj.sortBy} {obj.orderBy}
+                             ORDER BY {sortColumn} {sortOrder},
+                     a.queued_events_records_id DESC
 
-                    OFFSET @offSet ROWS
-                    FETCH NEXT {obj.pageSize} ROWS ONLY;
+                            OFFSET @offSet ROWS
+                            FETCH NEXT @pageSize ROWS ONLY;
                 ";
         }
         //internal static string select_fetch_history_list(FectchHistoryReqDTO obj)

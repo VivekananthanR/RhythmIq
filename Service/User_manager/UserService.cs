@@ -44,6 +44,23 @@ namespace elr_API.Service.User_manager
 
                     if (patient == null) return new ResponseDTO(false, "Patient not found.");
 
+                    query = ConnectPatientDetails.insert_patient_details();
+
+                    await _dp.Execute(query,
+                        new
+                        {
+                            patient_name = string.IsNullOrWhiteSpace(patient.patient_fullname) ? "" : patient.patient_fullname,
+                            dob = string.IsNullOrWhiteSpace(patient.patient_dob) ? "" : patient.patient_dob,
+                            age = string.IsNullOrWhiteSpace(patient.patient_age) ? "" : patient.patient_age,
+                            phone_no = string.IsNullOrWhiteSpace(patient.patient_mobileno) ? "" : patient.patient_mobileno,
+                            emergency_phone_no = string.IsNullOrWhiteSpace(patient.emergency_phone_no) ? "" : patient.emergency_phone_no,
+                            email_id = string.IsNullOrWhiteSpace(patient.patient_emailid) ? "" : patient.patient_emailid,
+                            gender = string.IsNullOrWhiteSpace(patient.patient_gender) ? "" : patient.patient_gender,
+                            city = string.IsNullOrWhiteSpace(patient.patient_cityname) ? "" : patient.patient_cityname,
+                            pincode = string.IsNullOrWhiteSpace(patient.patient_pincode) ? "" : patient.patient_pincode
+
+                        }, Elr_db);
+
                     return new ResponseDTO(patient);
                 }
                 return new ResponseDTO(patientDetails);
@@ -56,6 +73,9 @@ namespace elr_API.Service.User_manager
 
             return new ResponseDTO(false, ErrorMessage);
         }
+
+
+
 
         public async Task<ResponseDTO> ElrAddUpdatePatientDetails(PatientVerifyLoginResDTO obj)
         {
@@ -521,6 +541,13 @@ namespace elr_API.Service.User_manager
         public string patient_gender { get; set; }
         public string patient_cityname { get; set; }
         public string patient_pincode { get; set; }
+
+        internal static string insert_patient_details()
+        {
+            return $@"Insert Into {Tbl.patient} (patient_name,dob,age,phone_no,emergency_phone_no,email_id,gender,city,pincode)
+                        Values (@patient_name, @dob, @age, @phone_no, @emergency_phone_no ,@email_id ,@gender,@city, @pincode)";
+        }
+
     }
 
 
