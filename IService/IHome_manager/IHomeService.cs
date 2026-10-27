@@ -7,29 +7,27 @@ namespace elr_API.IService.IHome_manager
     {
         Task<ResponseDTO> ElrGetDevice(DeviceReqDTO obj);
         Task<ResponseDTO> ElrAddUpdateDevice(DeviceResDTO obj);
-        //Task<ResponseDTO> ElrGetPatch(PatchReqDTO obj);
         Task<ResponseDTO> ElrAddUpdatePatch(PatchResDTO obj);
 
 
 
-        Task<ResponseDTO> GetMenu();
-        Task<ResponseDTO> AddUpdateMenu(MenuDTO obj);
+        Task<ResponseDTO> ElrGetMenu();
+        Task<ResponseDTO> ElrAddUpdateMenu(MenuDTO obj);
+
+        Task<ResponseDTO> ElrCheckPermissionMenuUpdate(MenuDTO[] obj);
+        Task<ResponseDTO> ElrUpdateMenuPriority(MenuDTO[] obj);
 
 
         Task<ResponseDTO> GetCountry();
-        //Task<List<CountryDTO>> CountryList(CountryDTO obj);
         Task<ResponseDTO> AddUpdateCountry(CountryDTO obj);
 
         Task<ResponseDTO> GetState();
-        //Task<List<StateDTO>> StateList(StateDTO obj);
         Task<ResponseDTO> AddUpdateState(StateDTO obj);
 
         Task<ResponseDTO> GetDistrict();
-        //Task<List<DistrictDTO>> DistrictList(DistrictDTO obj);
         Task<ResponseDTO> AddUpdateDistrict(DistrictDTO obj);
 
-        Task<ResponseDTO> GetUserType(UserTypeDTO obj);
-        Task<List<UserTypeDTO>> UserTypeList(UserTypeDTO obj);
+        Task<ResponseDTO> GetUserType();
         Task<ResponseDTO> AddUpdateUserType(UserTypeDTO obj);
 
         Task<ResponseDTO> ElrHospitalList(string? hospital_name);

@@ -38,7 +38,7 @@
         #region Query
         internal static string select_doctor_login()
         {
-            return @"SELECT d.user_id as doctor_id , d.gu_id, d.user_name as doctor_name, d.phone_no, d.speciality, d.email_id, d.date_of_birth, d.gender, d.city, d.otp, d.expiry_datetime,
+            return @"SELECT d.user_id as doctor_id , d.gu_id, d.user_name as doctor_name,  d.login_gu_id, d.phone_no, d.speciality, d.email_id, d.date_of_birth, d.gender, d.city, d.otp, d.expiry_datetime,
                             d.created_by, d.created_datetime, d.modified_by, d.modified_datetime, d.is_active,
                             ut.user_type_id, ut.user_type,
                             h.hospital_id, h.hospital_name
@@ -68,8 +68,66 @@
         public string sortBy { get; set; } = "actual_hookup";
         public string orderBy { get; set; } = "DESC";
         public long referred_physician_id { get; set; }
+        public bool? live_monitoring { get; set; }
 
         #region Query
+
+        internal static string select_dr_completed_report(DoctorLivePatientMonitoringReqDTO obj)
+        {
+            string sortColum = "pe.actual_hookup";
+
+            if (obj.sortBy == "patient_name")
+                sortColum = "p.patient_name";
+            else if (obj.sortBy == "patient_id")
+                sortColum = "p.patient_id";
+            else if (obj.sortBy == "actual_removal")
+                sortColum = "pe.actual_removal";
+
+
+            string orderBy = obj.orderBy?.ToUpper() == "ASC" ? "ASC" : "Desc";
+
+            return $@" 
+                       select count(*) as totalCount from tbl_patient_report as pr
+                        inner join tbl_patient_enrollment as pe
+                        on pe.patient_enrollment_id = pr.patient_enrollment_id
+                        inner join tbl_patient as p
+                        on p.patient_id = pe.patient_id
+                        WHERE pe.is_active = 1
+                          AND pe.enrollment_status = 'completed'
+                          AND pr.is_active = 1
+                          AND pr.report_status = 'completed'
+                          AND (
+                                (SELECT user_type_id
+                                 FROM tbl_user_mast
+                                 WHERE user_id = {obj.referred_physician_id} ) = 1
+                                OR pe.referred_physician_id = {obj.referred_physician_id}
+                              );
+
+                       select pr.patient_report_id,pr.report_type_id,pr.report_started_datetime,pr.report_due_datetime,pr.report_status,pr.is_active,
+                        pe.patient_enrollment_id,pe.referred_physician_id,pe.actual_hookup,pe.enrollment_status,pe.is_active, pe.actual_removal,
+                        p.patient_id,p.patient_name,p.is_active from tbl_patient_report as pr
+                        inner join tbl_patient_enrollment as pe
+                        on pe.patient_enrollment_id = pr.patient_enrollment_id
+                        inner join tbl_patient as p
+                        on p.patient_id = pe.patient_id
+                        WHERE pe.is_active = 1
+                          AND pe.enrollment_status = 'completed'
+                          AND pr.is_active = 1
+                          AND pr.report_status = 'completed'
+                          AND (
+                                (SELECT user_type_id
+                                 FROM tbl_user_mast
+                                 WHERE user_id = {obj.referred_physician_id} ) = 1
+                                OR pe.referred_physician_id = {obj.referred_physician_id}
+                              )
+                        order by " + sortColum + " " + orderBy + @",
+                        pe.patient_enrollment_id DESC
+                        offset @offSet rows
+                        fetch next @pageSize rows only;";
+
+        }
+
+
 
         internal static string select_dr_live_patient_monitoring(DoctorLivePatientMonitoringReqDTO obj)
         {
@@ -89,9 +147,14 @@
                             ON pe.patient_id = p.patient_id
                         INNER JOIN tbl_user_mast AS um
                             ON um.user_id = pe.referred_physician_id
-                        WHERE pe.referred_physician_id = {obj.referred_physician_id}
-                          AND pe.enrollment_status = 'monitoring'
-                          AND pe.is_active = 1;
+                          WHERE pe.enrollment_status = 'monitoring'
+                          AND (
+                                (SELECT user_type_id
+                                 FROM tbl_user_mast
+                                 WHERE user_id = {obj.referred_physician_id}) = 1
+                                OR pe.referred_physician_id = {obj.referred_physician_id}
+                              )
+                         -- AND pe.is_active = 1;
 
                         SELECT
                             pe.patient_enrollment_id,
@@ -108,9 +171,14 @@
                             ON pe.patient_id = p.patient_id
                         INNER JOIN tbl_user_mast AS um
                             ON um.user_id = pe.referred_physician_id
-                        WHERE pe.referred_physician_id = {obj.referred_physician_id}
-                          AND pe.enrollment_status = 'monitoring'
-                          AND pe.is_active = 1
+                         WHERE pe.enrollment_status = 'monitoring'
+                          AND (
+                                (SELECT user_type_id
+                                 FROM tbl_user_mast
+                                 WHERE user_id = {obj.referred_physician_id} ) = 1
+                                OR pe.referred_physician_id = {obj.referred_physician_id}
+                              )
+                          --AND pe.is_active = 1
                         ORDER BY " + sortColumn + " " + sortOrder + @",
                             pe.patient_enrollment_id DESC
                         OFFSET @offSet ROWS
@@ -123,6 +191,7 @@
     public class DoctorLivePatientMonitoringResDTO
     {
         public long patient_enrollment_id { get; set; }
+        public long? patient_report_id { get; set; }
         public long patient_id { get; set; }
         public string patient_name { get; set; }
 
@@ -134,6 +203,7 @@
 
         public long doctor_id { get; set; }
         public string doctor_name { get; set; }
+
     }
 
 }

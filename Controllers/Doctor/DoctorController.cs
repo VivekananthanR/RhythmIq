@@ -38,5 +38,6 @@ namespace elr_API.Controllers.Doctor
             return await _doctorService.ElrDoctorLivePatientMonitoringList(obj);
         }
         #endregion
+
     }
 }

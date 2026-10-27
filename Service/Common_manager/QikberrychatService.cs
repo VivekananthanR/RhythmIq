@@ -26,38 +26,39 @@ namespace elr_API.Service.Common_manager
 
                 #region Whatsapp API calling
 
-                //List<Parameter> bodyparameters = new List<Parameter>();
-                //bodyparameters.Add(new Parameter { type = "text", text = obj.otp.Value.ToString() });
+                List<Parameter> bodyparameters = new List<Parameter>();
+                bodyparameters.Add(new Parameter { type = "text", text = obj.otp.ToString() });
 
 
-                //WhatsappBasicReqDTO whatsappBasicReqDTO = new WhatsappBasicReqDTO();
-                //whatsappBasicReqDTO.phone_no = obj.phone_no;
-                //whatsappBasicReqDTO.template_name = "otp_for_logging"; ;
-                //whatsappBasicReqDTO.bodyParameters = bodyparameters;
+                WhatsappBasicReqDTO whatsappBasicReqDTO = new WhatsappBasicReqDTO();
+                whatsappBasicReqDTO.phone_no = obj.phone_no;
+                whatsappBasicReqDTO.template_name = "otp_for_logging"; ;
+                whatsappBasicReqDTO.bodyParameters = bodyparameters;
 
-                //await WhatsappMessageCallAPI(whatsappBasicReqDTO);
-
+                await WhatsappMessageCallAPI(whatsappBasicReqDTO);
                 #endregion
 
 
                 #region SMS API Calling
 
-                SMSReqDTO sMSReqDTO = new SMSReqDTO()
-                {
-                    to = "91" + obj.phone_no,
-                    template_id = "1107173838787487103",
-                    message = $@"Vanakkam! Your OTP is {obj.otp} for looking in to Your Healthwatch Telediagnostics. Do NOT share it with anyone."";"
-                };
+                SMSReqDTO sMSReqDTO = new SMSReqDTO();
+                sMSReqDTO.to = "+91" + obj.phone_no;
+                sMSReqDTO.template_id = "1107173838787487103"; //CHC Welcome msg
+                sMSReqDTO.message = $"Vanakkam! The OTP is {obj.otp} for logging in to your CHC Pharmacy account. Do NOT share it with anyone.";
+
                 await SMSMessageCallAPI(sMSReqDTO);
 
                 #endregion
+
+                return new ResponseDTO(true, ResponseMessage.Success);
+
             }
             catch (Exception ex)
             {
                 CommonFunctions.ILogging(obj, ex.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
-            return new ResponseDTO { Status = false, Message = ErrorMessage };
+            return new ResponseDTO(false, ErrorMessage);
         }
 
 
@@ -135,32 +136,35 @@ namespace elr_API.Service.Common_manager
         }
         #endregion
 
-        #region SMS API Calling
+        #region SMS API Method
         public async Task<SMSResDTO> SMSMessageCallAPI(SMSReqDTO obj)
         {
             try
             {
                 var client = _httpClientFactory.CreateClient();
-                var jsonReqBody = JsonSerializer.Serialize(obj);
-                var content = new StringContent(jsonReqBody, Encoding.UTF8, "application/json");
+                var jsonRequestBody = JsonSerializer.Serialize(obj);
+                var content = new StringContent(jsonRequestBody, Encoding.UTF8, "application/json");
 
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["Qikberrychat:Bearer-Token"]);
 
                 var apiUrl = "https://rest.qikberry.ai/v1/sms/messages";
                 var response = await client.PostAsync(apiUrl, content);
-                var responseContent = await response.Content.ReadAsStringAsync();
-                if ((response.IsSuccessStatusCode))
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+
+                if (response.IsSuccessStatusCode)
                 {
-                    var tokenResponse = JsonSerializer.Deserialize<SMSResDTO>(responseContent);
+                    var tokenResponse = JsonSerializer.Deserialize<SMSResDTO>(responseBody);
+
                     if (tokenResponse != null && tokenResponse.error == null)
                     {
-                        return tokenResponse;
+                        return tokenResponse; // ✅ Successfully parsed response
                     }
                     return new SMSResDTO("false", new Error { to = "Unexpected API response" });
                 }
                 else
                 {
-                    return new SMSResDTO("false", new Error { to = "API call failed: " + responseContent });
+                    return new SMSResDTO("false", new Error { to = "API call failed: " + responseBody });
                 }
             }
             catch (Exception ex)
@@ -168,10 +172,12 @@ namespace elr_API.Service.Common_manager
                 CommonFunctions.ILogging(obj, ex.ToString());
                 return new SMSResDTO("false", new Error { to = ResponseMessage.Please_Try_Again });
             }
-
         }
 
+
+
         #endregion
+
 
 
 

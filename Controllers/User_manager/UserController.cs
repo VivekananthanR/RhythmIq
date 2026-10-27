@@ -37,6 +37,14 @@ namespace elr_API.Controllers.User_manager
         }
         #endregion
 
+        #region HttpPost = api/User/ElrPatientLogin
+        [HttpPost("ElrPatientLogin")]
+        public async Task<ActionResult<ResponseDTO>> ElrPatientLogin(OtpForLoggingReqDTO obj)
+        {
+            return await _userService.ElrPatientLogin(obj);
+        }
+        #endregion
+
         #region HttpPost = api/User/ElrAddUpdatePatientDetails
         [HttpPost("ElrAddUpdatePatientDetails"), Authorize]
         public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientDetails([FromHeader] string authorization, [FromBody] PatientVerifyLoginResDTO obj)

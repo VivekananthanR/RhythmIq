@@ -495,6 +495,11 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+        public async Task<PatientEnrollmentStatusDTO> ElrCheckPatientDetails(string phone_no)
+        {
+            string query = PatientEnrollmentStatusDTO.is_not_completed_enrollment_patient();
+            return (await _db.SelectQuery<PatientEnrollmentStatusDTO>(query, new { phone_no = phone_no }, ELR_db)).FirstOrDefault();
+        }
 
         public async Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj)
         {
@@ -505,19 +510,26 @@ namespace elr_API.Service.Enrolment
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
                 query = PatientEnrollmentDTO.get_patient_details();
-                obj.patient_id = (await _db.SelectQuery<long>(query, new { patient_id = obj.patient_id }, ELR_db)).FirstOrDefault();
+                var data = (await _db.SelectQuery<PatientEnrollmentDTO>(query, new { patient_id = obj.patient_id }, ELR_db)).FirstOrDefault();
 
-                if (obj.patient_id == 0) return new ResponseDTO(false, $"Patient details not found for Id.");
+                if (data == null) return new ResponseDTO(false, $"Patient details not found for Id.");
 
-                if (obj.patient_enrollment_id == 0) query = PatientEnrollmentDTO.insert_enrollment();
-                else
+                var is_not_complete = await ElrCheckPatientDetails(data.patient_ph_number);
+
+                if (is_not_complete != null)
                 {
-                    obj.modified_by = obj.created_by;
-                    query = PatientEnrollmentDTO.update_enrollment();
-                }
-                int a = await _db.Execute(query, obj, ELR_db);
+                    if (obj.patient_enrollment_id == 0) query = PatientEnrollmentDTO.insert_enrollment();
+                    else
+                    {
+                        obj.modified_by = obj.created_by;
+                        query = PatientEnrollmentDTO.update_enrollment();
+                    }
+                    int a = await _db.Execute(query, obj, ELR_db);
 
-                return new ResponseDTO(a > 0, a > 0 ? (obj.patient_enrollment_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+                    return new ResponseDTO(a > 0, a > 0 ? (obj.patient_enrollment_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+
+                }
+                return new ResponseDTO(false, $"Enrollment already exists for this  mobile number - {is_not_complete.patient_enrollment_id}.");
             }
             catch (Exception ex)
             {

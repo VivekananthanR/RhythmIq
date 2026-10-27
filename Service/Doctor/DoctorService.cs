@@ -42,24 +42,24 @@ namespace elr_API.Service.Doctor
                 {
                     int otp = obj.phone_no == "6385234932" ? 123456 : CommonFunctions.GenerateOTP(6);
 
-                    query = DoctorLoginResDTO.insert_doctor_otp();
-                    int a = await _dapperSqlService.Execute(query, new { phone_no = obj.phone_no, otp = otp }, Elr_Db);
-
-                    if (a <= 0) return new ResponseDTO(false, ResponseMessage.Failed);
-
                     #region Message
                     if (obj.phone_no != "6385234932")
                     {
-                        var msg_notify = await _qikberrychatService.OtpForLoggingPatient(new OtpForLoggingReqDTO
-                        {
-                            phone_no = obj.phone_no,
-                            otp = otp,
-                        });
-                        return new ResponseDTO(msg_notify);
+
+                        OtpForLoggingReqDTO otpForLoggingReqDTO = new OtpForLoggingReqDTO();
+                        otpForLoggingReqDTO.phone_no = obj.phone_no;
+                        otpForLoggingReqDTO.otp = otp;
+
+                        await _qikberrychatService.OtpForLoggingPatient(otpForLoggingReqDTO);
+
                     }
                     #endregion
 
-                    return new ResponseDTO(true, ResponseMessage.OTP_sended);
+
+                    query = DoctorLoginResDTO.insert_doctor_otp();
+                    int a = await _dapperSqlService.Execute(query, new { phone_no = obj.phone_no, otp = otp }, Elr_Db);
+
+                    return new ResponseDTO(a > 0, a > 0 ? ResponseMessage.OTP_sended : ResponseMessage.Failed);
                 }
 
                 if (obj.otp != doctor_data.otp)
@@ -103,7 +103,14 @@ namespace elr_API.Service.Doctor
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                query = DoctorLivePatientMonitoringReqDTO.select_dr_live_patient_monitoring(obj);
+                if (obj.live_monitoring == null || obj.live_monitoring == true)
+                {
+                    query = DoctorLivePatientMonitoringReqDTO.select_dr_live_patient_monitoring(obj);
+                }
+                else
+                {
+                    query = DoctorLivePatientMonitoringReqDTO.select_dr_completed_report(obj);
+                }
 
                 var (totalCount, data) = await _dapperSqlService.SelectQueryWithCount<long, DoctorLivePatientMonitoringResDTO>(query, obj, Elr_Db);
 

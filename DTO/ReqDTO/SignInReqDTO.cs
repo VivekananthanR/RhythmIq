@@ -99,9 +99,44 @@ namespace elr_API.DTO.ReqDTO
         #endregion
 }
 
+
+public class PatientEnrollmentStatusDTO
+{
+
+    public long patient_enrollment_id { get; set; }
+    public long patient_id { get; set; }
+    public string patient_name { get; set; }
+    public string phone_no { get; set; }
+    public string enrollment_status { get; set; }
+
+    #region query
+    public static string is_not_completed_enrollment_patient()
+    {
+        return $@"
+        SELECT TOP 1
+            pe.patient_enrollment_id,
+            pe.enrollment_status,
+            pe.is_active,
+            pe.created_datetime,
+            p.patient_id,
+            p.patient_name,
+            p.phone_no,
+            p.is_active AS patient_is_active
+        FROM {Tbl.patient_enrollment} AS pe
+        INNER JOIN {Tbl.patient} AS p
+            ON pe.patient_id = p.patient_id
+        WHERE p.phone_no = @phone_no
+          AND p.is_active = 1
+          AND pe.enrollment_status = 'completed'
+        ORDER BY pe.created_datetime DESC";
+    }
+    #endregion
+}
+
 public class PatientVerifyLoginResDTO
 {
     public long patient_id { get; set; }
+    public Guid? gu_id { get; set; }
     public string patient_name { get; set; }
     public DateTime? dob { get; set; }
     public int age { get; set; }
@@ -110,7 +145,7 @@ public class PatientVerifyLoginResDTO
     public string email_id { get; set; }
     public string gender { get; set; }
     public string city { get; set; }
-    public int? otp { get; set; }
+    public int otp { get; set; }
     public DateTime? expiry_date { get; set; }
     public string pincode { get; set; }
 
@@ -126,6 +161,9 @@ public class PatientVerifyLoginResDTO
     public long modified_by { get; set; }
     public DateTime? modified_datetime { get; set; }
     public bool is_active { get; set; }
+
+
+
 
     #region Query
 
@@ -146,8 +184,9 @@ public class PatientVerifyLoginResDTO
     }
     internal static string patient_details_select()
     {
-        return $@"select p.patient_id, p.patient_name as patient_fullname, p.dob as patient_dob, p.age as patient_age, p.phone_no as patient_mobileno, p.emergency_phone_no as emergency_phone_no, p.email_id as patient_emailid, p.gender as patient_gender, p.city as patient_cityname, p.pincode as patient_pincode, p.district_id, p.state_id,p.country_id, p.created_by, p.created_datetime, p.is_active ,
-                        d.district_name,c.country_name, s.state_name
+        return $@"select p.patient_id,p.gu_id, p.patient_name as patient_fullname, p.dob as patient_dob, p.age as patient_age, p.phone_no as patient_mobileno, p.emergency_phone_no as emergency_phone_no,
+                        p.email_id as patient_emailid, p.gender as patient_gender, p.city as patient_cityname, p.pincode as patient_pincode, p.district_id, p.state_id,p.country_id, 
+                        p.created_by, p.created_datetime, p.is_active ,d.district_name,c.country_name, s.state_name, p.otp, p.expiry_date
                         from {Tbl.patient} as p
                         left join {Tbl.district} as d
                         on p.district_id = d.district_id

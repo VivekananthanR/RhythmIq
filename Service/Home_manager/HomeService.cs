@@ -99,14 +99,14 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> GetMenu()
+        public async Task<ResponseDTO> ElrGetMenu()
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
                 query = MenuDTO.select_menu();
-                var data = (await _db.SelectQuery<MenuDTO>(query, null, ELR_db)).ToList();
+                var data = await _db.SelectQuery<MenuDTO>(query, null, ELR_db);
                 return new ResponseDTO(data);
             }
             catch (Exception ex)
@@ -116,16 +116,30 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<ResponseDTO> AddUpdateMenu(MenuDTO obj)
+
+
+        public async Task<ResponseDTO> ElrAddUpdateMenu(MenuDTO obj)
         {
             ErrorMessage = string.Empty;
             string query = string.Empty;
             try
             {
                 if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (string.IsNullOrEmpty(obj.menu_name)) return new ResponseDTO(false, "Menu Name is Required");
+                if (string.IsNullOrEmpty(obj.router_link)) return new ResponseDTO(false, "Router Link is Required");
+                if (string.IsNullOrEmpty(obj.permission_menu)) return new ResponseDTO(false, "permissions_menu is Required");
+
                 if (obj.menu_id == 0) query = MenuDTO.insert_menu();
-                else query = MenuDTO.update_menu();
+
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = MenuDTO.update_menu();
+                }
+
                 var changed = await _db.Execute(query, obj, ELR_db);
+
                 return new ResponseDTO(changed > 0, changed > 0 ? ((obj.menu_id == 0) ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
             }
             catch (Exception ex)
@@ -135,6 +149,55 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+        public async Task<ResponseDTO> ElrCheckPermissionMenuUpdate(MenuDTO[] obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                foreach (var item in obj)
+                {
+                    query = MenuDTO.update_permission_menu();
+                    await _db.Execute(query, item, ELR_db);
+                }
+                return new ResponseDTO(true, ResponseMessage.Updated_Successfully);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
+
+        public async Task<ResponseDTO> ElrUpdateMenuPriority(MenuDTO[] obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+
+            try
+            {
+                if (obj == null || obj.Length == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                for (int i = 0; i < obj.Length; i++)
+                {
+                    query = MenuDTO.update_priority_menu();
+                    await _db.Execute(query, new { menu_id = obj[i].menu_id, priority = i + 1 }, ELR_db);
+                }
+                return new ResponseDTO(true, "Menu priority updated successfully");
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
 
         public async Task<ResponseDTO> GetCountry()
         {
@@ -257,26 +320,22 @@ namespace elr_API.Service.Home_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
-        public async Task<ResponseDTO> GetUserType(UserTypeDTO obj)
+        public async Task<ResponseDTO> GetUserType()
         {
+            string query = string.Empty;
             ErrorMessage = string.Empty;
             try
             {
-                return new ResponseDTO(await UserTypeList(obj));
+                query = UserTypeDTO.select_user_type();
+                var data = await _db.SelectQuery<UserTypeDTO>(query, null, ELR_db);
+                return new ResponseDTO(data);
             }
             catch (Exception ex)
             {
-                CommonFunctions.ILogging(obj, ex.ToString());
+                CommonFunctions.ILogging("", ex.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
             return new ResponseDTO(false, ErrorMessage);
-        }
-
-        public async Task<List<UserTypeDTO>> UserTypeList(UserTypeDTO obj)
-        {
-            string query = UserTypeDTO.select_user_type();
-            var data = (await _db.SelectQuery<UserTypeDTO>(query, obj, ELR_db)).ToList();
-            return data;
         }
 
         public async Task<ResponseDTO> AddUpdateUserType(UserTypeDTO obj)
@@ -294,6 +353,7 @@ namespace elr_API.Service.Home_manager
                     query = UserTypeDTO.update_user_type();
                 }
                 var changed = await _db.Execute(query, obj, ELR_db);
+
                 return new ResponseDTO(changed > 0, changed > 0 ? (obj.user_type_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
             }
             catch (Exception ex)
@@ -303,6 +363,7 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
         public async Task<ResponseDTO> ElrHospitalList(string? hospital_name)
         {
             ErrorMessage = string.Empty;

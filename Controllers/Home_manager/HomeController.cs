@@ -51,19 +51,37 @@ namespace elr_API.Controllers.Home_manager
 
 
 
-        #region HttpGet = api/Home/GetMenu
-        [HttpGet("GetMenu")]
-        public async Task<ActionResult<ResponseDTO>> GetMenu()
+        #region HttpGet = api/Home/ElrGetMenu
+        [HttpGet("ElrGetMenu"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrGetMenu()
         {
-            return await _homeService.GetMenu();
+            return await _homeService.ElrGetMenu();
+        }
+        #endregion  
+
+        #region HttpPost = api/Home/ElrAddUpdateMenu
+        [HttpPost("ElrAddUpdateMenu"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdateMenu([FromHeader] string authorization, MenuDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdateMenu(obj);
         }
         #endregion
 
-        #region HttpPost = api/Home/AddUpdateMenu
-        [HttpPost("AddUpdateMenu")]
-        public async Task<ActionResult<ResponseDTO>> AddUpdateMenu(MenuDTO obj)
+        #region HttpPost = api/Home/ElrCheckPermissionMenuUpdate
+        [HttpPost("ElrCheckPermissionMenuUpdate"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrCheckPermissionMenuUpdate(MenuDTO[] obj)
         {
-            return await _homeService.AddUpdateMenu(obj);
+            return await _homeService.ElrCheckPermissionMenuUpdate(obj);
+        }
+        #endregion
+
+        #region HttpPost = api/Home/ElrUpdateMenuPriority
+        [HttpPost("ElrUpdateMenuPriority")]
+        public async Task<ActionResult<ResponseDTO>> ElrUpdateMenuPriority(MenuDTO[] obj)
+        {
+            return await _homeService.ElrUpdateMenuPriority(obj);
         }
         #endregion
 
@@ -116,10 +134,10 @@ namespace elr_API.Controllers.Home_manager
         #endregion
 
         #region HttpPost= api/Home/GetUserType
-        [HttpPost("GetUserType")]
-        public async Task<ActionResult<ResponseDTO>> GetUserType(UserTypeDTO obj)
+        [HttpGet("GetUserType"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> GetUserType()
         {
-            return await _homeService.GetUserType(obj);
+            return await _homeService.GetUserType();
         }
         #endregion
 

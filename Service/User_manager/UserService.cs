@@ -4,6 +4,7 @@ using elr_API.DTO.ResDTO;
 using elr_API.DTO.ResDTO.Token;
 using elr_API.IService.ICommon_manager;
 using elr_API.IService.IDapper;
+using elr_API.IService.IEntrolement;
 using elr_API.IService.IToken;
 using elr_API.IService.IUser_manager;
 
@@ -15,16 +16,18 @@ namespace elr_API.Service.User_manager
         private readonly ITokenService _tokenService;
         private readonly IHelperService _helperService;
         private readonly IQikberrychatService _iqberrychatService;
+        private readonly IEnrollment _enrollment;
 
         public string Elr_db = CommonFunctions.GetConnectionString("elr_DB");
         public string ErrorMessage { get; set; } = string.Empty;
 
-        public UserService(IDapperSqlService db, ITokenService tokenService, IHelperService helperService, IQikberrychatService qikberrychatService)
+        public UserService(IDapperSqlService db, ITokenService tokenService, IHelperService helperService, IQikberrychatService qikberrychatService, IEnrollment enrollment)
         {
             _dp = db;
             _tokenService = tokenService;
             _helperService = helperService;
             _iqberrychatService = qikberrychatService;
+            _enrollment = enrollment;
         }
         public async Task<ResponseDTO> ElrGetPatient(string phone_no)
         {
@@ -34,36 +37,47 @@ namespace elr_API.Service.User_manager
             {
                 if (string.IsNullOrWhiteSpace(phone_no) || !Validation.IsValidPhoneNumber(phone_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
 
-                query = PatientVerifyLoginResDTO.patient_details_select();
+                var patientDetails = await ElrPatientDetails(phone_no);
 
-                var patientDetails = (await _dp.SelectQuery<ConnectPatientDetails>(query, new { phone_no = phone_no }, Elr_db)).FirstOrDefault();
-
-                if (patientDetails == null)
+                if (patientDetails != null)
                 {
-                    var patient = await _helperService.GetConnectPatientDetails(phone_no);
-
-                    if (patient == null) return new ResponseDTO(false, "Patient not found.");
-
-                    query = ConnectPatientDetails.insert_patient_details();
-
-                    await _dp.Execute(query,
-                        new
-                        {
-                            patient_name = string.IsNullOrWhiteSpace(patient.patient_fullname) ? "" : patient.patient_fullname,
-                            dob = string.IsNullOrWhiteSpace(patient.patient_dob) ? "" : patient.patient_dob,
-                            age = string.IsNullOrWhiteSpace(patient.patient_age) ? "" : patient.patient_age,
-                            phone_no = string.IsNullOrWhiteSpace(patient.patient_mobileno) ? "" : patient.patient_mobileno,
-                            emergency_phone_no = string.IsNullOrWhiteSpace(patient.emergency_phone_no) ? "" : patient.emergency_phone_no,
-                            email_id = string.IsNullOrWhiteSpace(patient.patient_emailid) ? "" : patient.patient_emailid,
-                            gender = string.IsNullOrWhiteSpace(patient.patient_gender) ? "" : patient.patient_gender,
-                            city = string.IsNullOrWhiteSpace(patient.patient_cityname) ? "" : patient.patient_cityname,
-                            pincode = string.IsNullOrWhiteSpace(patient.patient_pincode) ? "" : patient.patient_pincode
-
-                        }, Elr_db);
-
-                    return new ResponseDTO(patient);
+                    return new ResponseDTO(patientDetails);
                 }
-                return new ResponseDTO(patientDetails);
+
+                var patient = await _helperService.GetConnectPatientDetails(phone_no);
+
+                if (patient == null) return new ResponseDTO(false, "Patient not found.");
+
+                if (string.IsNullOrWhiteSpace(patient.patient_mobileno)) return new ResponseDTO(false, "Patient phone number not found.");
+
+
+                var existingPatient = await ElrPatientDetails(patient.patient_mobileno);
+
+                if (existingPatient != null)
+                {
+                    return new ResponseDTO(existingPatient);
+                }
+
+                query = ConnectPatientDetails.insert_patient_details();
+
+                await _dp.Execute(query,
+                    new
+                    {
+                        patient_name = patient.patient_fullname ?? "",
+                        dob = patient.patient_dob ?? (DateTime?)null,
+                        age = patient.patient_age ?? "",
+                        phone_no = patient.patient_mobileno,
+                        emergency_phone_no = patient.emergency_phone_no ?? "",
+                        email_id = patient.patient_emailid ?? "",
+                        gender = patient.patient_gender ?? "",
+                        city = patient.patient_cityname ?? "",
+                        pincode = patient.patient_pincode ?? ""
+
+                    }, Elr_db);
+
+                var savedPatient = await ElrPatientDetails(patient.patient_mobileno);
+
+                return savedPatient != null ? new ResponseDTO(savedPatient) : new ResponseDTO(patient);
             }
             catch (Exception ex)
             {
@@ -74,8 +88,91 @@ namespace elr_API.Service.User_manager
             return new ResponseDTO(false, ErrorMessage);
         }
 
+        public async Task<ConnectPatientDetails> ElrPatientDetails(string ph_no)
+        {
+            string query = PatientVerifyLoginResDTO.patient_details_select();
+
+            var patientDetails = (await _dp.SelectQuery<ConnectPatientDetails>(query, new { phone_no = ph_no }, Elr_db)).FirstOrDefault();
+            return patientDetails;
+        }
+
+        public async Task<ResponseDTO> ElrPatientLogin(OtpForLoggingReqDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null || !Validation.IsValidPhoneNumber(obj.phone_no)) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                var patientData = await ElrPatientDetails(obj.phone_no);
+
+                if (patientData == null || patientData.patient_mobileno == null) return new ResponseDTO(false, "Patient Phone Number Not Registed.");
+
+                query = ConnectPatientDetails.exists_patient_id_enrollment();
+                var patient = (await _dp.SelectQuery<dynamic>(query, new { phone_no = patientData.patient_mobileno }, Elr_db)).FirstOrDefault();
+                if (patient != null)
+                {
 
 
+                    var checkPatientData = await _enrollment.ElrCheckPatientDetails(obj.phone_no);
+
+                    if (checkPatientData != null)
+                    {
+                        if (obj.otp == 0)
+                        {
+                            int otp = obj.phone_no == "8056661324" ? 123456 : CommonFunctions.GenerateOTP(6);
+
+                            #region Message
+                            if (obj.phone_no != "8056661324")
+                            {
+                                OtpForLoggingReqDTO otpForLoggingReqDTO = new OtpForLoggingReqDTO();
+                                otpForLoggingReqDTO.phone_no = obj.phone_no;
+                                otpForLoggingReqDTO.otp = otp;
+
+                                await _iqberrychatService.OtpForLoggingPatient(otpForLoggingReqDTO);
+                            }
+                            #endregion
+
+                            query = ConnectPatientDetails.update_patient_otp();
+                            int a = await _dp.Execute(query, new { phone_no = obj.phone_no, otp = otp }, Elr_db);
+
+                            return new ResponseDTO(a > 0, (a > 0 ? ResponseMessage.OTP_sended : ResponseMessage.Failed));
+
+                        }
+                        if (obj.otp != patientData.otp)
+                        {
+                            return new ResponseDTO(false, ResponseMessage.Invalid_OTP);
+                        }
+                        else
+                        {
+                            if (patientData.expiry_date < DateTime.Now)
+                            {
+                                return new ResponseDTO(false, ResponseMessage.OTP_is_Expiry);
+                            }
+                            else
+                            {
+                                //TokenResDTO tokenResDTO = _tokenService.GetToken(patientData.patient_id.ToString(), patientData.gu_id.ToString(), patientData.patient_mobileno, CommonFunctions.ELR, null);
+                                //patientData.token = tokenResDTO.Token;
+                                //patientData.expiryTime = tokenResDTO.Token_ExpiryTime;
+
+                                return new ResponseDTO(patientData);
+                            }
+                        }
+                    }
+                    return new ResponseDTO(false, $"Please complete your existing enrollment first. Enrollment ID: {checkPatientData.patient_enrollment_id}");
+                }
+                return new ResponseDTO(false, "Enrollment has not been created for this phone number.");
+
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrorMessage = ex.Message.ToString();
+
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
 
         public async Task<ResponseDTO> ElrAddUpdatePatientDetails(PatientVerifyLoginResDTO obj)
         {
@@ -144,7 +241,7 @@ namespace elr_API.Service.User_manager
                     {
                         patient_id = connectDetails.patient_id,
                         patient_name = connectDetails.patient_fullname,
-                        dob = DateTime.TryParse(connectDetails.patient_dob, out var parsedDob) ? parsedDob : default,
+                        dob = connectDetails.patient_dob,
                         age = int.TryParse(connectDetails.patient_age, out var parsedAge) ? parsedAge : 0,
                         phone_no = connectDetails.patient_mobileno,
                         emergency_phone_no = connectDetails.emergency_phone_no,
@@ -157,17 +254,17 @@ namespace elr_API.Service.User_manager
 
                 if (obj.otp == 0)
                 {
-                    existPatient.otp = obj.phone_no == "8056661324" ? 123456 : CommonFunctions.GenerateOTP(6);
+                    int otp = obj.phone_no == "8056661324" ? 123456 : CommonFunctions.GenerateOTP(6);
 
                     if (obj.phone_no != "8056661324")
                     {
-                        var response = await _iqberrychatService.OtpForLoggingPatient(new OtpForLoggingReqDTO
-                        {
-                            phone_no = existPatient.phone_no,
-                            otp = existPatient.otp.Value
-                        });
 
-                        return new ResponseDTO(response);
+                        OtpForLoggingReqDTO otpForLoggingReqDTO = new OtpForLoggingReqDTO();
+                        otpForLoggingReqDTO.phone_no = obj.phone_no;
+                        otpForLoggingReqDTO.otp = obj.otp;
+
+                        await _iqberrychatService.OtpForLoggingPatient(otpForLoggingReqDTO);
+
                     }
 
                     query = PatientVerifyLoginReqDTO.Send_otp_update();
@@ -175,8 +272,9 @@ namespace elr_API.Service.User_manager
                     int result = await _dp.Execute(query,
                         new
                         {
-                            phone_no = existPatient.phone_no,
-                            otp = existPatient.otp.Value
+                            phone_no = obj.phone_no,
+                            otp = otp
+
                         },
                         Elr_db);
 
@@ -532,8 +630,9 @@ namespace elr_API.Service.User_manager
     public class ConnectPatientDetails
     {
         public long patient_id { get; set; }
+        public Guid? gu_id { get; set; }
         public string patient_fullname { get; set; }
-        public string patient_dob { get; set; }
+        public DateTime? patient_dob { get; set; }
         public string patient_age { get; set; }
         public string patient_mobileno { get; set; }
         public string emergency_phone_no { get; set; }
@@ -542,12 +641,37 @@ namespace elr_API.Service.User_manager
         public string patient_cityname { get; set; }
         public string patient_pincode { get; set; }
 
+        public int otp { get; set; }
+        public DateTime? expiry_date { get; set; }
+
+
+        public string token { get; set; }
+        public int expiryTime { get; set; }
+
+        public static string exists_patient_id_enrollment()
+        {
+            return $@"
+                    SELECT *
+                    FROM {Tbl.patient} AS p
+                    WHERE p.phone_no = @phone_no
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM {Tbl.patient_enrollment} AS pe
+                        WHERE pe.patient_id = p.patient_id
+                    )";
+        }
         internal static string insert_patient_details()
         {
             return $@"Insert Into {Tbl.patient} (patient_name,dob,age,phone_no,emergency_phone_no,email_id,gender,city,pincode)
                         Values (@patient_name, @dob, @age, @phone_no, @emergency_phone_no ,@email_id ,@gender,@city, @pincode)";
         }
 
+        internal static string update_patient_otp()
+        {
+            return $@" update {Tbl.patient}
+                        set otp  = @otp, expiry_date = DATEADD(MINUTE, 10, GETDATE())
+                        where phone_no = @phone_no and is_active = 1";
+        }
     }
 
 

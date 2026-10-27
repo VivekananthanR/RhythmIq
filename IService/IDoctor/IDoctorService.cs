@@ -8,5 +8,6 @@ namespace elr_API.IService.IDoctor
         Task<ResponseDTO> ElrDoctorLogin(PatientVerifyLoginReqDTO obj);
 
         Task<ResponseDTO> ElrDoctorLivePatientMonitoringList(DoctorLivePatientMonitoringReqDTO obj);
+
     }
 }

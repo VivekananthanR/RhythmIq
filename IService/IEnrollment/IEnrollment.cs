@@ -15,6 +15,7 @@ namespace elr_API.IService.IEntrolement
         Task<ResponseDTO> ElrSymtomsList(long patient_enrollment_id);
         Task<ResponseDTO> ElrAddSymtoms(SymtomsDTO obj);
         Task<ResponseDTO> ElrCompleteHookUpPatient(PatientEnrollmentReqDTO obj);
+        Task<PatientEnrollmentStatusDTO> ElrCheckPatientDetails(string phone_no);
         Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrEnrollmentCreationList(GetPatientEnrollmentListReqDTO obj);
         Task<ResponseDTO> ElrUploadEnrollmentRawData(EnrollmentRawDataDTO obj);

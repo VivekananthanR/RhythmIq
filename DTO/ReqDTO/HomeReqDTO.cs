@@ -1,4 +1,5 @@
 ﻿using elr_API.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace elr_API.DTO.ReqDTO
 {
@@ -21,19 +22,33 @@ namespace elr_API.DTO.ReqDTO
 
         #region Query
 
+        internal static string update_priority_menu()
+        {
+            return $@"update {Tbl.menu_mast}
+                        set priority = @priority
+                       where menu_id = @menu_id and is_active = 1";
+        }
+
+        internal static string update_permission_menu()
+        {
+            return $@"Update {Tbl.menu_mast}
+                       set permission_menu = @permission_menu
+                       where menu_id = @menu_id ";
+        }
+
         internal static string select_menu()
         {
-            return $@"select * from {Tbl.menu_mast} where is_active = 1 ";
+            return $@"select * from {Tbl.menu_mast} where is_active = 1 order by  priority";
         }
         internal static string insert_menu()
         {
             return $@"insert into {Tbl.menu_mast} (menu_name, router_link, priority, permission_menu, created_by)
-                        values( @menu_name, @router_link ,@priority, @permission_menu, @created_by)";
+                        values( @menu_name, @router_link , (SELECT ISNULL(MAX(priority), 0) + 1 FROM {Tbl.menu_mast}), @permission_menu, @created_by)";
         }
         internal static string update_menu()
         {
             return $@"update {Tbl.menu_mast}
-                        set menu_name = @menu_name, router_link = @router_link, priority = @priority, permission_menu = @permission_menu, 
+                        set menu_name = @menu_name, router_link = @router_link, permission_menu = @permission_menu, 
                             modified_by = @modified_by, modified_datetime = getdate(), is_active = @is_active
                           where menu_id =@menu_id";
         }
@@ -192,6 +207,7 @@ namespace elr_API.DTO.ReqDTO
     public class UserTypeDTO
     {
         public long user_type_id { get; set; }
+        [Required]
         public string user_type { get; set; }
         public long created_by { get; set; }
         public DateTime? created_datetime { get; set; }
@@ -202,7 +218,7 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string select_user_type()
         {
-            return $@"select * from {Tbl.user_type} where is_active = 1 and (user_type_id = 0 OR user_type_id = @user_type_id)";
+            return $@"select user_type_id, user_type, created_by, created_datetime, modified_by, modified_datetime,  is_active from {Tbl.user_type}";
         }
 
         internal static string insert_user_type()
@@ -214,7 +230,7 @@ namespace elr_API.DTO.ReqDTO
         {
             return $@"Update {Tbl.user_type}
                         Set user_type = @user_type, modified_by = @modified_by, modified_datetime = getdate(), is_active = @is_active
-                        where user_type_id =user_type_id";
+                        where user_type_id = @user_type_id";
         }
         #endregion
     }

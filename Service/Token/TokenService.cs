@@ -28,11 +28,12 @@ namespace elr_API.Service.Token
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Token:Key"]));
             var signIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expiryTime = Convert.ToInt32(_configuration["Token:ExpiryTime"]);
+            var expiresAt = DateTime.UtcNow.AddMilliseconds(expiryTime);
             var token = new JwtSecurityToken(
                 _configuration["Token:Issuer"],
                 _configuration["Token:Audience"],
                 claims,
-                expires: DateTime.UtcNow.AddMilliseconds(expiryTime),
+                expires: expiresAt,
                 signingCredentials: signIn);
             return new TokenResDTO(new JwtSecurityTokenHandler().WriteToken(token), expiryTime);
         }

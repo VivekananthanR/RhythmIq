@@ -1,6 +1,7 @@
 ﻿using elr_API.DTO.ReqDTO;
 using elr_API.DTO.ResDTO;
 using elr_API.DTO.ResDTO.Token;
+using elr_API.Service.User_manager;
 
 namespace elr_API.IService.IUser_manager
 {
@@ -8,6 +9,9 @@ namespace elr_API.IService.IUser_manager
     {
 
         Task<ResponseDTO> ElrGetPatient(string phone_no);
+        Task<ResponseDTO> ElrPatientLogin(OtpForLoggingReqDTO obj);
+
+        Task<ConnectPatientDetails> ElrPatientDetails(string ph_no);
         Task<ResponseDTO> ElrEmployeeLogin(MasterEmployeeLoginReqDTO obj);
         Task<bool> TokenValidation(TokenValidationReqDTO obj);
         Task<ResponseDTO> ElrAddUpdatePatientDetails(PatientVerifyLoginResDTO obj);
