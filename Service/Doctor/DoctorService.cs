@@ -128,5 +128,68 @@ namespace elr_API.Service.Doctor
             }
             return new ResponseDTO(false, ErrroMessage);
         }
+
+
+        public async Task<ResponseDTO> ElrDoctorLivePatientMonitoringGetDetails(DoctorLivePatientMonitoringDTO obj)
+        {
+            ErrroMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj.patient_enrollment_id == 0 || obj.patient_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = DoctorLivePatientMonitoringDTO.getBy_patient_live_monitoring_details();
+                var res = await _dapperSqlService.SelectQuery<DoctorLivePatientMonitoringDTO>(query, new { patient_enrollment_id = obj.patient_enrollment_id, patient_id = obj.patient_id }, Elr_Db);
+                if (res == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                return new ResponseDTO(res);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrroMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrroMessage);
+        }
+
+
+        public async Task<ResponseDTO> ElrDoctorLivePatientDisclosureList(DoctorLivePatientDisclosureReqDTO obj)
+        {
+            ErrroMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null || obj.patient_id <= 0 || obj.patient_enrollment_id <= 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.from_datetime > DateTime.Now) return new ResponseDTO(false, "From date cannot be in the future.");
+
+                query = DoctorLivePatientDisclosureResDTO.select_doctor_live_ecg_files(obj);
+                var (totalCount, data) = await _dapperSqlService.SelectQueryWithCount<long, DoctorLivePatientDisclosureResDTO>(query, obj, Elr_Db);
+                if (data == null) return new ResponseDTO(false, ResponseMessage.Results_NotFound);
+                var res = new
+                {
+                    totalCount = totalCount,
+                    item = data
+                };
+                return new ResponseDTO(res);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.Message.ToString());
+                ErrroMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrroMessage);
+        }
+
+
+
+
+
+
+
+
+
+
     }
 }

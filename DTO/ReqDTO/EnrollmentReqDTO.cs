@@ -303,11 +303,11 @@ namespace elr_API.DTO.ReqDTO
               WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1";
         }
 
-        internal static string monitoring_hookup_status(long patient_enrollment_id)
+        internal static string monitoring_hookup_status()
         {
             return $@"UPDATE {Tbl.patient_enrollment}
               SET enrollment_status = 'monitoring'
-              WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1";
+              WHERE patient_enrollment_id = @patient_enrollment_id and is_active = 1 AND enrollment_status = 'hookuped'";
         }
 
         internal static string check_completed_enrollment()

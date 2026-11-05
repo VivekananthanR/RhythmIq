@@ -39,5 +39,28 @@ namespace elr_API.Controllers.Doctor
         }
         #endregion
 
+        #region HttpPost = api/Doctor/ElrDoctorLivePatientMonitoringGetDetails
+        [HttpPost("ElrDoctorLivePatientMonitoringGetDetails"), Authorize]
+        public async Task<ResponseDTO> ElrDoctorLivePatientMonitoringGetDetails(DoctorLivePatientMonitoringDTO obj)
+        {
+            return await _doctorService.ElrDoctorLivePatientMonitoringGetDetails(obj);
+        }
+        #endregion
+
+
+        #region HttpPost = api/Doctor/ElrDoctorLivePatientDisclosureList
+        [HttpPost("ElrDoctorLivePatientDisclosureList"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrDoctorLivePatientDisclosureList(DoctorLivePatientDisclosureReqDTO obj)
+        {
+            return await _doctorService.ElrDoctorLivePatientDisclosureList(obj);
+        }
+        #endregion
+
+
+
+
+
+
+
     }
 }

@@ -154,7 +154,7 @@
                                  WHERE user_id = {obj.referred_physician_id}) = 1
                                 OR pe.referred_physician_id = {obj.referred_physician_id}
                               )
-                         -- AND pe.is_active = 1;
+                         AND pe.is_active = 1;
 
                         SELECT
                             pe.patient_enrollment_id,
@@ -178,7 +178,7 @@
                                  WHERE user_id = {obj.referred_physician_id} ) = 1
                                 OR pe.referred_physician_id = {obj.referred_physician_id}
                               )
-                          --AND pe.is_active = 1
+                          AND pe.is_active = 1
                         ORDER BY " + sortColumn + " " + sortOrder + @",
                             pe.patient_enrollment_id DESC
                         OFFSET @offSet ROWS
@@ -204,6 +204,112 @@
         public long doctor_id { get; set; }
         public string doctor_name { get; set; }
 
+    }
+
+
+    public class DoctorLivePatientMonitoringDTO
+    {
+        public long patient_enrollment_id { get; set; }
+        public string event_processed_path { get; set; }
+        public long patient_id { get; set; }
+        public string patient_name { get; set; }
+        public long device_id { get; set; }
+        public string device_name { get; set; }
+
+        internal static string getBy_patient_live_monitoring_details()
+        {
+            return $@" select top 1 pl.patient_enrollment_id,pl.event_processed_path,p.patient_id,p.patient_name,dm.device_id,dm.device_name
+                        from tbl_patient_base_line as pl
+                        inner join tbl_patient_enrollment as pe
+                        on pl.patient_enrollment_id = pe.patient_enrollment_id
+                        inner join tbl_patient as p
+                        on p.patient_id = pe.patient_id
+                        inner join tbl_device_mast as dm
+                        on dm.device_id = pe.device_id
+                        where pl.patient_enrollment_id = @patient_enrollment_id and pe.patient_id = @patient_id and  pe.is_active =1 
+                        order by pl.patient_base_line_id desc ";
+        }
+
+    }
+
+
+    public class DoctorLivePatientDisclosureReqDTO
+    {
+        public long patient_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public DateTime? from_datetime { get; set; }
+
+        public int pageNumber { get; set; }
+        public int pageSize { get; set; }
+        public int offSet => (pageNumber - 1) * pageSize;
+        public string sortBy { get; set; }
+        public string orderBy { get; set; }
+    }
+
+
+    public class DoctorLivePatientDisclosureResDTO
+    {
+        public long patient_base_line_id { get; set; }
+
+        public long patient_enrollment_id { get; set; }
+
+        public long patient_id { get; set; }
+
+        public DateTime? actual_hookup { get; set; }
+
+        public DateTime? record_st { get; set; }
+
+        public DateTime? record_end { get; set; }
+
+        public string? event_processed_path { get; set; }
+
+        internal static string select_doctor_live_ecg_files(DoctorLivePatientDisclosureReqDTO obj)
+        {
+            string sortBy = string.IsNullOrWhiteSpace(obj.sortBy) ? "record_st" : obj.sortBy;
+
+            string orderBy = string.Equals(obj.orderBy, "DESC", StringComparison.OrdinalIgnoreCase) ? "DESC" : "ASC";
+
+            if (sortBy != "record_st" && sortBy != "record_end" && sortBy != "patient_base_line_id")
+            {
+                sortBy = "record_st";
+            }
+
+            return $@"
+                        SELECT COUNT(*) AS totalCount
+                        FROM tbl_patient_base_line AS pl
+                        INNER JOIN tbl_patient_enrollment AS pe
+                            ON pe.patient_enrollment_id = pl.patient_enrollment_id
+                        WHERE pe.patient_id = @patient_id
+                            AND pe.patient_enrollment_id = @patient_enrollment_id
+                            AND pe.enrollment_status = 'monitoring'
+                            AND pl.is_active = 1
+                            AND pl.record_st >= @from_datetime
+                            AND pl.record_st <= GETDATE()
+                            AND pl.record_end > pe.actual_hookup;
+
+
+                        SELECT
+                            pl.patient_base_line_id,
+                            pl.patient_enrollment_id,
+                            pe.patient_id,
+                            pe.actual_hookup,
+                            pl.record_st,
+                            pl.record_end,
+                            pl.event_processed_path
+                        FROM tbl_patient_base_line AS pl
+                        INNER JOIN tbl_patient_enrollment AS pe
+                            ON pe.patient_enrollment_id = pl.patient_enrollment_id
+                        WHERE pe.patient_id = @patient_id
+                            AND pe.patient_enrollment_id = @patient_enrollment_id
+                            AND pe.enrollment_status = 'monitoring'
+                            AND pl.is_active = 1
+                            AND pl.record_st >= @from_datetime
+                            AND pl.record_st <= GETDATE()
+                            AND pl.record_end > pe.actual_hookup
+                        ORDER BY pl.{sortBy} {orderBy}
+                        OFFSET @offSet ROWS
+                        FETCH NEXT @pageSize ROWS ONLY;";
+        }
     }
 
 }

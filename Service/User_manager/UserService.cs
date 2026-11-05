@@ -654,7 +654,7 @@ namespace elr_API.Service.User_manager
                     SELECT *
                     FROM {Tbl.patient} AS p
                     WHERE p.phone_no = @phone_no
-                    AND NOT EXISTS (
+                    AND EXISTS (
                         SELECT 1
                         FROM {Tbl.patient_enrollment} AS pe
                         WHERE pe.patient_id = p.patient_id

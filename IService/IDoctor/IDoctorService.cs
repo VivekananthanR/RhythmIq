@@ -9,5 +9,8 @@ namespace elr_API.IService.IDoctor
 
         Task<ResponseDTO> ElrDoctorLivePatientMonitoringList(DoctorLivePatientMonitoringReqDTO obj);
 
+        Task<ResponseDTO> ElrDoctorLivePatientMonitoringGetDetails(DoctorLivePatientMonitoringDTO obj);
+
+        Task<ResponseDTO> ElrDoctorLivePatientDisclosureList(DoctorLivePatientDisclosureReqDTO obj);
     }
 }

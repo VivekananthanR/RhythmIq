@@ -597,6 +597,11 @@ namespace elr_API.Service.Enrolment
 
                     //if (assignmentRow <= 0) return new ResponseDTO(false, "Raw data uploaded but processing status failed.");
 
+                    query = PatientEnrollmentDTO.monitoring_hookup_status();
+                    int monitoringRow = await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
+
+                    if (monitoringRow <= 0) return new ResponseDTO(false, "Raw data uploaded but monitoring status failed.");
+
                     return new ResponseDTO(true, ResponseMessage.Saved_Successfully);
                 }
             }
@@ -710,15 +715,6 @@ namespace elr_API.Service.Enrolment
                             new
                             {
                                 enrollment_raw_data_id = item.enrollment_raw_data_id
-                            },
-                            ELR_db);
-
-                        await _db.Execute(
-                            PatientEnrollmentDTO.monitoring_hookup_status(
-                                item.patient_enrollment_id),
-                            new
-                            {
-                                patient_enrollment_id = item.patient_enrollment_id
                             },
                             ELR_db);
                     }
