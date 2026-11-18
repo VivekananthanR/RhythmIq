@@ -69,6 +69,7 @@
         public string orderBy { get; set; } = "DESC";
         public long referred_physician_id { get; set; }
         public bool? live_monitoring { get; set; }
+        public string? search { get; set; }
 
         #region Query
 
@@ -101,7 +102,8 @@
                                  FROM tbl_user_mast
                                  WHERE user_id = {obj.referred_physician_id} ) = 1
                                 OR pe.referred_physician_id = {obj.referred_physician_id}
-                              );
+                              )
+                          AND ( @search IS NULL OR p.patient_name LIKE '%' + @search  + '%' OR p.phone_no LIKE '%' +  @search + '%');
 
                        select pr.patient_report_id,pr.report_type_id,pr.report_started_datetime,pr.report_due_datetime,pr.report_status,pr.is_active,
                         pe.patient_enrollment_id,pe.referred_physician_id,pe.actual_hookup,pe.enrollment_status,pe.is_active, pe.actual_removal,
@@ -120,6 +122,7 @@
                                  WHERE user_id = {obj.referred_physician_id} ) = 1
                                 OR pe.referred_physician_id = {obj.referred_physician_id}
                               )
+                        AND ( @search IS NULL OR p.patient_name LIKE '%' + @search  + '%' OR p.phone_no LIKE '%' +  @search + '%')
                         order by " + sortColum + " " + orderBy + @",
                         pe.patient_enrollment_id DESC
                         offset @offSet rows
@@ -154,7 +157,8 @@
                                  WHERE user_id = {obj.referred_physician_id}) = 1
                                 OR pe.referred_physician_id = {obj.referred_physician_id}
                               )
-                         AND pe.is_active = 1;
+                         AND pe.is_active = 1
+                        AND ( @search IS NULL OR p.patient_name LIKE '%' + @search  + '%' OR p.phone_no LIKE '%' +  @search + '%');
 
                         SELECT
                             pe.patient_enrollment_id,
@@ -165,9 +169,9 @@
                             pe.actual_hookup,
                             pe.actual_removal,
                             pe.patient_id,
-                            p.patient_name
+                            p.patient_name 
                         FROM tbl_patient_enrollment AS pe
-                        INNER JOIN tbl_patient AS p
+                        INNER JOIN tbl_patient AS p 
                             ON pe.patient_id = p.patient_id
                         INNER JOIN tbl_user_mast AS um
                             ON um.user_id = pe.referred_physician_id
@@ -179,6 +183,7 @@
                                 OR pe.referred_physician_id = {obj.referred_physician_id}
                               )
                           AND pe.is_active = 1
+                          AND ( @search IS NULL OR p.patient_name LIKE '%' + @search  + '%' OR p.phone_no LIKE '%' +  @search + '%')
                         ORDER BY " + sortColumn + " " + sortOrder + @",
                             pe.patient_enrollment_id DESC
                         OFFSET @offSet ROWS
@@ -226,7 +231,7 @@
                         on p.patient_id = pe.patient_id
                         inner join tbl_device_mast as dm
                         on dm.device_id = pe.device_id
-                        where pl.patient_enrollment_id = @patient_enrollment_id and pe.patient_id = @patient_id and  pe.is_active =1 
+                        where pl.patient_enrollment_id = @patient_enrollment_id and pe.patient_id = @patient_id and  pe.is_active =1 and pl.is_active = 1
                         order by pl.patient_base_line_id desc ";
         }
 

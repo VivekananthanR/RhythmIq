@@ -116,7 +116,7 @@ namespace elr_API.Service.User_manager
 
                     var checkPatientData = await _enrollment.ElrCheckPatientDetails(obj.phone_no);
 
-                    if (checkPatientData != null)
+                    if (checkPatientData != null && checkPatientData.enrollment_status != "completed")
                     {
                         if (obj.otp == 0)
                         {
@@ -155,12 +155,13 @@ namespace elr_API.Service.User_manager
                                 //patientData.token = tokenResDTO.Token;
                                 //patientData.expiryTime = tokenResDTO.Token_ExpiryTime;
 
-                                return new ResponseDTO(patientData);
+                                return new ResponseDTO(checkPatientData);
                             }
                         }
                     }
                     return new ResponseDTO(false, $"Please complete your existing enrollment first. Enrollment ID: {checkPatientData.patient_enrollment_id}");
                 }
+
                 return new ResponseDTO(false, "Enrollment has not been created for this phone number.");
 
 

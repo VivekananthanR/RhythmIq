@@ -151,6 +151,58 @@ namespace elr_API.Controllers.Entrolement
         }
         #endregion
 
+        #region HttpPost = api/Enrollment/ElrAddUpdatePatientAuthorisedConsent
+        [HttpPost("ElrAddUpdatePatientAuthorisedConsent")]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientAuthorisedConsent([FromHeader] string Authorization, PatientAuthorisedConsentDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(Authorization);
+            obj.created_by = tokenClaims.id;
+            return await _enrollment.ElrAddUpdatePatientAuthorisedConsent(obj);
+        }
+        #endregion
+
+
+        #region HttpGet = api/Enrollment/ElrGetPatientAuthorisedConsent
+        [HttpGet("ElrGetPatientAuthorisedConsent")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetPatientAuthorisedConsent()
+        {
+            return await _enrollment.ElrGetPatientAuthorisedConsent();
+        }
+        #endregion
+
+        #region HttpPost = api/Enrollment/ElrUpdateCheckPatientAuthorisedConsent
+        [HttpPost("ElrUpdateCheckPatientAuthorisedConsent")]
+        public async Task<ActionResult<ResponseDTO>> ElrUpdateCheckPatientAuthorisedConsent(PatientAuthorisedConsentTransDTO obj)
+        {
+            return await _enrollment.ElrUpdateCheckPatientAuthorisedConsent(obj);
+        }
+        #endregion
+
+        #region HttpGet = api/Enrollment/ElrGetCheckPatientAuthorisedConsent?patient_enrollment_id=
+        [HttpGet("ElrGetCheckPatientAuthorisedConsent")]
+        public async Task<ActionResult<ResponseDTO>> ElrGetCheckPatientAuthorisedConsent(long patient_enrollment_id)
+        {
+            return await _enrollment.ElrGetCheckPatientAuthorisedConsent(patient_enrollment_id);
+        }
+        #endregion
+
+        #region HttpPost = api/Enrollment/ElrUploadPatientGuardianDetails
+        [HttpPost("ElrUploadPatientGuardianDetails")]
+        public async Task<ActionResult<ResponseDTO>> ElrUploadPatientGuardianDetails([FromForm] PatientGuardianDTO obj)
+        {
+            return await _enrollment.ElrUploadPatientGuardianDetails(obj);
+        }
+        #endregion
+
+
+        #region HttpPost = api/Enrollment/ElrPatientEnrollmentPause
+        [HttpPost("ElrPatientEnrollmentPause")]
+        public async Task<ActionResult<ResponseDTO>> ElrPatientEnrollmentPause(PatientEnrollmentPauseDTO obj)
+        {
+            return await _enrollment.ElrPatientEnrollmentPause(obj);
+        }
+        #endregion
+
     }
 }
 

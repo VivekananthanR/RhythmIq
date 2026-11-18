@@ -15,11 +15,20 @@ namespace elr_API.IService.IEntrolement
         Task<ResponseDTO> ElrSymtomsList(long patient_enrollment_id);
         Task<ResponseDTO> ElrAddSymtoms(SymtomsDTO obj);
         Task<ResponseDTO> ElrCompleteHookUpPatient(PatientEnrollmentReqDTO obj);
-        Task<PatientEnrollmentStatusDTO> ElrCheckPatientDetails(string phone_no);
+        Task<RequestPatientEnrollmentResDTO> ElrCheckPatientDetails(string phone_no);
         Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj);
         Task<ResponseDTO> ElrEnrollmentCreationList(GetPatientEnrollmentListReqDTO obj);
         Task<ResponseDTO> ElrUploadEnrollmentRawData(EnrollmentRawDataDTO obj);
         Task ElrPhythonProcessEnrollmentRawData();
         Task<ResponseDTO> ElrGetRawDataList();
+        Task<ResponseDTO> ElrAddUpdatePatientAuthorisedConsent(PatientAuthorisedConsentDTO obj);
+        Task<ResponseDTO> ElrGetPatientAuthorisedConsent();
+        Task<ResponseDTO> ElrUpdateCheckPatientAuthorisedConsent(PatientAuthorisedConsentTransDTO obj);
+        Task<ResponseDTO> ElrGetCheckPatientAuthorisedConsent(long patient_enrollment_id);
+        Task<ResponseDTO> ElrUploadPatientGuardianDetails(PatientGuardianDTO obj);
+
+        Task<ResponseDTO> ElrPatientEnrollmentPause(PatientEnrollmentPauseDTO obj);
+
+
     }
 }

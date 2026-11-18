@@ -110,26 +110,107 @@ public class PatientEnrollmentStatusDTO
     public string enrollment_status { get; set; }
 
     #region query
-    public static string is_not_completed_enrollment_patient()
+
+    internal static string is_not_completed_enrollment_patient()
     {
         return $@"
         SELECT TOP 1
-            pe.patient_enrollment_id,
-            pe.enrollment_status,
-            pe.is_active,
-            pe.created_datetime,
-            p.patient_id,
-            p.patient_name,
-            p.phone_no,
-            p.is_active AS patient_is_active
-        FROM {Tbl.patient_enrollment} AS pe
-        INNER JOIN {Tbl.patient} AS p
-            ON pe.patient_id = p.patient_id
-        WHERE p.phone_no = @phone_no
-          AND p.is_active = 1
-          AND pe.enrollment_status = 'completed'
-        ORDER BY pe.created_datetime DESC";
+            a.patient_enrollment_id,
+            a.enrollment_status,
+            a.payment_status,
+            a.actual_amount,
+            a.schedule_hookup,
+            a.schedule_removal,
+            a.actual_hookup,
+            a.actual_removal,
+
+            tech.user_name AS actual_technician_name,
+
+            a.device_id,
+            l.device_no,
+            l.device_status,
+
+            a.patch_id,
+            m.patch_no,
+
+            b.patient_id,
+            b.patient_name,
+            b.dob AS patient_dob,
+            b.age AS patient_age,
+            b.gender AS patient_gender,
+            b.city AS patient_city,
+            h.state_name AS patient_state,
+            b.pincode AS patient_pincode,
+            b.phone_no AS patient_phone,
+            b.emergency_phone_no,
+            b.email_id AS patient_email,
+
+            k.test_name,
+            k.duration_in_day,
+
+            e.hospital_name,
+            phy.user_name AS referred_physician_name
+
+        FROM {Tbl.patient_enrollment} a
+
+        LEFT JOIN {Tbl.patient} b
+            ON b.patient_id = a.patient_id
+
+        LEFT JOIN {Tbl.user_master} tech
+            ON tech.user_id = a.actual_technician_id
+
+        LEFT JOIN {Tbl.user_master} phy
+            ON phy.user_id = a.referred_physician_id
+
+        LEFT JOIN {Tbl.hospital_mast} e
+            ON e.hospital_id = a.hospital_id
+
+        LEFT JOIN {Tbl.district} g
+            ON g.district_id = b.district_id
+
+        LEFT JOIN {Tbl.state} h
+            ON h.state_id = b.state_id
+
+        LEFT JOIN {Tbl.country} i
+            ON i.country_id = h.country_id
+
+        LEFT JOIN {Tbl.test_prices} j
+            ON j.test_prices_id = a.estimated_test_prices_id
+
+        LEFT JOIN {Tbl.test_mast} k
+            ON j.test_id = k.test_id
+
+        LEFT JOIN {Tbl.device_mast} l
+            ON l.device_id = a.device_id
+
+        LEFT JOIN {Tbl.patch_mast} m
+            ON m.patch_id = a.patch_id
+
+        WHERE b.phone_no = @phone_no
+          AND b.is_active = 1
+
+        ORDER BY a.created_datetime DESC";
     }
+
+    //public static string is_not_completed_enrollment_patient()
+    //{
+    //    return $@"
+    //    SELECT TOP 1
+    //        pe.patient_enrollment_id,
+    //        pe.enrollment_status,
+    //        pe.is_active,
+    //        pe.created_datetime,
+    //        p.patient_id,
+    //        p.patient_name,
+    //        p.phone_no,
+    //        p.is_active AS patient_is_active
+    //    FROM {Tbl.patient_enrollment} AS pe
+    //    INNER JOIN {Tbl.patient} AS p
+    //        ON pe.patient_id = p.patient_id
+    //    WHERE p.phone_no = @phone_no
+    //      AND p.is_active = 1
+    //    ORDER BY pe.created_datetime DESC";
+    //}
     #endregion
 }
 

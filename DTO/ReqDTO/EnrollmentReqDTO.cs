@@ -175,7 +175,7 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string get_patient_details()
         {
-            return $@"SELECT * FROM {Tbl.patient} WHERE patient_id = @patient_id AND is_active = 1";
+            return $@"SELECT phone_no as patient_ph_number  FROM {Tbl.patient} WHERE patient_id = @patient_id AND is_active = 1";
         }
         internal static string check_enrollment_status()
         {
@@ -540,8 +540,10 @@ namespace elr_API.DTO.ReqDTO
     {
         public long symptoms_id { get; set; }
         public long patient_enrollment_id { get; set; }
-        public long? symptoms_type_id { get; set; }
+        public long symptoms_type_id { get; set; }
+        public long activity_type_id { get; set; }
         public string? symptoms_type { get; set; }
+        public string? activity_type { get; set; }
         public string? custom_symptom_text { get; set; }
         public DateTime? symptom_start_datetime { get; set; }
         public DateTime? symptom_end_datetime { get; set; }
@@ -553,16 +555,18 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string insert_symtoms()
         {
-            return $@"insert into {Tbl.symptoms}(patient_enrollment_id,symptoms_type_id,custom_symptom_text,symptom_start_datetime,symptom_end_datetime,symptom_notes)
-                        values(@patient_enrollment_id, @symptoms_type_id, @custom_symptom_text, @symptom_start_datetime, @symptom_end_datetime, @symptom_notes)";
+            return $@"insert into {Tbl.symptoms}(patient_enrollment_id,symptoms_type_id,activity_type_id,custom_symptom_text,symptom_start_datetime,symptom_end_datetime,symptom_notes)
+                        values(@patient_enrollment_id, @symptoms_type_id, @activity_type_id, @custom_symptom_text, @symptom_start_datetime, @symptom_end_datetime, @symptom_notes)";
         }
 
         internal static string select_symtoms_list()
         {
-            return $@"select a.symptoms_id, a.patient_enrollment_id, a.symptoms_type_id, b.symptoms_type, a.custom_symptom_text, a.symptom_start_datetime, a.symptom_end_datetime, a.symptom_notes, a.created_by, a.created_datetime, a.is_active,b.symptoms_type_id, b.symptoms_type
+            return $@"select a.symptoms_id, a.patient_enrollment_id, a.symptoms_type_id, b.symptoms_type, a.activity_type_id, c.activity_type, a.custom_symptom_text, a.symptom_start_datetime, a.symptom_end_datetime, a.symptom_notes, a.created_by, a.created_datetime, a.is_active,b.symptoms_type_id, b.symptoms_type
                       from {Tbl.symptoms} as a 
                       left join {Tbl.symptoms_type} as b
                         on a.symptoms_type_id = b.symptoms_type_id
+                      left join {Tbl.patient_activity_type} as c
+                        on a.activity_type_id = c.activity_type_id
                     where (@patient_enrollment_id = 0 or a.patient_enrollment_id = @patient_enrollment_id) and a.is_active = 1";
         }
         #endregion
@@ -585,12 +589,53 @@ namespace elr_API.DTO.ReqDTO
         public bool is_active { get; set; }
 
         #region Query
+        //internal static string insert_raw_data()
+        //{
+        //    return $@"INSERT INTO {Tbl.enrollment_raw_data} 
+        //          (patient_enrollment_id, data_start,data_end,file_path,battery_percentage,auto_check_status, waiting_datetime, created_by) 
+        //       VALUES(@patient_enrollment_id, @data_start,@data_end,@file_path,@battery_percentage,@auto_check_status, getdate(), @created_by)";
+
+        //}
+
         internal static string insert_raw_data()
         {
-            return $@"INSERT INTO {Tbl.enrollment_raw_data} 
-                  (patient_enrollment_id, data_start,data_end,file_path,battery_percentage,auto_check_status, waiting_datetime, created_by) 
-               VALUES(@patient_enrollment_id, @data_start,@data_end,@file_path,@battery_percentage,@auto_check_status, getdate(), @created_by)";
+            return $@"
+                    IF NOT EXISTS
+                    (
+                        SELECT 1
+                        FROM {Tbl.enrollment_raw_data} WITH (UPDLOCK, HOLDLOCK)
+                        WHERE patient_enrollment_id = @patient_enrollment_id
+                          AND file_path = @file_path
+                          AND is_active = 1
+                    )
+                    BEGIN
+                        INSERT INTO {Tbl.enrollment_raw_data}
+                        (
+                            patient_enrollment_id,
+                            data_start,
+                            data_end,
+                            file_path,
+                            battery_percentage,
+                            auto_check_status,
+                            waiting_datetime,
+                            created_by
+                        )
+                        VALUES
+                        (
+                            @patient_enrollment_id,
+                            @data_start,
+                            @data_end,
+                            @file_path,
+                            @battery_percentage,
+                            @auto_check_status,
+                            GETDATE(),
+                            @created_by
+                        );
 
+                        SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
+                    END
+                    ELSE
+                        SELECT CAST(0 AS BIGINT);";
         }
 
         //internal static string GetWaitingRecords()
@@ -673,5 +718,227 @@ namespace elr_API.DTO.ReqDTO
 
         #endregion
 
+    }
+
+
+    public class PatientAuthorisedConsentDTO
+    {
+        public long patient_authorised_consent_id { get; set; }
+        public string authorised_notes { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+
+        #region Query 
+        internal static string insert_patient_authorised_consent()
+        {
+            return $@"INSERT INTO {Tbl.patient_authorised_consent_mast} (authorised_notes, created_by) VALUES (@authorised_notes, @created_by)";
+        }
+
+        internal static string select_patient_authorised_consent()
+        {
+            return $@"SELECT count(*) as totalCount FROM {Tbl.patient_authorised_consent_mast} WHERE is_active = 1;
+                    SELECT patient_authorised_consent_id, authorised_notes, created_by, created_datetime, modified_by, modified_datetime, is_active FROM {Tbl.patient_authorised_consent_mast} WHERE is_active = 1";
+        }
+
+        internal static string update_patient_authorised_consent()
+        {
+            return $@"UPDATE {Tbl.patient_authorised_consent_mast} SET authorised_notes = @authorised_notes, modified_by = @modified_by, modified_datetime = GETDATE(), is_active = @is_active WHERE patient_authorised_consent_id = @patient_authorised_consent_id";
+        }
+
+        internal static string select_patient_authorised_consent_trans()
+        {
+            return $@"
+                      SELECT count(*) as totalCount
+                    FROM tbl_patient_authorised_consent_trans as pact
+                    Inner join tbl_patient_authorised_consent_mast as pacm
+                    on pacm.patient_authorised_consent_id =pact.patient_authorised_consent_id
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND is_active = 1;
+
+                   SELECT pacm.patient_authorised_consent_id, pacm.authorised_notes
+                    FROM tbl_patient_authorised_consent_trans as pact
+                    Inner join tbl_patient_authorised_consent_mast as pacm
+                    on pacm.patient_authorised_consent_id =pact.patient_authorised_consent_id
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND is_active = 1";
+        }
+        #endregion
+    }
+
+
+    public class PatientAuthorisedConsentTransDTO
+    {
+        public long patient_authorised_consent_trans_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public List<long> patient_authorised_consent_ids { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+        public bool withdraw { get; set; } = false;
+
+        #region Query 
+        internal static string check_patient_authorised_consent_trans()
+        {
+            return $@"
+                    SELECT *
+                    FROM tbl_patient_authorised_consent_trans
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND patient_authorised_consent_id = @patient_authorised_consent_id
+                    AND is_active = 1";
+        }
+
+        internal static string insert_patient_authorised_consent_trans()
+        {
+            return $@" INSERT INTO tbl_patient_authorised_consent_trans ( patient_enrollment_id, patient_authorised_consent_id)
+                       VALUES( @patient_enrollment_id, @patient_authorised_consent_id)";
+        }
+        internal static string update_patient_authorised_consent_trans()
+        {
+            return $@"
+                    UPDATE tbl_patient_authorised_consent_trans
+                    SET
+                        is_active = 0,
+                        modified_datetime = GETDATE()
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND is_active = 1
+                    AND patient_authorised_consent_id NOT IN @patient_authorised_consent_ids";
+        }
+        internal static string deactivate_all_patient_authorised_consent_trans()
+        {
+            return $@"
+                    UPDATE tbl_patient_authorised_consent_trans
+                    SET
+                        is_active = 0,
+                        modified_datetime = GETDATE()
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND is_active = 1";
+        }
+
+        internal static string patient_enrollment_withdraw_status()
+        {
+            return $@"
+                    UPDATE tbl_patient_enrollment
+                    SET
+                       enrollment_status = 'withdraw',
+                        modified_datetime = GETDATE()
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND is_active = 1";
+        }
+
+        #endregion
+    }
+
+
+
+
+    public class PatientGuardianDTO
+    {
+        public long patient_guardianship_id { get; set; }
+        public long patient_enrollment_id { get; set; }
+        public string guardian_name { get; set; }
+        public string guardian_father_name { get; set; }
+        public DateTime? guardian_dob { get; set; }
+        public string file_path { get; set; }
+        public IFormFile? file_name { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+
+        #region Query
+        internal static string insert_patient_guardian()
+        {
+            return $@"INSERT INTO {Tbl.patient_guardianship} (patient_enrollment_id, guardian_name, guardian_father_name, guardian_dob, file_path) VALUES (@patient_enrollment_id, @guardian_name, @guardian_father_name, @guardian_dob, @file_path)";
+        }
+        internal static string deactivate_patient_guardian()
+        {
+            return $@" UPDATE {Tbl.patient_guardianship}
+                        SET is_active = 0,
+                            modified_datetime = GETDATE()
+                        WHERE patient_enrollment_id = @patient_enrollment_id
+                        AND is_active = 1;";
+        }
+
+
+        internal static string select_patient_guardian()
+        {
+            return $@"SELECT TOP 1 *
+                        FROM {Tbl.patient_guardianship}
+                        WHERE patient_enrollment_id = @patient_enrollment_id
+                        AND is_active = 1;";
+        }
+        #endregion
+    }
+
+
+
+
+    public class PatientEnrollmentPauseDTO
+    {
+        public long patient_enrollment_id { get; set; }
+        public int? pause_duration_minutes { get; set; }
+        public DateTime? pause_datetime { get; set; }
+        public string? pause_reason { get; set; }
+        public DateTime? resume_datetime { get; set; }
+        public string? resume_remarks { get; set; }
+        public bool is_resume { get; set; } = false;
+
+        #region Query
+        internal static string check_patient_enrollment_monitoring()
+        {
+            return $@"
+                    SELECT COUNT(1)
+                    FROM tbl_patient_enrollment
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND enrollment_status = 'monitoring'
+                    AND is_active = 1;";
+        }
+        internal static string check_patient_enrollment_pause()
+        {
+            return $@"
+                    SELECT TOP 1 patient_enrollment_pause_trans_id
+                    FROM tbl_patient_enrollment_pause_trans
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND resume_datetime IS NULL
+                    ORDER BY patient_enrollment_pause_trans_id DESC";
+        }
+
+        internal static string insert_patient_enrollment_pause()
+        {
+            return $@" INSERT INTO tbl_patient_enrollment_pause_trans
+                        (
+                            patient_enrollment_id,
+                            pause_datetime,
+                            pause_duration_minutes,
+                            pause_reason
+                        )
+                        VALUES
+                        (
+                            @patient_enrollment_id,
+                            @pause_datetime,
+                            @pause_duration_minutes,
+                            @pause_reason
+                        );";
+        }
+        internal static string update_patient_enrollment_resume()
+        {
+            return $@"
+                    UPDATE tbl_patient_enrollment_pause_trans
+                    SET
+                        resume_datetime = @resume_datetime,
+                        resume_remarks = @resume_remarks,
+                        modified_datetime = GETDATE()
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                    AND resume_datetime IS NULL;";
+        }
+
+        #endregion
     }
 }

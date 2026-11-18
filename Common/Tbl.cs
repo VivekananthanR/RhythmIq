@@ -24,6 +24,7 @@
         public static readonly string test_mast = "tbl_test_mast";
         public static readonly string test_prices = "tbl_test_prices";
         public static readonly string symptoms_type = "tbl_symptoms_type";
+        public static readonly string patient_activity_type = "tbl_patient_activity_type";
         public static readonly string symptoms = "tbl_symptoms";
 
         public static readonly string enrollment_raw_data = "tbl_enrollment_raw_data";
@@ -42,5 +43,8 @@
         public static readonly string report_assigned = "tbl_report_assigned";
         public static readonly string activity_log = "tbl_activity_log";
         public static readonly string activity_log_finding = "tbl_activity_log_finding";
+        public static readonly string patient_authorised_consent_mast = "tbl_patient_authorised_consent_mast";
+        public static readonly string patient_authorised_consent_trans = "tbl_patient_authorised_consent_trans";
+        public static readonly string patient_guardianship = "tbl_patient_guardianship";
     }
 }

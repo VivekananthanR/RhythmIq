@@ -551,8 +551,13 @@ namespace elr_API.Service.Home_manager
             try
             {
                 query = SymtomsTypeDTO.select_symptoms_List();
-                var data = await _db.SelectQuery<SymtomsTypeDTO>(query, null, ELR_db);
-                return new ResponseDTO(data);
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, SymtomsTypeDTO>(query, null, ELR_db);
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data
+                };
+                return new ResponseDTO(response);
             }
             catch (Exception ex)
             {
@@ -860,6 +865,58 @@ namespace elr_API.Service.Home_manager
             }
             return new ResponseDTO(false, ErrorMessage);
         }
+
+
+        public async Task<ResponseDTO> ElrAddUpdatePatientActivityType(PatientActivityTypeDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+                if (obj.activity_type_id == 0) query = PatientActivityTypeDTO.insert_patient_activity_type();
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = PatientActivityTypeDTO.update_patient_activity_type();
+                }
+                var changed = await _db.Execute(query, obj, ELR_db);
+
+                return new ResponseDTO(changed > 0, changed > 0 ? (obj.activity_type_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
+        public async Task<ResponseDTO> ElrPatientActivityTypeList()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = PatientActivityTypeDTO.select_patient_activity_type_List();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, PatientActivityTypeDTO>(query, null, ELR_db);
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
 
         public async Task<ResponseDTO> ElrGetNextEvent(long emp_id)
         {

@@ -232,10 +232,29 @@ namespace elr_API.Controllers.Home_manager
         }
         #endregion
 
+        #region HttpPost = api/Home/ElrAddUpdatePatientActivityType
+        [HttpPost("ElrAddUpdatePatientActivityType"), Authorize]
+        public async Task<ActionResult<ResponseDTO>> ElrAddUpdatePatientActivityType([FromHeader] string authorization, PatientActivityTypeDTO obj)
+        {
+            TokenClaims tokenClaims = Validation.ClaimValues(authorization);
+            obj.created_by = tokenClaims.id;
+            return await _homeService.ElrAddUpdatePatientActivityType(obj);
+        }
+        #endregion
+
+
+        #region HttpGet = api/Home/ElrPatientActivityTypeList
+        [HttpGet("ElrPatientActivityTypeList")]
+        public async Task<ActionResult<ResponseDTO>> ElrPatientActivityTypeList()
+        {
+            return await _homeService.ElrPatientActivityTypeList();
+        }
+        #endregion
+
 
         #region HttpGet = api/Home/ElrSymtomsTypeList
         [HttpGet("ElrSymtomsTypeList")]
-        public async Task<ResponseDTO> ElrSymtomsTypeList()
+        public async Task<ActionResult<ResponseDTO>> ElrSymtomsTypeList()
         {
             return await _homeService.ElrSymtomsTypeList();
         }

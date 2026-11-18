@@ -401,6 +401,7 @@ namespace elr_API.Service.Enrolment
                 {
                     query = SymtomsDTO.insert_symtoms();
                     var result = await _db.Execute(query, obj, ELR_db);
+
                     return new ResponseDTO(result > 0, result > 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Failed);
                 }
 
@@ -495,10 +496,11 @@ namespace elr_API.Service.Enrolment
             }
             return new ResponseDTO(false, ErrorMessage);
         }
-        public async Task<PatientEnrollmentStatusDTO> ElrCheckPatientDetails(string phone_no)
+        public async Task<RequestPatientEnrollmentResDTO> ElrCheckPatientDetails(string phone_no)
         {
             string query = PatientEnrollmentStatusDTO.is_not_completed_enrollment_patient();
-            return (await _db.SelectQuery<PatientEnrollmentStatusDTO>(query, new { phone_no = phone_no }, ELR_db)).FirstOrDefault();
+            var dat = (await _db.SelectQuery<RequestPatientEnrollmentResDTO>(query, new { phone_no = phone_no }, ELR_db)).FirstOrDefault();
+            return dat;
         }
 
         public async Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj)
@@ -516,7 +518,7 @@ namespace elr_API.Service.Enrolment
 
                 var is_not_complete = await ElrCheckPatientDetails(data.patient_ph_number);
 
-                if (is_not_complete != null)
+                if (is_not_complete != null && (is_not_complete.enrollment_status == "completed" || is_not_complete.enrollment_status == "withdraw"))
                 {
                     if (obj.patient_enrollment_id == 0) query = PatientEnrollmentDTO.insert_enrollment();
                     else
@@ -529,7 +531,7 @@ namespace elr_API.Service.Enrolment
                     return new ResponseDTO(a > 0, a > 0 ? (obj.patient_enrollment_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
 
                 }
-                return new ResponseDTO(false, $"Enrollment already exists for this  mobile number - {is_not_complete.patient_enrollment_id}.");
+                return new ResponseDTO(false, $"Enrollment already exists for this  mobile number.Enrollment Id: {is_not_complete.patient_enrollment_id}");
             }
             catch (Exception ex)
             {
@@ -552,7 +554,7 @@ namespace elr_API.Service.Enrolment
                 if (obj.file_name != null && obj.file_name.Length > 0)
                 {
                     var extention = Path.GetExtension(obj.file_name.FileName).ToLowerInvariant();
-                    //if (extention != ".json") return new ResponseDTO(false, "Only JSON files are allowed.");
+                    if (extention != ".edf") return new ResponseDTO(false, "Only edf files are allowed.");
 
                     var fileName = $"{obj.file_name.FileName}";
 
@@ -564,38 +566,26 @@ namespace elr_API.Service.Enrolment
                 }
                 if (obj.enrollment_raw_data_id == 0)
                 {
-                    obj.waiting_datetime = DateTime.Now;
-
                     obj.auto_check_status = "waiting";
 
                     query = EnrollmentRawDataDTO.insert_raw_data();
 
                     long enrollmentRawDataId = await _db.ExecuteAndGetId(query, obj, ELR_db);
 
-                    if (enrollmentRawDataId <= 0) return new ResponseDTO(false, ResponseMessage.Failed);
+                    if (enrollmentRawDataId == 0)
+                    {
+                        return new ResponseDTO(false, "File already uploaded.");
+                    }
+                    if (enrollmentRawDataId <= 0)
+                    {
+                        return new ResponseDTO(false, "Failed to save enrollment raw data.");
+                    }
 
                     query = DeviceResDTO.get_assigned_device_by_enrollment();
 
                     var deviceData = (await _db.SelectQuery<DeviceResDTO>(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db)).FirstOrDefault();
 
                     if (deviceData == null || deviceData.device_id <= 0) return new ResponseDTO(false, $"Assigned device not found for patient enrollment id {obj.patient_enrollment_id}.");
-
-                    //query = DeviceAssignmentResDTO.insert_device_assignment_history();
-
-                    //int assignmentRow = await _db.Execute(
-                    //    query,
-                    //    new
-                    //    {
-                    //        device_id = deviceData.device_id,
-                    //        emp_id = deviceData.current_emp_id,
-                    //        patient_enrollment_id = obj.patient_enrollment_id,
-                    //        assignment_status = "processing",
-                    //        remarks = "Enrollment raw data uploaded and processing started",
-                    //        created_by = obj.created_by
-                    //    },
-                    //    ELR_db);
-
-                    //if (assignmentRow <= 0) return new ResponseDTO(false, "Raw data uploaded but processing status failed.");
 
                     query = PatientEnrollmentDTO.monitoring_hookup_status();
                     int monitoringRow = await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
@@ -614,139 +604,119 @@ namespace elr_API.Service.Enrolment
         }
         public async Task ElrPhythonProcessEnrollmentRawData()
         {
-            string query = EnrollmentRawDataDTO.GetWaitingRecords();
-
-            var records = await _db.SelectQuery<EnrollmentRawDataDTO>(
-                query, null, ELR_db);
-
-            foreach (var item in records)
+            try
             {
-                try
-                {
-                    query = EnrollmentRawDataDTO.update_checking_status();
+                string query = EnrollmentRawDataDTO.GetWaitingRecords();
 
-                    var row = await _db.Execute(
-                        query,
-                        new
+                var records = await _db.SelectQuery<EnrollmentRawDataDTO>(
+                    query, null, ELR_db);
+
+                foreach (var item in records)
+                {
+                    try
+                    {
+                        // 1. Update checking status
+                        query = EnrollmentRawDataDTO.update_checking_status();
+
+                        var row = await _db.Execute(query, new
                         {
                             enrollment_raw_data_id = item.enrollment_raw_data_id
-                        },
-                        ELR_db);
+                        }, ELR_db);
 
-                    if (row == 0)
-                    {
-                        continue;
-                    }
+                        if (row == 0)
+                            continue;
 
-                    string physicalPath = Path.Combine(
-                        Directory.GetCurrentDirectory(),
-                        item.file_path);
+                        // 2. Get physical file path
+                        string physicalPath = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            item.file_path);
 
-                    if (!File.Exists(physicalPath))
-                    {
-                        await _db.Execute(
-                            EnrollmentRawDataDTO.update_waiting_status(),
-                            new
-                            {
-                                remarks = $"File not found: {physicalPath}",
-                                enrollment_raw_data_id = item.enrollment_raw_data_id
-                            },
-                            ELR_db);
-
-                        continue;
-                    }
-
-                    // Current flow accepts EDF / EDF+ only
-                    string extension = Path.GetExtension(physicalPath);
-
-                    if (!extension.Equals(".edf", StringComparison.OrdinalIgnoreCase)
-                        && !extension.Equals(".edf+", StringComparison.OrdinalIgnoreCase))
-                    {
-                        await _db.Execute(
-                            EnrollmentRawDataDTO.update_waiting_status(),
-                            new
-                            {
-                                remarks = $"Invalid file format. EDF/EDF+ expected: {physicalPath}",
-                                enrollment_raw_data_id = item.enrollment_raw_data_id
-                            },
-                            ELR_db);
-
-                        continue;
-                    }
-
-                    using var formData = new MultipartFormDataContent();
-                    using var fileStream = File.OpenRead(physicalPath);
-                    using var fileContent = new StreamContent(fileStream);
-
-                    fileContent.Headers.ContentType =
-                        new System.Net.Http.Headers.MediaTypeHeaderValue(
-                            "application/octet-stream");
-
-                    formData.Add(
-                        fileContent,
-                        "file",
-                        Path.GetFileName(physicalPath));
-
-                    formData.Add(
-                        new StringContent(item.patient_enrollment_id.ToString()),
-                        "patient_enrollment_id");
-
-                    formData.Add(
-                        new StringContent(item.enrollment_raw_data_id.ToString()),
-                        "enrollment_raw_data_id");
-
-                    using var client = _httpClientFactory.CreateClient();
-                    client.Timeout = TimeSpan.FromSeconds(30);
-
-                    var url = CommonFunctions.DataOnLive()
-                        ? _configuration["PythonApi:ProcessUrlLive"]
-                        : _configuration["PythonApi:ProcessUrlLocal"];
-
-
-
-                    using var response = await client.PostAsync(url, formData);
-                    string result = await response.Content.ReadAsStringAsync();
-
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        await _db.Execute(
-                            EnrollmentRawDataDTO.update_completed_status(),
-                            new
-                            {
-                                enrollment_raw_data_id = item.enrollment_raw_data_id
-                            },
-                            ELR_db);
-                    }
-                    else
-                    {
-                        await _db.Execute(
-                            EnrollmentRawDataDTO.update_waiting_status(),
-                            new
-                            {
-                                remarks = string.IsNullOrWhiteSpace(result)
-                                    ? $"Python API failed: HTTP {(int)response.StatusCode} - {response.ReasonPhrase}"
-                                    : result,
-                                enrollment_raw_data_id = item.enrollment_raw_data_id
-                            },
-                            ELR_db);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await _db.Execute(
-                        EnrollmentRawDataDTO.update_waiting_status(),
-                        new
+                        // 3. Check file exists
+                        if (!File.Exists(physicalPath))
                         {
-                            enrollment_raw_data_id = item.enrollment_raw_data_id
-                        },
-                        ELR_db);
+                            throw new Exception($"File not found: {physicalPath}");
+                        }
 
-                    CommonFunctions.ILogging(item, ex.ToString());
+                        // 4. Validate file extension
+                        string extension = Path.GetExtension(physicalPath);
+
+                        if (!extension.Equals(".edf", StringComparison.OrdinalIgnoreCase)
+                            && !extension.Equals(".edf+", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new Exception($"Invalid file format: {extension}");
+                        }
+
+                        // 5. Prepare multipart form data
+                        using var formData = new MultipartFormDataContent();
+                        using var fileStream = File.OpenRead(physicalPath);
+                        using var fileContent = new StreamContent(fileStream);
+
+                        fileContent.Headers.ContentType =
+                            new System.Net.Http.Headers.MediaTypeHeaderValue(
+                                "application/octet-stream");
+
+                        formData.Add(fileContent, "file", Path.GetFileName(physicalPath));
+
+                        formData.Add(
+                            new StringContent(item.patient_enrollment_id.ToString()),
+                            "patient_enrollment_id");
+
+                        formData.Add(
+                            new StringContent(item.enrollment_raw_data_id.ToString()),
+                            "enrollment_raw_data_id");
+
+                        // 6. Call Python API
+                        using var client = _httpClientFactory.CreateClient();
+                        client.Timeout = TimeSpan.FromSeconds(30);
+
+                        var url = CommonFunctions.DataOnLive()
+                            ? _configuration["PythonApi:ProcessUrlLive"]
+                            : _configuration["PythonApi:ProcessUrlLocal"];
+
+                        using var response = await client.PostAsync(url, formData);
+
+                        string result = await response.Content.ReadAsStringAsync();
+
+                        // 7. Update status based on response
+                        if (response.IsSuccessStatusCode)
+                        {
+                            await _db.Execute(
+                                EnrollmentRawDataDTO.update_completed_status(),
+                                new
+                                {
+                                    enrollment_raw_data_id = item.enrollment_raw_data_id
+                                },
+                                ELR_db);
+                        }
+                        else
+                        {
+                            throw new Exception(
+                                string.IsNullOrWhiteSpace(result)
+                                    ? $"Python API failed: HTTP {(int)response.StatusCode}"
+                                    : result);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // 8. Reset status to waiting
+                        await _db.Execute(
+                            EnrollmentRawDataDTO.update_waiting_status(),
+                            new
+                            {
+                                remarks = ex.Message,
+                                enrollment_raw_data_id = item.enrollment_raw_data_id
+                            },
+                            ELR_db);
+
+                        CommonFunctions.ILogging("", ex.ToString());
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+            }
         }
-
         //public async Task ElrPhythonProcessEnrollmentRawData()
         //{
         //    string query = string.Empty;
@@ -843,10 +813,6 @@ namespace elr_API.Service.Enrolment
         //    }
         //}
 
-
-
-
-
         public async Task<ResponseDTO> ElrGetRawDataList()
         {
             ErrorMessage = string.Empty;
@@ -873,6 +839,276 @@ namespace elr_API.Service.Enrolment
             catch (Exception ex)
             {
                 CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
+
+
+        public async Task<ResponseDTO> ElrAddUpdatePatientAuthorisedConsent(PatientAuthorisedConsentDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.patient_authorised_consent_id == 0)
+                {
+                    query = PatientAuthorisedConsentDTO.insert_patient_authorised_consent();
+                }
+                else
+                {
+                    obj.modified_by = obj.created_by;
+                    query = PatientAuthorisedConsentDTO.update_patient_authorised_consent();
+
+                }
+                int a = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(a > 0, a > 0 ? (obj.patient_authorised_consent_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+
+            return new ResponseDTO(false, ErrorMessage);
+
+        }
+
+        public async Task<ResponseDTO> ElrGetPatientAuthorisedConsent()
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                query = PatientAuthorisedConsentDTO.select_patient_authorised_consent();
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, PatientAuthorisedConsentDTO>(query, null, ELR_db);
+
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data
+                };
+
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrUpdateCheckPatientAuthorisedConsent(PatientAuthorisedConsentTransDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+
+                if (obj == null || obj.patient_authorised_consent_ids == null) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                if (obj.patient_authorised_consent_ids.Count == 0 && obj.withdraw == true)
+                {
+                    query = PatientAuthorisedConsentTransDTO.deactivate_all_patient_authorised_consent_trans();
+
+                    await _db.Execute(query, new
+                    {
+                        patient_enrollment_id = obj.patient_enrollment_id
+                    }, ELR_db);
+
+                    query = PatientAuthorisedConsentTransDTO.patient_enrollment_withdraw_status();
+                    await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
+                }
+                else
+                {
+                    if (obj.patient_authorised_consent_ids.Count == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                    foreach (var consentId in obj.patient_authorised_consent_ids.Distinct())
+                    {
+                        var param = new
+                        {
+                            patient_enrollment_id = obj.patient_enrollment_id,
+                            patient_authorised_consent_id = consentId
+                        };
+
+                        query = PatientAuthorisedConsentTransDTO.check_patient_authorised_consent_trans();
+
+                        var existingRecord = (await _db.SelectQuery<PatientAuthorisedConsentTransDTO>(query, param, ELR_db)).FirstOrDefault();
+
+                        if (existingRecord == null)
+                        {
+                            query = PatientAuthorisedConsentTransDTO.insert_patient_authorised_consent_trans();
+                            await _db.Execute(query, param, ELR_db);
+                        }
+                    }
+
+                    query = PatientAuthorisedConsentTransDTO.update_patient_authorised_consent_trans();
+
+                    await _db.Execute(query, new
+                    {
+                        patient_enrollment_id = obj.patient_enrollment_id,
+                        patient_authorised_consent_ids = obj.patient_authorised_consent_ids.Distinct().ToList()
+                    }, ELR_db);
+                }
+                return new ResponseDTO(true, "Patient Authorised Consent updated successfully");
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrUploadPatientGuardianDetails(PatientGuardianDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null || obj.patient_enrollment_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                string oldFilePath = string.Empty;
+                string newFilePath = string.Empty;
+
+                query = PatientGuardianDTO.select_patient_guardian();
+
+                var existing = (await _db.SelectQuery<PatientGuardianDTO>(query, obj, ELR_db)).FirstOrDefault();
+
+                if (existing != null)
+                {
+                    oldFilePath = existing.file_path;
+
+                    obj.file_path = oldFilePath;
+                }
+
+                if (obj.file_name != null && obj.file_name.Length > 0)
+                {
+                    var extension = Path.GetExtension(obj.file_name.FileName);
+
+                    var fileName = $"{obj.patient_enrollment_id}_{Guid.NewGuid()}{extension}";
+
+                    var folderName = CommonFunctions.FolderPath($"GuardianFiles\\{obj.patient_enrollment_id}");
+
+                    var path = await CommonFunctions.UploadFile(obj.file_name, fileName, folderName);
+
+                    newFilePath = path.Replace(Directory.GetCurrentDirectory() + "\\", "");
+
+                    obj.file_path = newFilePath;
+                }
+
+                if (existing != null)
+                {
+                    query = PatientGuardianDTO.deactivate_patient_guardian();
+
+                    await _db.Execute(query, obj, ELR_db);
+                }
+
+                query = PatientGuardianDTO.insert_patient_guardian();
+
+                int result = await _db.Execute(query, obj, ELR_db);
+
+                if (result > 0)
+                {
+                    if (!string.IsNullOrEmpty(oldFilePath) && !string.IsNullOrEmpty(newFilePath))
+                    {
+                        string fullOldPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), oldFilePath));
+
+                        if (File.Exists(fullOldPath))
+                        {
+                            File.Delete(fullOldPath);
+                        }
+                    }
+                    return new ResponseDTO(true, existing != null ? ResponseMessage.Updated_Successfully : ResponseMessage.Saved_Successfully);
+                }
+                return new ResponseDTO(false, ResponseMessage.Failed);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+
+        public async Task<ResponseDTO> ElrGetCheckPatientAuthorisedConsent(long patient_enrollment_id)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (patient_enrollment_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientAuthorisedConsentDTO.select_patient_authorised_consent_trans();
+
+                var (totalCount, data) = await _db.SelectQueryWithCount<long, PatientAuthorisedConsentDTO>(query, new { patient_enrollment_id = patient_enrollment_id }, ELR_db);
+
+                var response = new
+                {
+                    totalCount = totalCount,
+                    items = data
+                };
+                return new ResponseDTO(response);
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging("", ex.ToString());
+                ErrorMessage = ex.Message.ToString();
+            }
+            return new ResponseDTO(false, ErrorMessage);
+        }
+
+        public async Task<ResponseDTO> ElrPatientEnrollmentPause(PatientEnrollmentPauseDTO obj)
+        {
+            ErrorMessage = string.Empty;
+            string query = string.Empty;
+            try
+            {
+                if (obj == null || obj.patient_enrollment_id == 0) return new ResponseDTO(false, ResponseMessage.Invalid_Details);
+
+                query = PatientEnrollmentPauseDTO.check_patient_enrollment_monitoring();
+                var monitoringData = (await _db.SelectQuery<dynamic>(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db)).FirstOrDefault();
+
+                if (monitoringData == null)
+                {
+                    return new ResponseDTO(false, $"Patient enrollment id {obj.patient_enrollment_id} is not monitoring status.");
+                }
+
+                query = PatientEnrollmentPauseDTO.check_patient_enrollment_pause();
+                var pauseData = (await _db.SelectQuery<dynamic>(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db)).FirstOrDefault();
+
+                if (obj.is_resume)
+                {
+                    if (pauseData == null)
+                    {
+                        return new ResponseDTO(false, $"Patient enrollment id {obj.patient_enrollment_id} is not paused.");
+                    }
+
+                    query = PatientEnrollmentPauseDTO.update_patient_enrollment_resume();
+                    var result = await _db.Execute(query, obj, ELR_db);
+                    return new ResponseDTO(result > 0, result > 0 ? "Monitoring resumed successfully." : ResponseMessage.Failed);
+                }
+
+                if (pauseData != null)
+                {
+                    return new ResponseDTO(false, $"Patient enrollment id {obj.patient_enrollment_id} is already paused.");
+                }
+
+                query = PatientEnrollmentPauseDTO.insert_patient_enrollment_pause();
+
+                var resultInsert = await _db.Execute(query, obj, ELR_db);
+                return new ResponseDTO(resultInsert > 0, resultInsert > 0 ? "Monitoring paused successfully." : ResponseMessage.Failed);
+
+            }
+            catch (Exception ex)
+            {
+                CommonFunctions.ILogging(obj, ex.ToString());
                 ErrorMessage = ex.Message.ToString();
             }
             return new ResponseDTO(false, ErrorMessage);

@@ -505,7 +505,7 @@ namespace elr_API.DTO.ReqDTO
         #region Query
         internal static string select_symptoms_List()
         {
-            return $@"select * from {Tbl.symptoms_type}";
+            return $@"select COUNT(*) as totalCount from {Tbl.symptoms_type} where is_active = 1; select * from {Tbl.symptoms_type} where is_active = 1";
         }
         #endregion
     }
@@ -1519,7 +1519,31 @@ namespace elr_API.DTO.ReqDTO
         }
         #endregion
     }
-
+    public class PatientActivityTypeDTO
+    {
+        public long activity_type_id { get; set; }
+        public string activity_type { get; set; }
+        public long created_by { get; set; }
+        public DateTime? created_datetime { get; set; }
+        public long modified_by { get; set; }
+        public DateTime? modified_datetime { get; set; }
+        public bool is_active { get; set; }
+        #region Query
+        internal static string insert_patient_activity_type()
+        {
+            return $@"insert into {Tbl.patient_activity_type} (activity_type,created_by)
+                        values (@activity_type,@created_by)";
+        }
+        internal static string update_patient_activity_type()
+        {
+            return $@"update {Tbl.patient_activity_type} set activity_type = @activity_type, modified_by = @modified_by, modified_datetime = GETDATE() ,is_active = @is_active where activity_type_id = @activity_type_id";
+        }
+        internal static string select_patient_activity_type_List()
+        {
+            return $@" select count(*)as totalCount from {Tbl.patient_activity_type} WHERE is_active = 1; select activity_type_id, activity_type, created_by, created_datetime, modified_by, modified_datetime, is_active FROM {Tbl.patient_activity_type} WHERE is_active = 1";
+        }
+        #endregion
+    }
     public class FetchHistoryDTO
     {
         public long queued_events_records_id { get; set; }
