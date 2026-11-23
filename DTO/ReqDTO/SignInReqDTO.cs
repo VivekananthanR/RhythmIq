@@ -187,7 +187,8 @@ public class PatientEnrollmentStatusDTO
             ON m.patch_id = a.patch_id
 
         WHERE b.phone_no = @phone_no
-          AND b.is_active = 1
+          AND b.is_active = 1 
+          and a.is_active = 1
 
         ORDER BY a.created_datetime DESC";
     }

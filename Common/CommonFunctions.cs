@@ -13,8 +13,8 @@ namespace elr_API.Common
         #region live or local
         public static bool DataOnLive()
         {
-            return false;// If its Local
-            //return true;//If its Live      
+            //return false;// If its Local
+            return true;//If its Live      
         }
 
         #endregion

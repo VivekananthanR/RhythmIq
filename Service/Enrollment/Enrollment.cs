@@ -500,7 +500,7 @@ namespace elr_API.Service.Enrolment
         {
             string query = PatientEnrollmentStatusDTO.is_not_completed_enrollment_patient();
             var dat = (await _db.SelectQuery<RequestPatientEnrollmentResDTO>(query, new { phone_no = phone_no }, ELR_db)).FirstOrDefault();
-            return dat;
+            return dat ?? new RequestPatientEnrollmentResDTO();
         }
 
         public async Task<ResponseDTO> ElrAddUpdatePatientEnrollment(PatientEnrollmentDTO obj)

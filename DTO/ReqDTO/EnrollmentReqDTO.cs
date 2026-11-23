@@ -131,7 +131,7 @@ namespace elr_API.DTO.ReqDTO
 
         public long user_id { get; set; }
         public long patient_id { get; set; }
-        public string? patient_ph_number { get; set; }
+        public string patient_ph_number { get; set; }
         public long device_id { get; set; }
         public long patch_id { get; set; }
         public long referred_physician_id { get; set; }
