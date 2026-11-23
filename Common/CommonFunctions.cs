@@ -30,6 +30,7 @@ namespace elr_API.Common
             else
             {
                 return "Server=DESKTOP-S1C0QO9\\SQLEXPRESS;Initial Catalog=elr_db_29-09-2026; User Id=vivek_dev; Password=Healthwatch@123; Encrypt=False;";
+                //return "Server=tcp:host.docker.internal,1433; Initial Catalog = elr_db_29-09-2026; Persist Security Info = True; User ID = vivek_dev; Password = Healthwatch@123;Encrypt=False; TrustServerCertificate=True;";
 
             }
         }

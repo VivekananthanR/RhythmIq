@@ -757,14 +757,14 @@ namespace elr_API.DTO.ReqDTO
                     Inner join tbl_patient_authorised_consent_mast as pacm
                     on pacm.patient_authorised_consent_id =pact.patient_authorised_consent_id
                     WHERE patient_enrollment_id = @patient_enrollment_id
-                    AND is_active = 1;
+                    AND pact.is_active = 1;
 
-                   SELECT pacm.patient_authorised_consent_id, pacm.authorised_notes
+                   SELECT pacm.patient_authorised_consent_id, pacm.authorised_notes,pact.is_active,pact.created_datetime
                     FROM tbl_patient_authorised_consent_trans as pact
                     Inner join tbl_patient_authorised_consent_mast as pacm
                     on pacm.patient_authorised_consent_id =pact.patient_authorised_consent_id
                     WHERE patient_enrollment_id = @patient_enrollment_id
-                    AND is_active = 1";
+                    AND pact.is_active = 1";
         }
         #endregion
     }
