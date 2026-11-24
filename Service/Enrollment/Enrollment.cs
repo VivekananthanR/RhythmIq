@@ -518,7 +518,7 @@ namespace elr_API.Service.Enrolment
 
                 var is_not_complete = await ElrCheckPatientDetails(data.patient_ph_number);
 
-                if (is_not_complete != null && (is_not_complete.enrollment_status == "completed" || is_not_complete.enrollment_status == "withdraw"))
+                if (is_not_complete.patient_enrollment_id == 0 || is_not_complete.enrollment_status == "completed" || is_not_complete.enrollment_status == "withdraw")
                 {
                     if (obj.patient_enrollment_id == 0) query = PatientEnrollmentDTO.insert_enrollment();
                     else
@@ -531,7 +531,7 @@ namespace elr_API.Service.Enrolment
                     return new ResponseDTO(a > 0, a > 0 ? (obj.patient_enrollment_id == 0 ? ResponseMessage.Saved_Successfully : ResponseMessage.Updated_Successfully) : ResponseMessage.Failed);
 
                 }
-                return new ResponseDTO(false, $"Enrollment already exists for this  mobile number.Enrollment Id: {is_not_complete.patient_enrollment_id}");
+                return new ResponseDTO(false, $"Enrollment already exists for this mobile number.Enrollment Id: {is_not_complete.patient_enrollment_id}");
             }
             catch (Exception ex)
             {

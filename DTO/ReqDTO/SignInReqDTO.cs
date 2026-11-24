@@ -114,7 +114,7 @@ public class PatientEnrollmentStatusDTO
     internal static string is_not_completed_enrollment_patient()
     {
         return $@"
-        SELECT TOP 1
+        SELECT 
             a.patient_enrollment_id,
             a.enrollment_status,
             a.payment_status,
