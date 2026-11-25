@@ -921,8 +921,20 @@ namespace elr_API.Service.Enrolment
                         patient_enrollment_id = obj.patient_enrollment_id
                     }, ELR_db);
 
+
                     query = PatientAuthorisedConsentTransDTO.patient_enrollment_withdraw_status();
-                    await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
+                    int statusChanged = await _db.Execute(query, new { patient_enrollment_id = obj.patient_enrollment_id }, ELR_db);
+
+                    if (statusChanged > 0)
+                    {
+                        query = PatientAuthorisedConsentTransDTO.update_inactive_patient_enrollment();
+
+                        await _db.Execute(query, new
+                        {
+                            patient_enrollment_id = obj.patient_enrollment_id
+                        }, ELR_db);
+                    }
+
                 }
                 else
                 {

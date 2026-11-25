@@ -28,7 +28,7 @@ namespace elr_API.Service.Background_services
                     await db.Execute(PatientReportDTO.create_24_hours_report(), null, ELR_db);
 
                     // Create Final Report
-                    await db.Execute(PatientReportDTO.create_final_report(), null, ELR_db);
+                    //await db.Execute(PatientReportDTO.create_final_report(), null, ELR_db);
                 }
                 catch (Exception ex)
                 {

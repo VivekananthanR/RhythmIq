@@ -831,6 +831,26 @@ namespace elr_API.DTO.ReqDTO
                     AND is_active = 1";
         }
 
+        internal static string update_inactive_patient_enrollment()
+        {
+            return $@"
+                    UPDATE tbl_enrollment_raw_data
+                    SET is_active = 0
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                      AND is_active = 1;
+
+                    UPDATE tbl_patient_base_line
+                    SET is_active = 0
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                      AND is_active = 1;
+
+                    UPDATE tbl_queued_events_records
+                    SET is_active = 0
+                    WHERE patient_enrollment_id = @patient_enrollment_id
+                      AND is_active = 1;
+                ";
+        }
+
         #endregion
     }
 
